@@ -10,3 +10,8 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# others
+/bak
+/doc/latex
+rdrr_test1.go
