@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"path/filepath"
 
@@ -39,12 +38,7 @@ func (t *TEM) New(fp string) {
 
 func (t *TEM) loadUHDEM(fp string) {
 	// load file
-	var err error
-	b, err := ioutil.ReadFile(fp)
-	if err != nil {
-		log.Fatalf("Fatal error: loadUHDEM failed: %v\n", err)
-	}
-	buf := bytes.NewReader(b)
+	buf := mmio.OpenBinary(fp)
 
 	// check file type
 	switch mmio.ReadString(buf) {
@@ -137,7 +131,7 @@ type fpReader struct {
 func (f *fpReader) fpRead(b *bytes.Reader) {
 	err := binary.Read(b, binary.LittleEndian, f)
 	if err != nil {
-		log.Fatalln("Fatal error: fpRead failed", err)
+		log.Fatalln("Fatal error: fpRead failed: ", err)
 	}
 	if f.Nds != 1 {
 		log.Fatalln("Fatal error: fpRead only support singular downslope IDs (i.e., tree-graph topology only).", err)
