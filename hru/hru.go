@@ -8,33 +8,8 @@ const (
 	deficitPoreWater
 )
 
-// params : parameter set
-type params struct {
-	fimp float32
-	fc   float32
-	perc float32
-}
-
-// res : simple linear reservoir
-type res struct {
-	sto float32
-	cap float32
-}
-
-func (r *res) overflow(p float32) float32 {
-	r.sto += p
-	if r.sto < 0 {
-		d := r.sto
-		r.sto = 0.0
-		return d
-	} else if r.sto > r.cap {
-		d := r.cap - r.sto
-		r.sto = r.cap
-		return d
-	} else {
-		return 0.0
-	}
-}
+// Basin set of HRUs
+type Basin map[int]HRU
 
 // HRU : the Hydrologic Response Unit
 type HRU struct {
@@ -44,16 +19,16 @@ type HRU struct {
 }
 
 // Initialize : HRU constructor
-func (h *HRU) Initialize(cap, fimp, fc, ksat, ts float32) {
+func (h *HRU) Initialize(cap, fimp, fc, ksat, ts float64) {
 	h.sma.sto = 0.0
 	h.sma.cap = cap
 	h.par.fimp = fimp
 	h.par.fc = fc
-	h.par.perc = ts * (1.0 - fimp) * ksat // gravity-driven percolation rate m/6hr
+	h.par.perc = ts * (1.0 - fimp) * ksat // gravity-driven percolation rate m/ts
 }
 
 // Update : hru given a set of forcings
-func (h *HRU) Update(p, pet float32) (aet, ro, rch float32) {
+func (h *HRU) Update(p, pet float64) (aet, ro, rch float64) {
 	ro = h.sma.overflow(p)
 	aet = h.sma.overflow(-pet)
 	rch = h.sma.overflow(-h.par.perc)
