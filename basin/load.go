@@ -41,8 +41,7 @@ type MDL struct {
 }
 
 // NewLoader returns a default Loader
-func NewLoader() *Loader {
-	rootdir := "C:/Users/mason/Desktop/ormgp_rdrr/"
+func NewLoader(rootdir string, outlet int) *Loader {
 	// lout := Loader{
 	// 	indir: "C:/Users/mason/Desktop/ormgp_rdrr/",
 	// 	gdfn:  "ORMGP_50_hydrocorrect.uhdem.gdef",
@@ -59,7 +58,7 @@ func NewLoader() *Loader {
 		gdfn:   "ORMGP_500_hydrocorrect.uhdem.gdef",
 		lufn:   "ORMGP_500_hydrocorrect_SOLRISv2_ID.grd",
 		sgfn:   "ORMGP_500_hydrocorrect_PorousMedia_ID.grd",
-		outlet: 127669, // 128667, //-1: from .met index, 0: no outlet, >0: outlet cell ID
+		outlet: outlet, //127669, // 128667, //-1: from .met index, 0: no outlet, >0: outlet cell ID
 	}
 	lout.check()
 	return &lout
