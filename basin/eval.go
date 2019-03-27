@@ -11,6 +11,8 @@ import (
 	"github.com/maseology/objfunc"
 )
 
+const nearzero = 1e-10
+
 // eval evaluates (runs) the basin model with cascade
 func (b *Basin) evalCasc(p *sample) float64 {
 	nstep := b.frc.h.Nstep()
@@ -113,12 +115,12 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 
 	// run model
 	dtb, dte, intvl := b.frc.h.BeginEndInterval()
-	cascfrac := 1.
+	cascfrac := p.f1
 	for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
 		// fmt.Println(d)
 		v := b.frc.c[d]
 		gwlast, rcnt := p.gw.Dm, 0.
-		wbal, asum, rsum, csum, xsum, gsum, ssum, slsum := 0., 0., 0., 0., 0., 0., 0., 0.
+		wbsum, asum, rsum, csum, xsum, gsum, ssum, slsum := 0., 0., 0., 0., 0., 0., 0., 0.
 		for _, c := range b.cids {
 			slast := p.bsn[c].Storage() + lag[c] // initial HRU storage
 			csum += lag[c]                       // sum runon
@@ -150,13 +152,18 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 			} else {
 				lag[b.ds[c]] += r * cascfrac
 			}
-			lag[c] += r * (1. - cascfrac) // retention
+			lag[c] = r * (1. - cascfrac) // retention
 			s := p.bsn[c].Storage() + lag[c]
-			wbal += v[met.AtmosphericYield] - di + slast - (s + g + a + r*cascfrac)
-			if r > 0. {
-				fmt.Println(c, b.ds[c], lag[b.ds[c]])
-				// println("asdf")
+			wbal := v[met.AtmosphericYield] - di + slast - (s + g + a + r*cascfrac)
+			if math.Abs(wbal) > nearzero {
+				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ro: %.5f\n", v[met.AtmosphericYield], -di, s, slast, a, g, r*cascfrac)
+				log.Fatalf(" cell %d: water-balance error, |wbal| = %.5e m", c, math.Abs(wbal))
 			}
+			wbsum += wbal
+			// if r > 0. {
+			// 	fmt.Println(c, b.ds[c], lag[b.ds[c]])
+			// 	// println("asdf")
+			// }
 			ssum += s
 		}
 		ssum /= b.fncid
@@ -175,14 +182,14 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 		}
 		slag /= b.fncid
 
-		wbal /= b.fncid
-		if math.Abs(wbal) > 1e-10 {
+		wbsum /= b.fncid
+		if math.Abs(wbsum) > nearzero {
 			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.m)
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])
-			log.Fatalf(" hru water-balance error, |wbal| = %.5e m", math.Abs(wbal))
+			log.Fatalf(" (integrated) hru water-balance error, |wbsum| = %.5e m", math.Abs(wbsum))
 		}
 		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum - (-p.gw.Dm + ssum + asum + rsum + slag)
-		if math.Abs(wbalBasin) > 1e-10 && math.Log10(p.gw.Dm) < 5. {
+		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw.Dm) < 5. {
 			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.m)
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])
 			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f  wbal: % .2e\n", slsum, ssum, gwlast, p.gw.Dm, wbalBasin)
@@ -259,12 +266,12 @@ func (b *Basin) evalNoCascWB(p *sample, print bool) (of float64) {
 		bf := p.gw.Update(gsum) / b.contarea // unit baseflow ([m³/ts] to [m/ts])
 		rsum += bf
 
-		if math.Abs(wbal/b.fncid) > 1e-10 {
+		if math.Abs(wbal/b.fncid) > nearzero {
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
 			log.Fatalf(" hru water-balance error, |wbal| = %.3e m", math.Abs(wbal))
 		}
 		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum - (-p.gw.Dm + ssum + asum + rsum)
-		if math.Abs(wbalBasin) > 1e-10 && math.Log10(p.gw.Dm) < 5. {
+		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw.Dm) < 5. {
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
 			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gw: %.5f  wbal: % .2e\n", slsum, ssum, gwlast, p.gw.Dm, wbalBasin)
 			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.m)

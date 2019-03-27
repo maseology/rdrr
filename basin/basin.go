@@ -21,10 +21,10 @@ type sample struct {
 	bsn hru.Basin
 	gw  gwru.TMQ
 	// tem  tem.TEM
-	rill, m float64
+	rill, m, f1 float64
 }
 
-func (b *Basin) toSample(rill, m float64) sample {
+func (b *Basin) toSample(rill, m, f1 float64) sample {
 	h := make(map[int]*hru.HRU, b.ncid)
 	for i, v := range b.mdl.b {
 		hnew := *v
@@ -36,11 +36,12 @@ func (b *Basin) toSample(rill, m float64) sample {
 		gw:   b.mdl.g.Clone(m),
 		rill: rill,
 		m:    m,
+		f1:   f1,
 	}
 }
 
 // Run a single simulation with water balance checking
-func Run(ldr *Loader, rill, m float64) float64 {
+func Run(ldr *Loader, rill, m, f1 float64) float64 {
 	frc, mdl := ldr.load(1.)
 	mdl.t = mdl.t.SubSet(ldr.outlet)
 	cids, ds := mdl.t.DownslopeContributingAreaIDs(ldr.outlet) // mdl.t.ContributingAreaIDs(ldr.outlet)
@@ -55,7 +56,7 @@ func Run(ldr *Loader, rill, m float64) float64 {
 		fncid:    fncid,
 		contarea: mdl.a * fncid, // basin contributing area [m²]
 	}
-	smpl := b.toSample(rill, m)
+	smpl := b.toSample(rill, m, f1)
 	for _, c := range b.cids {
 		if smpl.bsn[c] == nil {
 			log.Fatalln(" basin.Run() error: nil hru")
