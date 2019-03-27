@@ -34,19 +34,20 @@ func Optimize(ldr *Loader) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
+	ver := b.evalCascWB
 
 	gen := func(u []float64) float64 {
 		p0 := t0(u[0]) // rill storage
 		p1 := t1(u[1]) // topmodel m
 		smpl := b.toSample(p0, p1)
-		return b.evalWB(&smpl, false)
+		return ver(&smpl, false)
 	}
 	fmt.Println(" optimizing..")
 	uFinal, _ := glbopt.SCE(16, 2, rng, gen, true)
 
-	p0 := mmaths.LogLinearTransform(0.001, .1, uFinal[0])  // rill storage
-	p1 := mmaths.LogLinearTransform(0.001, 10., uFinal[1]) // topmodel m
+	p0 := t0(uFinal[0]) // rill storage
+	p1 := t1(uFinal[1]) // topmodel m
 	fmt.Printf("\nfinal parameters: %v\n", []float64{p0, p1})
 	final := b.toSample(p0, p1)
-	b.evalWB(&final, true)
+	ver(&final, true)
 }

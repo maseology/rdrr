@@ -43,13 +43,13 @@ type MDL struct {
 // NewLoader returns a default Loader
 func NewLoader(rootdir string, outlet int) *Loader {
 	// lout := Loader{
-	// 	indir: "C:/Users/mason/Desktop/ormgp_rdrr/",
-	// 	gdfn:  "ORMGP_50_hydrocorrect.uhdem.gdef",
-	// 	metfp: "02EC018.met",
-	// 	temfn: "ORMGP_50_hydrocorrect.uhdem",
-	// 	lufn:  "ORMGP_50_hydrocorrect_SOLRISv2_ID.grd",
-	// 	sgfn:  "ORMGP_50_hydrocorrect_PorousMedia_ID.grd",
-	//  outlet: -1, // -1: from .met index, 0: no outlet, >0: outlet cell ID
+	// 	metfp:  rootdir + "02EC018.met",
+	// 	indir:  rootdir,
+	// 	gdfn:   "ORMGP_50_hydrocorrect.uhdem.gdef",
+	// 	temfn:  "ORMGP_50_hydrocorrect.uhdem",
+	// 	lufn:   "ORMGP_50_hydrocorrect_SOLRISv2_ID.grd",
+	// 	sgfn:   "ORMGP_50_hydrocorrect_PorousMedia_ID.grd",
+	// 	outlet: -1, // -1: from .met index, 0: no outlet, >0: outlet cell ID
 	// }
 	lout := Loader{
 		metfp:  rootdir + "02EC018.met",
@@ -246,5 +246,8 @@ func (l *Loader) load(m float64) (FRC, MDL) {
 		a: gd.CellArea(),
 	}
 
+	if l.outlet == -1 {
+		l.outlet = cid0
+	}
 	return frc, mdl
 }
