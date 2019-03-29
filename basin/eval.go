@@ -115,16 +115,19 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 
 	// run model
 	dtb, dte, intvl := b.frc.h.BeginEndInterval()
-	cascfrac := p.f1
 	for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
 		// fmt.Println(d)
 		v := b.frc.c[d]
-		gwlast, rcnt := p.gw.Dm, 0.
+		gwlast, slaglast := p.gw.Dm, 0.
+		for _, v := range lag {
+			slaglast += v
+		}
 		wbsum, asum, rsum, csum, xsum, gsum, ssum, slsum := 0., 0., 0., 0., 0., 0., 0., 0.
 		for _, c := range b.cids {
-			slast := p.bsn[c].Storage() + lag[c] // initial HRU storage
-			csum += lag[c]                       // sum runon
+			slast := p.bsn[c].Storage() // initial HRU storage
 			slsum += slast
+			laglast := lag[c] // runon + stored (mobile) water
+			csum += laglast
 			di := p.gw.GetDi(c)
 			if di < -p.rill { // saturation excess runoff (Di: groundwater deficit)
 				di += p.rill
@@ -145,18 +148,20 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 			}
 			asum += a
 			gsum += g
+			s := p.bsn[c].Storage()
+			wbal := v[met.AtmosphericYield] - di + slast + laglast - (s + g + a)
 			// cascade
 			if b.ds[c] == -1 {
-				rsum += r * cascfrac
-				rcnt++
+				rsum += r // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case p.fc[c]=0.
+				lag[c] = 0.
+				wbal -= r
 			} else {
-				lag[b.ds[c]] += r * cascfrac
+				lag[b.ds[c]] += r * p.fc[c]
+				lag[c] = r * (1. - p.fc[c]) // retention
+				wbal -= r*p.fc[c] + lag[c]
 			}
-			lag[c] = r * (1. - cascfrac) // retention
-			s := p.bsn[c].Storage() + lag[c]
-			wbal := v[met.AtmosphericYield] - di + slast - (s + g + a + r*cascfrac)
 			if math.Abs(wbal) > nearzero {
-				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ro: %.5f\n", v[met.AtmosphericYield], -di, s, slast, a, g, r*cascfrac)
+				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ro: %.5f\n", v[met.AtmosphericYield], -di, s, slast, a, g, r*p.fc[c])
 				log.Fatalf(" cell %d: water-balance error, |wbal| = %.5e m", c, math.Abs(wbal))
 			}
 			wbsum += wbal
@@ -169,7 +174,7 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 		ssum /= b.fncid
 		slsum /= b.fncid
 		asum /= b.fncid
-		rsum /= b.fncid //rcnt
+		rsum /= b.fncid
 		csum /= b.fncid
 		xsum /= b.fncid
 		gsum /= b.fncid
@@ -181,6 +186,7 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 			slag += v
 		}
 		slag /= b.fncid
+		slaglast /= b.fncid
 
 		wbsum /= b.fncid
 		if math.Abs(wbsum) > nearzero {
@@ -188,7 +194,7 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])
 			log.Fatalf(" (integrated) hru water-balance error, |wbsum| = %.5e m", math.Abs(wbsum))
 		}
-		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum - (-p.gw.Dm + ssum + asum + rsum + slag)
+		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum + slaglast - (-p.gw.Dm + ssum + asum + rsum + slag)
 		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw.Dm) < 5. {
 			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.m)
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])

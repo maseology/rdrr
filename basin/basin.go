@@ -13,31 +13,16 @@ type Basin struct {
 	mdl             *MDL
 	cids            []int
 	ds              map[int]int
+	ep              map[int][366]float64
 	contarea, fncid float64
 	ncid            int
 }
 
 type sample struct {
-	bsn hru.Basin
-	gw  gwru.TMQ
-	// tem  tem.TEM
-	rill, m, f1 float64
-}
-
-func (b *Basin) toSample(rill, m, f1 float64) sample {
-	h := make(map[int]*hru.HRU, b.ncid)
-	for i, v := range b.mdl.b {
-		hnew := *v
-		hnew.Reset()
-		h[i] = &hnew
-	}
-	return sample{
-		bsn:  h,
-		gw:   b.mdl.g.Clone(m),
-		rill: rill,
-		m:    m,
-		f1:   f1,
-	}
+	bsn     hru.Basin
+	gw      gwru.TMQ
+	fc      map[int]float64
+	rill, m float64
 }
 
 // Run a single simulation with water balance checking
@@ -56,6 +41,7 @@ func Run(ldr *Loader, rill, m, f1 float64) float64 {
 		fncid:    fncid,
 		contarea: mdl.a * fncid, // basin contributing area [m²]
 	}
+	b.buildEp()
 	smpl := b.toSample(rill, m, f1)
 	for _, c := range b.cids {
 		if smpl.bsn[c] == nil {

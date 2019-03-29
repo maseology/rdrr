@@ -35,7 +35,7 @@ func Optimize(ldr *Loader) {
 		return mmaths.LogLinearTransform(0.001, 10., u)
 	}
 	t2 := func(u float64) float64 {
-		return mmaths.LogLinearTransform(0.0001, 1., u)
+		return mmaths.LogLinearTransform(0.01, 100., u)
 	}
 
 	rng := rand.New(mrg63k3a.New())
