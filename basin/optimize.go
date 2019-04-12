@@ -40,7 +40,7 @@ func Optimize(ldr *Loader) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	ver := b.evalCascWB
+	ver := b.evalCascKineWB
 
 	gen := func(u []float64) float64 {
 		p0 := t0(u[0]) // rill storage

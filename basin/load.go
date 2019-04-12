@@ -33,11 +33,11 @@ type FRC struct {
 
 // MDL holds structural data
 type MDL struct {
-	b hru.Basin
-	g gwru.TMQ
-	t tem.TEM
-	f map[int][366]float64
-	a float64
+	b    hru.Basin
+	g    gwru.TMQ
+	t    tem.TEM
+	f    map[int][366]float64
+	a, w float64
 }
 
 // NewLoader returns a default Loader
@@ -49,7 +49,7 @@ func NewLoader(rootdir string, outlet int) *Loader {
 	// 	temfn:  "ORMGP_50_hydrocorrect.uhdem",
 	// 	lufn:   "ORMGP_50_hydrocorrect_SOLRISv2_ID.grd",
 	// 	sgfn:   "ORMGP_50_hydrocorrect_PorousMedia_ID.grd",
-	// 	outlet: -1, // -1: from .met index, 0: no outlet, >0: outlet cell ID
+	// 	outlet: -1, // <0: from .met index, 0: no outlet, >0: outlet cell ID
 	// }
 	lout := Loader{
 		metfp:  rootdir + "02EC018.met",
@@ -58,7 +58,7 @@ func NewLoader(rootdir string, outlet int) *Loader {
 		gdfn:   "ORMGP_500_hydrocorrect.uhdem.gdef",
 		lufn:   "ORMGP_500_hydrocorrect_SOLRISv2_ID.grd",
 		sgfn:   "ORMGP_500_hydrocorrect_PorousMedia_ID.grd",
-		outlet: outlet, //127669, // 128667, //-1: from .met index, 0: no outlet, >0: outlet cell ID
+		outlet: outlet, //127669, // 128667, // <0: from .met index, 0: no outlet, >0: outlet cell ID
 	}
 	lout.check()
 	return &lout
@@ -244,6 +244,7 @@ func (l *Loader) load(m float64) (FRC, MDL) {
 		t: t,
 		f: sif,
 		a: gd.CellArea(),
+		w: gd.CellWidth(),
 	}
 
 	if l.outlet == -1 {
