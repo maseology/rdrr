@@ -227,7 +227,7 @@ func (l *Loader) load(m float64) (FRC, MDL) {
 
 	wgVar.Wait()
 	wgStrc.Add(3)
-	fmt.Println("\nbuilding HRUs, potential solar irradiation and TOPMODEL")
+	fmt.Printf("\n building HRUs, potential solar irradiation and TOPMODEL\n\n")
 	go assignHRUs()
 	go buildTopmodel()
 	go buildSolIrradFrac()
