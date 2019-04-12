@@ -29,13 +29,13 @@ func Optimize(ldr *Loader) {
 
 	// sample ranges
 	t0 := func(u float64) float64 {
-		return mmaths.LogLinearTransform(0.001, .1, u)
+		return mmaths.LogLinearTransform(0.01, 1., u)
 	}
 	t1 := func(u float64) float64 {
 		return mmaths.LogLinearTransform(0.001, 10., u)
 	}
 	t2 := func(u float64) float64 {
-		return mmaths.LogLinearTransform(0.01, 100., u)
+		return mmaths.LogLinearTransform(0.1, 1000., u)
 	}
 
 	rng := rand.New(mrg63k3a.New())
@@ -45,7 +45,7 @@ func Optimize(ldr *Loader) {
 	gen := func(u []float64) float64 {
 		p0 := t0(u[0]) // rill storage
 		p1 := t1(u[1]) // topmodel m
-		p2 := t2(u[2]) // cascade fraction
+		p2 := t2(u[2]) // cascade fraction factor
 		smpl := b.toSample(p0, p1, p2)
 		return ver(&smpl, false)
 	}
@@ -54,8 +54,8 @@ func Optimize(ldr *Loader) {
 
 	p0 := t0(uFinal[0]) // rill storage
 	p1 := t1(uFinal[1]) // topmodel m
-	p2 := t2(uFinal[2]) // cascade fraction
-	fmt.Printf("\nfinal parameters: %v\n", []float64{p0, p1})
+	p2 := t2(uFinal[2]) // cascade fraction factor
+	fmt.Printf("\nfinal parameters: %v\n", []float64{p0, p1, p2})
 	final := b.toSample(p0, p1, p2)
 	ver(&final, true)
 }
