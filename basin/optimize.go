@@ -35,7 +35,7 @@ func Optimize(ldr *Loader) {
 		return mmaths.LogLinearTransform(0.001, 10., u)
 	}
 	t2 := func(u float64) float64 {
-		return mmaths.LogLinearTransform(0.1, 1000., u)
+		return mmaths.LogLinearTransform(0.0001, 10., u)
 	}
 
 	rng := rand.New(mrg63k3a.New())
@@ -45,7 +45,7 @@ func Optimize(ldr *Loader) {
 	gen := func(u []float64) float64 {
 		p0 := t0(u[0]) // rill storage
 		p1 := t1(u[1]) // topmodel m
-		p2 := t2(u[2]) // cascade fraction factor
+		p2 := t2(u[2]) // manning's n
 		smpl := b.toSample(p0, p1, p2)
 		return ver(&smpl, false)
 	}
@@ -54,7 +54,7 @@ func Optimize(ldr *Loader) {
 
 	p0 := t0(uFinal[0]) // rill storage
 	p1 := t1(uFinal[1]) // topmodel m
-	p2 := t2(uFinal[2]) // cascade fraction factor
+	p2 := t2(uFinal[2]) // manning's n
 	fmt.Printf("\nfinal parameters: %v\n", []float64{p0, p1, p2})
 	final := b.toSample(p0, p1, p2)
 	ver(&final, true)
