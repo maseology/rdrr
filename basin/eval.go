@@ -101,7 +101,8 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 	cf := b.contarea / float64(intvl) // q to cms conversion factor
 	o, g, x, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
 	defer func() {
-		of = 1. - objfunc.KGEi(o, s)
+		// of = 1. - objfunc.KGEi(o, s)
+		of = objfunc.Krausei(computeMonthly(dt, o, s, float64(intvl), b.contarea))
 		if print {
 			sumHydrograph(dt, o, s, g, x)
 			sumMonthly(dt, o, s, float64(intvl), b.contarea)
