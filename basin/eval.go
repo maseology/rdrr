@@ -101,13 +101,14 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 	cf := b.contarea / float64(intvl) // q to cms conversion factor
 	o, g, x, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
 	defer func() {
-		of = 1. - objfunc.KGEi(o, s)
-		of *= 1. - objfunc.Krausei(computeMonthly(dt, o, s, float64(intvl), b.contarea))
+		kge := objfunc.KGEi(o, s)
+		mwr2 := objfunc.Krausei(computeMonthly(dt, o, s, float64(intvl), b.contarea))
+		of = (1. - kge) * (1. - mwr2)
 		if print {
 			sumHydrograph(dt, o, s, g, x)
 			sumMonthly(dt, o, s, float64(intvl), b.contarea)
 			fmt.Printf("Total number of cells: %d\t %d timesteps\t catchent area: %.3f km²\n", b.ncid, nstep, b.contarea/1000./1000.)
-			fmt.Printf("  OF: %.3f  Bias: %.3f\n", 1.-of, objfunc.Biasi(o, s))
+			fmt.Printf("  KGE: %.3f  wr2mon: %.3f  Bias: %.3f\n", kge, mwr2, objfunc.Biasi(o, s))
 		}
 	}()
 
