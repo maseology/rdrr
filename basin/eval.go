@@ -107,7 +107,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 			sumHydrograph(dt, o, s, g, x)
 			sumMonthly(dt, o, s, float64(intvl), b.contarea)
 			fmt.Printf("Total number of cells: %d\t %d timesteps\t catchent area: %.3f km²\n", b.ncid, nstep, b.contarea/1000./1000.)
-			fmt.Printf("  KGE: %.3f  Bias: %.3f\n", 1.-of, objfunc.Biasi(o, s))
+			fmt.Printf("   OF: %.3f  Bias: %.3f\n", 1.-of, objfunc.Biasi(o, s))
 		}
 	}()
 
@@ -123,7 +123,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 		// fmt.Println(d)
 		v := b.frc.c[d]
 		gwlast := p.gw.Dm
-		wbsum, asum, rsum, xsum, gsum, ssum, slsum, ksum := 0., 0., 0., 0., 0., 0., 0., 0.
+		wbsum, asum, rsum, xsum, gsum, fsum, ssum, slsum, ksum := 0., 0., 0., 0., 0., 0., 0., 0., 0.
 		for _, c := range b.cids {
 			slast := p.bsn[c].Storage() // total HRU storage at beginning on timestep
 			slsum += slast
@@ -149,7 +149,31 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 			gsum += g
 
 			// cascade
-			qo[c] = p.p0[c]*qi[c] + p.p1[c]*(qo[c]+gc*r)
+			f, d := 0., 0.
+			if r > 0 {
+				qo[c] = p.p0[c]*qi[c] + p.p1[c]*(qo[c]+gc*r)
+			} else {
+				d = p.bsn[c].Infiltrability()
+				f = d // potential infiltration
+				if f < 0. {
+					log.Fatalf(" hru water-balance error, HRU potential infiltration = %.3e mm", f*1000.)
+				}
+				fx := (p.p0[c]*qi[c] + p.p1[c]*qo[c]) / p.p1[c] / gc // max available to infiltrate
+				if fx < nearzero {
+					fx = 0.
+				}
+				if f > fx {
+					f = fx
+				}
+				qo[c] = p.p0[c]*qi[c] + p.p1[c]*(qo[c]-gc*f)
+				r2 := p.bsn[c].UpdateStorage(f) // add infiltration
+				if math.Abs(r2) > nearzero {
+					log.Fatalf(" hru water-balance error, HRU infiltration from runon exceeds capacity: f = %.3e mm, x = %.3e mm", f*1000., r2*1000.)
+				}
+				if qo[c] < -nearzero {
+					log.Fatalf(" hru water-balance error, negative runoff computed = %.3e mm", qo[c]/gc*1000.)
+				}
+			}
 			if b.ds[c] == -1 {
 				rsum += qo[c] / gc // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case sc[c]=0.
 			} else {
@@ -158,14 +182,18 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 
 			// waterbalance
 			s := p.bsn[c].Storage()
-			wbal := v[met.AtmosphericYield] - di + slast - (r + s + g + a)
+			ki, ko := qi[c]/gc, qo[c]/gc
+			// k := (qi[c] - qo[c]) / gc //+ r // "mobile" storage
+			ds := s - slast
+			wbal := v[met.AtmosphericYield] - di + f - (ds + r + g + a)
 			if math.Abs(wbal) > nearzero {
 				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ri: %.5f   ro: %.5f\n", v[met.AtmosphericYield], -di, s, slast, a, g, qi[c]/gc, qo[c]/gc)
 				log.Fatalf(" cell %d: water-balance error, |wbal| = %.5e m", c, math.Abs(wbal))
 			}
 			wbsum += wbal
 			ssum += s
-			ksum += (qi[c]-qo[c])/gc + r // "mobile" storage
+			fsum += f
+			ksum += ki - ko + r
 			qi[c] = 0.
 		}
 		ssum /= b.fncid
@@ -174,6 +202,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 		rsum /= b.fncid
 		xsum /= b.fncid
 		gsum /= b.fncid
+		fsum /= b.fncid
 		ksum /= b.fncid
 
 		bf := p.gw.Update(gsum) / b.contarea // unit baseflow ([m³/ts] to [m/ts])
@@ -185,7 +214,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
 			log.Fatalf(" (integrated) hru water-balance error, |wbsum| = %.5e m", math.Abs(wbsum))
 		}
-		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum - (-p.gw.Dm + ssum + asum + rsum + ksum)
+		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum - (-p.gw.Dm + ssum + asum + rsum + ksum - fsum)
 		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw.Dm) < 5. {
 			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f  n: %.5f\n", i, p.rill, p.m, p.n)
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
