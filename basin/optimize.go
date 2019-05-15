@@ -12,7 +12,7 @@ import (
 
 // Optimize solves the model to a give basin outlet
 func Optimize(ldr *Loader) {
-	frc, mdl := ldr.load(1.)
+	frc, mdl, mpr := ldr.load()
 	mdl.t = mdl.t.SubSet(ldr.outlet)
 	cids, ds := mdl.t.DownslopeContributingAreaIDs(ldr.outlet) // mdl.t.ContributingAreaIDs(ldr.outlet)
 	ncid := len(cids)
@@ -20,9 +20,11 @@ func Optimize(ldr *Loader) {
 	b := Basin{
 		frc:      &frc,
 		mdl:      &mdl,
+		mpr:      &mpr,
 		cids:     cids,
 		ds:       ds,
 		ncid:     ncid,
+		cid0:     ldr.outlet,
 		fncid:    fncid,
 		contarea: mdl.a * fncid, // basin contributing area [m²]
 	}
@@ -49,6 +51,7 @@ func Optimize(ldr *Loader) {
 		smpl := b.toSample(p0, p1, p2)
 		return ver(&smpl, false)
 	}
+
 	fmt.Println(" optimizing..")
 	uFinal, _ := glbopt.SCE(16, 3, rng, gen, true)
 

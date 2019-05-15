@@ -31,13 +31,19 @@ type FRC struct {
 	h met.Header
 }
 
-// MDL holds structural data
+// MDL holds model structural data
 type MDL struct {
-	b    hru.Basin
-	g    gwru.TMQ
-	t    tem.TEM
-	f    map[int][366]float64
-	a, w float64
+	b    hru.Basin            // hru
+	g    gwru.TMQ             // topmodel
+	t    tem.TEM              // topology
+	f    map[int][366]float64 // solar fraction
+	a, w float64              // cell area, cell width
+}
+
+// MPR holds mappings of landuse and surficial geology
+type MPR struct {
+	lu lusg.LandUseColl
+	sg lusg.SurfGeoColl
 }
 
 // NewLoader returns a default Loader
@@ -84,7 +90,7 @@ func (l *Loader) check() {
 	}
 }
 
-func (l *Loader) load(m float64) (FRC, MDL) {
+func (l *Loader) load() (FRC, MDL, MPR) {
 	var wgVar, wgStrc sync.WaitGroup
 
 	// import variables, forcings, etc.
@@ -195,7 +201,7 @@ func (l *Loader) load(m float64) (FRC, MDL) {
 		}
 		recurs(cid0)
 		medQ *= gd.CellArea() * float64(len(ksat)) // [m/d] to [m³/d]
-		g.New(ksat, t.SubSet(cid0), gd.CellWidth(), medQ, 2*medQ, m)
+		g.New(ksat, t.SubSet(cid0), gd.CellWidth(), medQ, 2*medQ, 1.)
 	}
 	buildSolIrradFrac := func() {
 		defer wgStrc.Done()
@@ -246,9 +252,13 @@ func (l *Loader) load(m float64) (FRC, MDL) {
 		a: gd.CellArea(),
 		w: gd.CellWidth(),
 	}
+	mpr := MPR{
+		lu: lu,
+		sg: sg,
+	}
 
 	if l.outlet == -1 {
 		l.outlet = cid0
 	}
-	return frc, mdl
+	return frc, mdl, mpr
 }

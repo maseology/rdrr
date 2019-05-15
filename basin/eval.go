@@ -211,13 +211,13 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 
 		wbsum /= b.fncid
 		if math.Abs(wbsum) > nearzero {
-			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.m)
+			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.gw.M)
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
 			log.Fatalf(" (integrated) hru water-balance error, |wbsum| = %.5e m", math.Abs(wbsum))
 		}
 		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum - (-p.gw.Dm + ssum + asum + rsum + ksum - fsum)
 		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw.Dm) < 5. {
-			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f  n: %.5f\n", i, p.rill, p.m, p.n)
+			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.gw.M)
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
 			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f  wbal: % .5e\n", slsum, ssum, gwlast, p.gw.Dm, wbalBasin)
 			log.Fatalf(" basin water-balance error, |wbalBasin| = %.5e m", math.Abs(wbalBasin))
@@ -326,13 +326,13 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 
 		wbsum /= b.fncid
 		if math.Abs(wbsum) > nearzero {
-			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.m)
+			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.gw.M)
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])
 			log.Fatalf(" (integrated) hru water-balance error, |wbsum| = %.5e m", math.Abs(wbsum))
 		}
 		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum + slaglast - (-p.gw.Dm + ssum + asum + rsum + slag)
 		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw.Dm) < 5. {
-			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.m)
+			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.gw.M)
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])
 			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f  wbal: % .2e\n", slsum, ssum, gwlast, p.gw.Dm, wbalBasin)
 			log.Fatalf(" basin water-balance error, |wbalBasin| = %.5e m", math.Abs(wbalBasin))
@@ -414,7 +414,7 @@ func (b *Basin) evalNoCascWB(p *sample, print bool) (of float64) {
 		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw.Dm) < 5. {
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
 			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gw: %.5f  wbal: % .2e\n", slsum, ssum, gwlast, p.gw.Dm, wbalBasin)
-			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.m)
+			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, p.rill, p.gw.M)
 			log.Fatalf(" basin water-balance error, |wbalBasin| = %.3e m", math.Abs(wbalBasin))
 		}
 

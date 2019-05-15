@@ -28,7 +28,7 @@ func LoadLandUse(fp string, gd *grid.Definition) *LandUseColl {
 	// create LandUse collection
 	p := make(map[int]LandUse, 8)
 	for _, i := range g.UniqueValues() {
-		sz, dp, f := propsFromSOLRIS(i)
+		sz, dp, f := defaultsFromSOLRIS(i)
 		p[i] = LandUse{id: i, DrnSto: sz, SrfSto: dp, Fimp: f}
 	}
 
@@ -44,17 +44,17 @@ func LoadLandUse(fp string, gd *grid.Definition) *LandUseColl {
 
 // LandUse holds model parameters associated with land use/cover
 type LandUse struct {
-	DrnSto, SrfSto, Fimp float64
-	id                   int
+	DrnSto, SrfSto, Fimp, M float64
+	id                      int
 }
 
 /////////////////////////////////////////////////
 //// LAND USE PROPERTIES
 /////////////////////////////////////////////////
 
-// propsFromSOLRIS returns landuse properties from a given
+// defaultsFromSOLRIS returns landuse properties from a given default
 // SOLRIS ID. (rootzone/drainable storage, surface storage, fimp)
-func propsFromSOLRIS(id int) (rzsto, surfsto, fimp float64) {
+func defaultsFromSOLRIS(id int) (rzsto, surfsto, fimp float64) {
 	rzsto, surfsto, fimp = defaultSoilDepth*defaultPorosity*(1.-defaultFc), defaultSoilDepth*defaultPorosity*defaultFc, 0.
 	switch id {
 	case 201: // Transportation

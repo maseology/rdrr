@@ -3,6 +3,7 @@ package basin
 import (
 	"math"
 
+	"github.com/maseology/goHydro/gwru"
 	"github.com/maseology/goHydro/hru"
 )
 
@@ -30,19 +31,19 @@ func (b *Basin) buildFc(f1 float64) map[int]float64 {
 	return fc
 }
 
-func (b *Basin) buildC0(n, ts float64) map[int]float64 {
+func (b *Basin) buildC0(n map[int]float64, ts float64) map[int]float64 {
 	c0 := make(map[int]float64, len(b.cids))
 	for _, cid := range b.cids {
-		c := fiveThirds * math.Sqrt(b.mdl.t.TEC[cid].S) * ts / b.mdl.w / n
+		c := fiveThirds * math.Sqrt(b.mdl.t.TEC[cid].S) * ts / b.mdl.w / n[cid]
 		c0[cid] = c / (1. + c)
 	}
 	return c0
 }
 
-func (b *Basin) buildC2(n, ts float64) map[int]float64 {
+func (b *Basin) buildC2(n map[int]float64, ts float64) map[int]float64 {
 	c2 := make(map[int]float64, len(b.cids))
 	for _, cid := range b.cids {
-		c := fiveThirds * math.Sqrt(b.mdl.t.TEC[cid].S) * ts / b.mdl.w / n
+		c := fiveThirds * math.Sqrt(b.mdl.t.TEC[cid].S) * ts / b.mdl.w / n[cid]
 		c2[cid] = 1. / (1. + c)
 	}
 	return c2
@@ -50,19 +51,41 @@ func (b *Basin) buildC2(n, ts float64) map[int]float64 {
 
 func (b *Basin) toSample(rill, m, n float64) sample {
 	h := make(map[int]*hru.HRU, b.ncid)
+	na := make(map[int]float64, b.ncid)
 	ts := b.frc.h.IntervalSec()
 	for i, v := range b.mdl.b {
 		hnew := *v
 		hnew.Reset()
+		na[i] = n
 		h[i] = &hnew
 	}
 	return sample{
 		bsn:  h,
 		gw:   b.mdl.g.Clone(m),
+		p0:   b.buildC0(na, ts), // b.buildFc(f1),
+		p1:   b.buildC2(na, ts),
+		rill: rill,
+	}
+}
+
+func (b *Basin) toSample2(rill, m float64) sample {
+	h := make(map[int]*hru.HRU, b.ncid)
+	ksat, n := make(map[int]float64), make(map[int]float64)
+	ts := b.frc.h.IntervalSec()
+	for i := range b.mdl.b {
+		var hnew hru.HRU
+		hnew.Initialize(b.mpr.lu[i].DrnSto, b.mpr.lu[i].SrfSto, b.mpr.lu[i].Fimp, b.mpr.sg[i].Ksat, ts)
+		h[i] = &hnew
+		ksat[i] = b.mpr.sg[i].Ksat
+		n[i] = b.mpr.lu[i].M
+	}
+	var g gwru.TMQ
+	g.New(ksat, b.mdl.t.SubSet(b.cid0), b.mdl.w, b.mdl.g.Qo, 2*b.mdl.g.Qo, m)
+	return sample{
+		bsn:  h,
+		gw:   g,
 		p0:   b.buildC0(n, ts), // b.buildFc(f1),
 		p1:   b.buildC2(n, ts),
 		rill: rill,
-		m:    m,
-		n:    n,
 	}
 }

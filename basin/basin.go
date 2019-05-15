@@ -11,23 +11,24 @@ import (
 type Basin struct {
 	frc             *FRC
 	mdl             *MDL
+	mpr             *MPR
 	cids            []int
 	ds              map[int]int
 	ep              map[int][366]float64
 	contarea, fncid float64
-	ncid            int
+	ncid, cid0      int
 }
 
 type sample struct {
-	bsn        hru.Basin
-	gw         gwru.TMQ
-	p0, p1     map[int]float64
-	rill, m, n float64
+	bsn    hru.Basin
+	gw     gwru.TMQ
+	p0, p1 map[int]float64
+	rill   float64
 }
 
 // Run a single simulation with water balance checking
 func Run(ldr *Loader, rill, m, n float64) float64 {
-	frc, mdl := ldr.load(1.)
+	frc, mdl, mpr := ldr.load()
 	println()
 	mdl.t = mdl.t.SubSet(ldr.outlet)
 	cids, ds := mdl.t.DownslopeContributingAreaIDs(ldr.outlet) // mdl.t.ContributingAreaIDs(ldr.outlet)
@@ -36,6 +37,7 @@ func Run(ldr *Loader, rill, m, n float64) float64 {
 	b := Basin{
 		frc:      &frc,
 		mdl:      &mdl,
+		mpr:      &mpr,
 		cids:     cids,
 		ds:       ds,
 		ncid:     ncid,
