@@ -26,7 +26,7 @@ func LoadLandUse(fp string, gd *grid.Definition) *LandUseColl {
 	g.NewShort(fp, false)
 
 	// create LandUse collection
-	p := make(map[int]LandUse, 8)
+	p := make(map[int]LandUse, 32)
 	for _, i := range g.UniqueValues() {
 		sz, dp, f := defaultsFromSOLRIS(i)
 		p[i] = LandUse{id: i, DrnSto: sz, SrfSto: dp, Fimp: f}

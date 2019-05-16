@@ -5,6 +5,7 @@ import (
 
 	"github.com/maseology/goHydro/gwru"
 	"github.com/maseology/goHydro/hru"
+	"github.com/maseology/mmaths"
 )
 
 const (
@@ -68,7 +69,16 @@ func (b *Basin) toSample(rill, m, n float64) sample {
 	}
 }
 
-func (b *Basin) toSample2(rill, m float64) sample {
+func (b *Basin) toSampleU(u ...float64) sample {
+	// transform sample space
+	rill := mmaths.LogLinearTransform(0.01, 1., u[0])
+	topm := mmaths.LogLinearTransform(0.001, 10., u[1])
+	dsoil := mmaths.LinearTransform(0.01, 1., u[2])
+	dpsto := mmaths.LogLinearTransform(0.0001, 0.001, u[3])
+	mann := func(u float64) float64 {
+		return mmaths.LogLinearTransform(0.0001, 100., u)
+	}
+
 	h := make(map[int]*hru.HRU, b.ncid)
 	ksat, n := make(map[int]float64), make(map[int]float64)
 	ts := b.frc.h.IntervalSec()
@@ -80,7 +90,7 @@ func (b *Basin) toSample2(rill, m float64) sample {
 		n[i] = b.mpr.lu[i].M
 	}
 	var g gwru.TMQ
-	g.New(ksat, b.mdl.t.SubSet(b.cid0), b.mdl.w, b.mdl.g.Qo, 2*b.mdl.g.Qo, m)
+	g.New(ksat, b.mdl.t.SubSet(b.cid0), b.mdl.w, b.mdl.g.Qo, 2*b.mdl.g.Qo, topm)
 	return sample{
 		bsn:  h,
 		gw:   g,

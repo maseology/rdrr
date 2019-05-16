@@ -3,6 +3,7 @@ package lusg
 import (
 	"fmt"
 	"log"
+	"math"
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/montecarlo/invdistr"
@@ -21,9 +22,21 @@ func LoadSurfGeo(fp string, gd *grid.Definition) *SurfGeoColl {
 	// create SurfGeo collection
 	p := make(map[int]SurfGeo, 8)
 	for i := 1; i <= 8; i++ {
-		p[i] = SurfGeo{id: i, Ksat: ksatFromID(i), kD: kDistrFromID(i)}
+		p[i] = SurfGeo{
+			id:   i,
+			Ksat: ksatFromID(i),
+			SY:   syFromID(i),
+			dK:   ksatDistrFromID(i),
+			dP:   porDistrFromID(i),
+		}
 	}
-	p[-9999] = SurfGeo{id: -9999, Ksat: ksatFromID(6), kD: kDistrFromID(6)} // unknown material
+	p[-9999] = SurfGeo{ // unknown material
+		id:   -9999,
+		Ksat: ksatFromID(6),
+		SY:   syFromID(6),
+		dK:   ksatDistrFromID(6),
+		dP:   porDistrFromID(6),
+	}
 
 	// build collection
 	m := make(map[int]SurfGeo, g.Nvalues())
@@ -40,9 +53,9 @@ func LoadSurfGeo(fp string, gd *grid.Definition) *SurfGeoColl {
 
 // SurfGeo holds model parameters associated with the shallow surface material properties
 type SurfGeo struct {
-	dK   invdistr.Trapezoid
-	Ksat float64
-	id   int
+	dK, dP   *invdistr.Map
+	Ksat, SY float64
+	id       int
 }
 
 /////////////////////////////////////////////////
@@ -75,29 +88,72 @@ func ksatFromID(sgid int) float64 {
 	}
 }
 
-// kDistrFromID returns an trapezoidal sample distribution of
+func buildLogTrapezoid(l, m, n, h float64) *invdistr.Map {
+	if l > m || m > n || n > h {
+		log.Panicf("lsug.buildLogTrapezoid error: invalid arguments l, m, n, h = %v, %v, %v, %v\n", l, m, n, h)
+	}
+	l10 := math.Log10(l)
+	m10 := math.Log10(m)
+	n10 := math.Log10(n)
+	h10 := math.Log10(h)
+	return &invdistr.Map{
+		Low:   l,
+		High:  h,
+		Log:   true,
+		Distr: invdistr.NewTrapezoid((m10-l10)/(h10-l10), (n10-l10)/(h10-l10), 2., 2.),
+	}
+}
+
+func buildLinear(l, h float64) *invdistr.Map {
+	if l > h {
+		log.Panicf("lsug.buildLinear error: invalid arguments l, h = %v, %v\n", l, h)
+	}
+	return &invdistr.Map{
+		Low:   l,
+		High:  h,
+		Log:   false,
+		Distr: &invdistr.Uniform{},
+	}
+}
+
+// ksatDistrFromID returns a trapezoidal sample distribution of
 // hydraulic conductivity [m/s] for a given material type
-func kDistrFromID(sgid int) invdistr.Trapezoid {
+func ksatDistrFromID(sgid int) *invdistr.Map {
 	switch sgid {
 	case 1: // Low
-		return invdistr.NewTrapezoid(1e-11, 1e-9, 1e-7, 1e-6)
+		return buildLogTrapezoid(1e-11, 1e-9, 1e-7, 1e-6)
 	case 2: // Low_Medium
-		return invdistr.NewTrapezoid(1e-9, 1e-7, 1e-6, 1e-5)
+		return buildLogTrapezoid(1e-9, 1e-7, 1e-6, 1e-5)
 	case 3: // Medium
-		return invdistr.NewTrapezoid(1e-8, 1e-6, 1e-5, 1e-4)
+		return buildLogTrapezoid(1e-8, 1e-6, 1e-5, 1e-4)
 	case 4: // Medium_High
-		return invdistr.NewTrapezoid(1e-6, 1e-5, 1e-4, 1e-3)
+		return buildLogTrapezoid(1e-6, 1e-5, 1e-4, 1e-3)
 	case 5: // High
-		return invdistr.NewTrapezoid(1e-5, 1e-4, 1e-3, 1e-2)
+		return buildLogTrapezoid(1e-5, 1e-4, 1e-3, 1e-2)
 	case 6: // Unknown (variable)
-		return invdistr.NewTrapezoid(1e-9, 1e-7, 1e-5, 1e-3)
+		return buildLogTrapezoid(1e-9, 1e-7, 1e-5, 1e-3)
 	case 7: // Streambed (alluvium/unconsolidated/fluvial/floodplain)
-		return invdistr.NewTrapezoid(1e-8, 1e-7, 1e-5, 1e-4)
+		return buildLogTrapezoid(1e-8, 1e-7, 1e-5, 1e-4)
 	case 8: // Wetland_Sediments (organics)
-		return invdistr.NewTrapezoid(1e-8, 1e-7, 1e-5, 1e-4)
+		return buildLogTrapezoid(1e-8, 1e-7, 1e-5, 1e-4)
 	default:
 		log.Fatalf("kDistrFromID: no value assigned to SurfGeo ID %d", sgid)
-		return 0.
+		return nil
+	}
+}
+
+// porDistrFromID returns a linear sample distribution of
+// porosity [-] for a given material type
+func porDistrFromID(sgid int) *invdistr.Map {
+	switch sgid {
+	case 1: // clay
+		return buildLinear(0.4, 0.7)
+	case 2, 3, 6, 7, 8: // loam/silt
+		return buildLinear(0.35, 0.5)
+	case 4, 5: // sand
+		return buildLinear(0.25, 0.5)
+	default:
+		return nil
 	}
 }
 
@@ -125,4 +181,16 @@ func syFromID(sgid int) float64 {
 		log.Fatalf("ksatFromID: no value assigned to SurfGeo ID %d", sgid)
 		return 0.
 	}
+}
+
+/////////////////////////////////////////////////
+//// MATERIAL PROPERTIES
+/////////////////////////////////////////////////
+
+// Sample returns a sample from the SurfGeo's range
+func (s *SurfGeo) Sample(u []float64) (ksat, por, sy float64) {
+	ksat = s.dK.P(u[0])
+	por = s.dP.P(u[1])
+	sy = s.SY
+	return
 }
