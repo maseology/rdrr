@@ -12,22 +12,8 @@ import (
 
 // Optimize solves the model to a give basin outlet
 func Optimize(ldr *Loader) {
-	frc, mdl, mpr := ldr.load()
-	mdl.t = mdl.t.SubSet(ldr.outlet)
-	cids, ds := mdl.t.DownslopeContributingAreaIDs(ldr.outlet) // mdl.t.ContributingAreaIDs(ldr.outlet)
-	ncid := len(cids)
-	fncid := float64(ncid)
-	b := Basin{
-		frc:      &frc,
-		mdl:      &mdl,
-		mpr:      &mpr,
-		cids:     cids,
-		ds:       ds,
-		ncid:     ncid,
-		cid0:     ldr.outlet,
-		fncid:    fncid,
-		contarea: mdl.a * fncid, // basin contributing area [m²]
-	}
+	d := newDomain(ldr)
+	b := d.newSubDomain(ldr.outlet)
 
 	// sample ranges
 	t0 := func(u float64) float64 {
@@ -48,7 +34,7 @@ func Optimize(ldr *Loader) {
 		p0 := t0(u[0]) // rill storage
 		p1 := t1(u[1]) // topmodel m
 		p2 := t2(u[2]) // manning's n
-		smpl := b.toSample(p0, p1, p2)
+		smpl := b.toDefaultSample(p0, p1, p2)
 		return ver(&smpl, false)
 	}
 
@@ -59,6 +45,6 @@ func Optimize(ldr *Loader) {
 	p1 := t1(uFinal[1]) // topmodel m
 	p2 := t2(uFinal[2]) // manning's n
 	fmt.Printf("\nfinal parameters: %v\n", []float64{p0, p1, p2})
-	final := b.toSample(p0, p1, p2)
+	final := b.toDefaultSample(p0, p1, p2)
 	ver(&final, true)
 }

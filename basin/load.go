@@ -9,8 +9,6 @@ import (
 
 	"github.com/im7mortal/UTM"
 	"github.com/maseology/goHydro/grid"
-	"github.com/maseology/goHydro/gwru"
-	"github.com/maseology/goHydro/hru"
 	"github.com/maseology/goHydro/met"
 	"github.com/maseology/goHydro/solirrad"
 	"github.com/maseology/goHydro/tem"
@@ -25,29 +23,8 @@ type Loader struct {
 	outlet                                int
 }
 
-// FRC holds forcing data
-type FRC struct {
-	c met.Coll
-	h met.Header
-}
-
-// MDL holds model structural data
-type MDL struct {
-	b    hru.Basin            // hru
-	g    gwru.TMQ             // topmodel
-	t    tem.TEM              // topology
-	f    map[int][366]float64 // solar fraction
-	a, w float64              // cell area, cell width
-}
-
-// MPR holds mappings of landuse and surficial geology
-type MPR struct {
-	lu lusg.LandUseColl
-	sg lusg.SurfGeoColl
-}
-
-// NewLoader returns a default Loader
-func NewLoader(rootdir string, outlet int) *Loader {
+// LoaderDefault returns a default Loader
+func LoaderDefault(rootdir string, outlet int) *Loader {
 	// lout := Loader{
 	// 	metfp:  rootdir + "02EC018.met",
 	// 	indir:  rootdir,
@@ -90,14 +67,14 @@ func (l *Loader) check() {
 	}
 }
 
-func (l *Loader) load() (FRC, MDL, MPR) {
-	var wgVar, wgStrc sync.WaitGroup
+func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
+	var wg sync.WaitGroup
 
-	// import variables, forcings, etc.
+	// import forcings
 	var dc met.Coll
 	var hd met.Header
 	readmet := func() {
-		defer wgVar.Done()
+		defer wg.Done()
 		m, d, err := met.ReadMET(l.metfp)
 		if err != nil {
 			log.Fatalln(err)
@@ -105,20 +82,20 @@ func (l *Loader) load() (FRC, MDL, MPR) {
 		dc = d
 		hd = *m
 	}
-	wgVar.Add(1)
-	go readmet()
 
-	// import structural data
-	var t tem.TEM
-	var coord map[int]mmaths.Point
-	var lu lusg.LandUseColl
-	var sg lusg.SurfGeoColl
+	// import structural data and mapping arrays
 	gd, err := grid.ReadGDEF(l.indir + l.gdfn)
 	if err != nil {
 		log.Fatalf("ReadGDEF: %v", err)
 	}
+	var t tem.TEM
+	var coord map[int]mmaths.Point
+	var lu lusg.LandUseColl
+	var sg lusg.SurfGeoColl
+	var ilu, isg map[int]int
+	// var ulu, usg []int
 	readtopo := func() {
-		defer wgStrc.Done()
+		defer wg.Done()
 		if cc, err := t.New(l.indir + l.temfn); err != nil {
 			log.Fatalf("TEM.New: %v", err)
 		} else {
@@ -126,85 +103,43 @@ func (l *Loader) load() (FRC, MDL, MPR) {
 		}
 	}
 	readLU := func() {
-		defer wgStrc.Done()
-		lu = *lusg.LoadLandUse(l.indir+l.lufn, gd)
+		defer wg.Done()
+		fmt.Printf(" loading: %s\n", l.indir+l.lufn)
+		var g grid.Indx
+		g.LoadGDef(gd)
+		g.NewShort(l.indir+l.lufn, false)
+		ulu := g.UniqueValues()
+		lu = *lusg.LoadLandUse(ulu)
+		ilu = g.Values()
 	}
 	readSG := func() {
-		defer wgStrc.Done()
-		sg = *lusg.LoadSurfGeo(l.indir+l.sgfn, gd)
+		defer wg.Done()
+		fmt.Printf(" loading: %s\n", l.indir+l.sgfn)
+		var g grid.Indx
+		g.LoadGDef(gd)
+		g.NewShort(l.indir+l.sgfn, false)
+		usg := g.UniqueValues()
+		sg = *lusg.LoadSurfGeo(usg)
+		isg = g.Values()
 	}
 
-	wgStrc.Add(3)
+	wg.Add(4)
+	go readmet()
 	go readtopo()
 	go readLU()
 	go readSG()
+	wg.Wait()
 
-	// build HRUs, and GW reservoir
-	wgStrc.Wait()
-	wgVar.Wait()
-	wgVar.Add(1)
-
-	// approximating "baseflow when basin is fully saturated" (TOPMODEL) as median discharge
-	medQ := func() float64 {
-		defer wgVar.Done()
-		a, i := make([]float64, len(dc)), 0
-		for _, m := range dc {
-			v := m[met.UnitDischarge]
-			if !math.IsNaN(v) {
-				a[i] = v
-				i++
-			}
-		}
-		return mmaths.SliceMedian(a)
-	}()
-
+	// compute static variables
 	cid0 := int(hd.Locations[0][0].(int32)) // gauge outlet id
 	if l.outlet > 0 {
 		cid0 = l.outlet
 	}
-	ts, nc := hd.IntervalSec(), t.UpCnt(cid0)
-	b := make(hru.Basin, nc)
-	var g gwru.TMQ
+	nc := t.UpCnt(cid0)
 	sif := make(map[int][366]float64, nc)
-	assignHRUs := func() {
-		defer wgStrc.Done()
-		var recurs func(int)
-		recurs = func(cid int) {
-			if _, ok := lu[cid]; !ok {
-				log.Fatalf("assignHRUs error, no LandUse assigned to cell ID %d", cid)
-			}
-			if _, ok := sg[cid]; !ok {
-				log.Fatalf("assignHRUs error, no SurfGeo assigned to cell ID %d", cid)
-			}
-			var h hru.HRU
-			h.Initialize(lu[cid].DrnSto, lu[cid].SrfSto, lu[cid].Fimp, sg[cid].Ksat, ts)
-			b[cid] = &h
-			for _, upcid := range t.UpIDs(cid) {
-				recurs(upcid)
-			}
-		}
-		recurs(cid0)
-	}
-	buildTopmodel := func() {
-		defer wgStrc.Done()
-		ksat := make(map[int]float64)
-		var recurs func(int)
-		recurs = func(cid int) {
-			if s, ok := sg[cid]; ok {
-				ksat[cid] = s.Ksat * ts // [m/d]
-				for _, upcid := range t.UpIDs(cid) {
-					recurs(upcid)
-				}
-			} else {
-				log.Fatalf("buildTopmodel error, no SurfGeo assigned to cell ID %d", cid)
-			}
-		}
-		recurs(cid0)
-		medQ *= gd.CellArea() * float64(len(ksat)) // [m/d] to [m³/d]
-		g.New(ksat, t.SubSet(cid0), gd.CellWidth(), medQ, 2*medQ, 1.)
-	}
 	buildSolIrradFrac := func() {
-		defer wgStrc.Done()
+		defer wg.Done()
+		fmt.Printf("\n building potential solar irradiation\n")
 		var utmzone int
 		switch hd.ESPG {
 		case 26917: // UTM zone 17N
@@ -231,34 +166,31 @@ func (l *Loader) load() (FRC, MDL, MPR) {
 		recurs(cid0)
 	}
 
-	wgVar.Wait()
-	wgStrc.Add(3)
-	fmt.Printf("\n building HRUs, potential solar irradiation and TOPMODEL\n\n")
-	go assignHRUs()
-	go buildTopmodel()
+	wg.Add(1)
 	go buildSolIrradFrac()
+	wg.Wait()
 
-	wgStrc.Wait()
-
-	frc := FRC{
+	frc := FORC{
 		c: dc,
 		h: hd,
 	}
-	mdl := MDL{
-		b: b,
-		g: g,
+	mdl := STRC{
 		t: t,
 		f: sif,
 		a: gd.CellArea(),
 		w: gd.CellWidth(),
 	}
-	mpr := MPR{
-		lu: lu,
-		sg: sg,
+	mpr := MAPR{
+		lu:  lu,
+		sg:  sg,
+		ilu: ilu,
+		isg: isg,
+		// ulu: ulu,
+		// usg: usg,
 	}
 
 	if l.outlet == -1 {
 		l.outlet = cid0
 	}
-	return frc, mdl, mpr
+	return frc, mdl, mpr, gd
 }

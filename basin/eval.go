@@ -13,7 +13,7 @@ import (
 const nearzero = 1e-10
 
 // eval evaluates (runs) the basin model with cascade
-func (b *Basin) evalCasc(p *sample) float64 {
+func (b *subdomain) evalCasc(p *sample) float64 {
 	nstep, ts := b.frc.h.Nstep(), 86400.
 	o, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
 	lag := make(map[int]float64, b.ncid) // cell storage and runon capture to be applied at the start of a following timestep
@@ -35,7 +35,7 @@ func (b *Basin) evalCasc(p *sample) float64 {
 			} else {
 				di = 0.
 			}
-			_, r, g := p.bsn[c].Update(v[met.AtmosphericYield]-di+lag[c], v[met.AtmosphericDemand]*b.mdl.f[c][d.YearDay()-1])
+			_, r, g := p.ws[c].Update(v[met.AtmosphericYield]-di+lag[c], v[met.AtmosphericDemand]*b.strc.f[c][d.YearDay()-1])
 
 			// cascade
 			gsum += g
@@ -60,7 +60,7 @@ func (b *Basin) evalCasc(p *sample) float64 {
 }
 
 // evalNoCasc evaluates (runs) the basin model without cascades
-func (b *Basin) evalNoCasc(p *sample) float64 {
+func (b *subdomain) evalNoCasc(p *sample) float64 {
 	nstep, ts := b.frc.h.Nstep(), 86400.
 	o, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
 
@@ -76,7 +76,7 @@ func (b *Basin) evalNoCasc(p *sample) float64 {
 			} else {
 				di = 0.
 			}
-			_, r, g := p.bsn[c].Update(v[met.AtmosphericYield]-di, v[met.AtmosphericDemand]*b.mdl.f[c][d.YearDay()-1])
+			_, r, g := p.ws[c].Update(v[met.AtmosphericYield]-di, v[met.AtmosphericDemand]*b.strc.f[c][d.YearDay()-1])
 			rsum += r
 			gsum += g
 		}
@@ -94,10 +94,10 @@ func (b *Basin) evalNoCasc(p *sample) float64 {
 }
 
 // evalCascKineWB same as evalCascKine() except with rigorous mass balance checking
-func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
+func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 	nstep := b.frc.h.Nstep()
 	dtb, dte, intvl := b.frc.h.BeginEndInterval()
-	gc := b.mdl.w / float64(intvl)    // grid celerity (w/ts)
+	gc := b.strc.w / float64(intvl)   // grid celerity (w/ts)
 	cf := b.contarea / float64(intvl) // q to cms conversion factor
 	o, g, x, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
 	defer func() {
@@ -126,7 +126,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 		gwlast := p.gw.Dm
 		wbsum, asum, rsum, xsum, gsum, fsum, ssum, slsum, ksum := 0., 0., 0., 0., 0., 0., 0., 0., 0.
 		for _, c := range b.cids {
-			slast := p.bsn[c].Storage() // total HRU storage at beginning on timestep
+			slast := p.ws[c].Storage() // total HRU storage at beginning on timestep
 			slsum += slast
 			di := p.gw.GetDi(c)
 			if di < -p.rill { // saturation excess runoff (Di: groundwater deficit)
@@ -136,7 +136,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 			} else {
 				di = 0.
 			}
-			a, r, g := p.bsn[c].Update(v[met.AtmosphericYield]-di, v[met.AtmosphericDemand]*b.mdl.f[c][d.YearDay()-1])
+			a, r, g := p.ws[c].Update(v[met.AtmosphericYield]-di, v[met.AtmosphericDemand]*b.strc.f[c][d.YearDay()-1])
 			if a < 0. {
 				log.Fatalf(" hru water-balance error, HRU ET = %.3e mm", a*1000.)
 			}
@@ -154,7 +154,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 			if r > 0 {
 				qo[c] = p.p0[c]*qi[c] + p.p1[c]*(qo[c]+gc*r)
 			} else {
-				d = p.bsn[c].Infiltrability()
+				d = p.ws[c].Infiltrability()
 				f = d // potential infiltration
 				if f < 0. {
 					log.Fatalf(" hru water-balance error, HRU potential infiltration = %.3e mm", f*1000.)
@@ -167,7 +167,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 					f = fx
 				}
 				qo[c] = p.p0[c]*qi[c] + p.p1[c]*(qo[c]-gc*f)
-				r2 := p.bsn[c].UpdateStorage(f) // add infiltration
+				r2 := p.ws[c].UpdateStorage(f) // add infiltration
 				if math.Abs(r2) > nearzero {
 					log.Fatalf(" hru water-balance error, HRU infiltration from runon exceeds capacity: f = %.3e mm, x = %.3e mm", f*1000., r2*1000.)
 				}
@@ -182,7 +182,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 			}
 
 			// waterbalance
-			s := p.bsn[c].Storage()
+			s := p.ws[c].Storage()
 			ki, ko := qi[c]/gc, qo[c]/gc
 			// k := (qi[c] - qo[c]) / gc //+ r // "mobile" storage
 			ds := s - slast
@@ -235,7 +235,7 @@ func (b *Basin) evalCascKineWB(p *sample, print bool) (of float64) {
 }
 
 // evalCascWB same as evalCasc() except with rigorous mass balance checking
-func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
+func (b *subdomain) evalCascWB(p *sample, print bool) (of float64) {
 	nstep, ts := b.frc.h.Nstep(), 86400.
 	o, g, x, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
 	defer func() {
@@ -264,7 +264,7 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 		}
 		wbsum, asum, rsum, csum, xsum, gsum, ssum, slsum := 0., 0., 0., 0., 0., 0., 0., 0.
 		for _, c := range b.cids {
-			slast := p.bsn[c].Storage() // initial HRU storage
+			slast := p.ws[c].Storage() // initial HRU storage
 			slsum += slast
 			laglast := lag[c] // runon + stored (mobile) water
 			csum += laglast
@@ -276,7 +276,7 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 			} else {
 				di = 0.
 			}
-			a, r, g := p.bsn[c].Update(v[met.AtmosphericYield]-di+lag[c], v[met.AtmosphericDemand]*b.mdl.f[c][d.YearDay()-1])
+			a, r, g := p.ws[c].Update(v[met.AtmosphericYield]-di+lag[c], v[met.AtmosphericDemand]*b.strc.f[c][d.YearDay()-1])
 			if a < 0. {
 				log.Fatalf(" hru water-balance error, HRU ET = %.3e mm", a*1000.)
 			}
@@ -288,7 +288,7 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 			}
 			asum += a
 			gsum += g
-			s := p.bsn[c].Storage()
+			s := p.ws[c].Storage()
 			wbal := v[met.AtmosphericYield] - di + slast + laglast - (s + g + a)
 			// cascade
 			if b.ds[c] == -1 {
@@ -350,7 +350,7 @@ func (b *Basin) evalCascWB(p *sample, print bool) (of float64) {
 }
 
 // evalNoCascWB same as evalNoCasc() except with rigorous mass balance checking
-func (b *Basin) evalNoCascWB(p *sample, print bool) (of float64) {
+func (b *subdomain) evalNoCascWB(p *sample, print bool) (of float64) {
 	nstep := b.frc.h.Nstep()
 	o, g, x, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
 	defer func() {
@@ -370,7 +370,7 @@ func (b *Basin) evalNoCascWB(p *sample, print bool) (of float64) {
 		gwlast := p.gw.Dm
 		wbal, asum, rsum, xsum, gsum, ssum, slsum := 0., 0., 0., 0., 0., 0., 0.
 		for _, c := range b.cids {
-			slast := p.bsn[c].Storage() // initial HRU storage
+			slast := p.ws[c].Storage() // initial HRU storage
 			slsum += slast
 			di := p.gw.GetDi(c)
 			if di < -p.rill { // saturation excess runoff (Di: groundwater deficit)
@@ -380,7 +380,7 @@ func (b *Basin) evalNoCascWB(p *sample, print bool) (of float64) {
 			} else {
 				di = 0.
 			}
-			a, r, g := p.bsn[c].Update(v[met.AtmosphericYield]-di, v[met.AtmosphericDemand]*b.mdl.f[c][d.YearDay()-1])
+			a, r, g := p.ws[c].Update(v[met.AtmosphericYield]-di, v[met.AtmosphericDemand]*b.strc.f[c][d.YearDay()-1])
 			if a < 0. {
 				log.Fatalf(" hru water-balance error, HRU ET = %.3e mm", a*1000.)
 			}
@@ -390,7 +390,7 @@ func (b *Basin) evalNoCascWB(p *sample, print bool) (of float64) {
 			if g < 0. {
 				log.Fatalf(" hru water-balance error, HRU potential recharge = %.3e mm", g*1000.)
 			}
-			s := p.bsn[c].Storage()
+			s := p.ws[c].Storage()
 			wbal += v[met.AtmosphericYield] - di + slast - (s + g + a + r)
 			ssum += s
 			asum += a

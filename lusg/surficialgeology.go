@@ -1,11 +1,9 @@
 package lusg
 
 import (
-	"fmt"
 	"log"
 	"math"
 
-	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/montecarlo/invdistr"
 )
 
@@ -13,43 +11,71 @@ import (
 type SurfGeoColl map[int]SurfGeo // cell ID to SurfGeo
 
 // LoadSurfGeo returns a pointer to a new SurfGeoColl
-func LoadSurfGeo(fp string, gd *grid.Definition) *SurfGeoColl {
-	fmt.Printf(" loading: %s\n", fp)
-	var g grid.Indx
-	g.LoadGDef(gd)
-	g.NewShort(fp, false)
-
+func LoadSurfGeo(UniqueValues []int) *SurfGeoColl {
 	// create SurfGeo collection
-	p := make(map[int]SurfGeo, 8)
-	for i := 1; i <= 8; i++ {
-		p[i] = SurfGeo{
-			id:   i,
-			Ksat: ksatFromID(i),
-			SY:   syFromID(i),
-			dK:   ksatDistrFromID(i),
-			dP:   porDistrFromID(i),
+	p := make(map[int]SurfGeo, len(UniqueValues))
+	for _, i := range UniqueValues {
+		if i == -9999 { // unknown material
+			p[-9999] = SurfGeo{
+				id:   -9999,
+				Ksat: ksatFromID(6),
+				SY:   syFromID(6),
+				dK:   ksatDistrFromID(6),
+				dP:   porDistrFromID(6),
+			}
+		} else {
+			p[i] = SurfGeo{
+				id:   i,
+				Ksat: ksatFromID(i),
+				SY:   syFromID(i),
+				dK:   ksatDistrFromID(i),
+				dP:   porDistrFromID(i),
+			}
 		}
-	}
-	p[-9999] = SurfGeo{ // unknown material
-		id:   -9999,
-		Ksat: ksatFromID(6),
-		SY:   syFromID(6),
-		dK:   ksatDistrFromID(6),
-		dP:   porDistrFromID(6),
 	}
 
-	// build collection
-	m := make(map[int]SurfGeo, g.Nvalues())
-	for i, v := range g.Values() {
-		if x, ok := p[v]; ok {
-			m[i] = x
-		} else {
-			log.Fatalf("no SurfGeo settings given to SurfGeo ID %d", v)
-		}
-	}
-	sgc := SurfGeoColl(m)
+	sgc := SurfGeoColl(p)
 	return &sgc
 }
+
+// // LoadSurfGeo returns a pointer to a new SurfGeoColl (OLD)
+// func LoadSurfGeo(fp string, gd *grid.Definition) *SurfGeoColl {
+// 	fmt.Printf(" loading: %s\n", fp)
+// 	var g grid.Indx
+// 	g.LoadGDef(gd)
+// 	g.NewShort(fp, false)
+
+// 	// create SurfGeo collection
+// 	p := make(map[int]SurfGeo, 8)
+// 	for i := 1; i <= 8; i++ {
+// 		p[i] = SurfGeo{
+// 			id:   i,
+// 			Ksat: ksatFromID(i),
+// 			SY:   syFromID(i),
+// 			dK:   ksatDistrFromID(i),
+// 			dP:   porDistrFromID(i),
+// 		}
+// 	}
+// 	p[-9999] = SurfGeo{ // unknown material
+// 		id:   -9999,
+// 		Ksat: ksatFromID(6),
+// 		SY:   syFromID(6),
+// 		dK:   ksatDistrFromID(6),
+// 		dP:   porDistrFromID(6),
+// 	}
+
+// 	// build collection
+// 	m := make(map[int]SurfGeo, g.Nvalues())
+// 	for i, v := range g.Values() {
+// 		if x, ok := p[v]; ok {
+// 			m[i] = x
+// 		} else {
+// 			log.Fatalf("no SurfGeo settings given to SurfGeo ID %d", v)
+// 		}
+// 	}
+// 	sgc := SurfGeoColl(m)
+// 	return &sgc
+// }
 
 // SurfGeo holds model parameters associated with the shallow surface material properties
 type SurfGeo struct {
@@ -188,7 +214,7 @@ func syFromID(sgid int) float64 {
 /////////////////////////////////////////////////
 
 // Sample returns a sample from the SurfGeo's range
-func (s *SurfGeo) Sample(u []float64) (ksat, por, sy float64) {
+func (s *SurfGeo) Sample(u ...float64) (ksat, por, sy float64) {
 	ksat = s.dK.P(u[0])
 	por = s.dP.P(u[1])
 	sy = s.SY
