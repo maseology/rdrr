@@ -2,6 +2,8 @@ package lusg
 
 import (
 	"log"
+
+	"github.com/maseology/montecarlo/invdistr"
 )
 
 const (
@@ -54,6 +56,7 @@ func LoadLandUse(UniqueValues []int) *LandUseColl {
 
 // LandUse holds model parameters associated with land use/cover
 type LandUse struct {
+	dM, dP                        *invdistr.Map
 	DrnSto, SrfSto, Fimp, Ifct, M float64
 	id                            int
 }
