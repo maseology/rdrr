@@ -12,7 +12,80 @@ import (
 
 const nearzero = 1e-10
 
-// eval evaluates (runs) the basin model with cascade
+// evalCascKine evaluates (runs) the basin model with kinematic routing
+func (b *subdomain) evalCascKine(p *sample, print bool) (of float64) {
+	nstep := b.frc.h.Nstep()
+	dtb, dte, intvl := b.frc.h.BeginEndInterval()
+	gc := b.strc.w / float64(intvl)   // grid celerity (w/ts)
+	cf := b.contarea / float64(intvl) // q to cms conversion factor
+	o, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
+	defer func() {
+		kge := objfunc.KGEi(o, s)
+		mwr2 := objfunc.Krausei(computeMonthly(dt, o, s, float64(intvl), b.contarea))
+		of = (1. - kge) * (1. - mwr2)
+	}()
+
+	// initialize
+	qi, qo := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid) // inflow this timestep, outflow last timestep
+	for _, c := range b.cids {
+		qi[c] = 0.
+		qo[c] = 0.
+	}
+
+	// run model
+	for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
+		v := b.frc.c[d]
+		rsum, gsum := 0., 0.
+		for _, c := range b.cids {
+			di := p.gw.GetDi(c)
+			if di < -p.rill { // saturation excess runoff (Di: groundwater deficit)
+				di += p.rill
+				gsum += di // negative recharge
+			} else {
+				di = 0.
+			}
+			_, r, _ := p.ws[c].Update(v[met.AtmosphericYield]-di, v[met.AtmosphericDemand]*b.strc.f[c][d.YearDay()-1])
+
+			// cascade
+			d := 0.
+			if r > 0 {
+				qo[c] = p.p0[c]*qi[c] + p.p1[c]*(qo[c]+gc*r)
+			} else {
+				d = p.ws[c].Infiltrability()
+				f := d                                               // potential infiltration
+				fx := (p.p0[c]*qi[c] + p.p1[c]*qo[c]) / p.p1[c] / gc // max available to infiltrate
+				if fx < nearzero {
+					fx = 0.
+				}
+				if f > fx {
+					f = fx
+				}
+				qo[c] = p.p0[c]*qi[c] + p.p1[c]*(qo[c]-gc*f)
+				p.ws[c].UpdateStorage(f) // add infiltration
+			}
+			if b.ds[c] == -1 {
+				rsum += qo[c] / gc // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case sc[c]=0.
+			} else {
+				qi[b.ds[c]] += qo[c]
+			}
+
+			qi[c] = 0.
+		}
+		rsum /= b.fncid
+
+		bf := p.gw.Update(gsum) / b.contarea // unit baseflow ([m³/ts] to [m/ts])
+		rsum += bf
+
+		// save results
+		dt[i] = d
+		o[i] = v[met.UnitDischarge] * cf
+		s[i] = rsum * cf
+		i++
+	}
+	return
+}
+
+// evalCasc evaluates (runs) the basin model with cascade
 func (b *subdomain) evalCasc(p *sample) float64 {
 	nstep, ts := b.frc.h.Nstep(), 86400.
 	o, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0

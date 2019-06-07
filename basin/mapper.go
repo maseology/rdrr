@@ -7,7 +7,6 @@ type MAPR struct {
 	lu       lusg.LandUseColl
 	sg       lusg.SurfGeoColl
 	ilu, isg map[int]int // cross reference of cid to lu/sg id
-	// ulu, usg []int       // unique values of lu and sg
 }
 
 func (m *MAPR) subset(cids []int) *MAPR {
@@ -38,8 +37,6 @@ func (m *MAPR) subset(cids []int) *MAPR {
 		sg:  sg,
 		ilu: ilu,
 		isg: isg,
-		// ulu: ulu,
-		// usg: usg,
 	}
 	return &newMAPR
 }

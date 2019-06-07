@@ -93,7 +93,6 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
 	var ilu, isg map[int]int
-	// var ulu, usg []int
 	readtopo := func() {
 		defer wg.Done()
 		if cc, err := t.New(l.indir + l.temfn); err != nil {
@@ -185,8 +184,6 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		sg:  sg,
 		ilu: ilu,
 		isg: isg,
-		// ulu: ulu,
-		// usg: usg,
 	}
 
 	if l.outlet == -1 {

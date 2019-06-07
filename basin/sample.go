@@ -3,6 +3,7 @@ package basin
 import (
 	"log"
 	"math"
+	"sort"
 	"sync"
 
 	"github.com/maseology/goHydro/gwru"
@@ -44,7 +45,14 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	// sample surficial geology types
 	ksg, nsg, i := 5, 3, 0
 	pksat, ppor, pfc := make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg))
-	for k, sg := range b.mpr.sg {
+	keys := make([]int, 0)
+	for k := range b.mpr.sg {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	sdf := b.mpr.sg
+	for _, k := range keys {
+		sg := sdf[k]
 		pksat[k], ppor[k], _ = sg.Sample(u[ksg+nsg*i], u[ksg+nsg*i+1])
 		pfc[k] = fc(u[ksg+nsg*i+2])
 		i++
@@ -53,7 +61,13 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	// sample landuse types
 	klu, nlu, i := ksg+len(b.mpr.sg)*nsg, 1, 0
 	pn, pfimp, pinfct := make(map[int]float64, len(b.mpr.lu)), make(map[int]float64, len(b.mpr.lu)), make(map[int]float64, len(b.mpr.lu))
-	for k, lu := range b.mpr.lu {
+	keys = make([]int, 0)
+	for k := range b.mpr.lu {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		lu := b.mpr.lu[k]
 		pfimp[k] = lu.Fimp
 		pinfct[k] = lu.Intfct
 		pn[k] = mann(u[klu+nlu*i])

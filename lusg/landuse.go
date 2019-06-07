@@ -20,30 +20,6 @@ func LoadLandUse(UniqueValues []int) *LandUseColl {
 	return &luc
 }
 
-// // LoadLandUse returns a pointer to a new LandUseColl
-// func LoadLandUse(fp string, gd *grid.Definition) *LandUseColl {
-// 	fmt.Printf(" loading: %s\n", fp)
-// 	var g grid.Indx
-// 	g.LoadGDef(gd)
-// 	g.NewShort(fp, false)
-
-// 	// create LandUse collection
-// 	p := make(map[int]LandUse, 32)
-// 	for _, i := range g.UniqueValues() {
-// 		sz, dp, f := defaultsFromSOLRIS(i)
-// 		p[i] = LandUse{id: i, DrnSto: sz, SrfSto: dp, Fimp: f}
-// 	}
-
-// 	// build collection (OLD)
-// 	m := make(map[int]LandUse, g.Nvalues())
-// 	for i, v := range g.Values() {
-// 		var lut = p[v]
-// 		m[i] = lut
-// 	}
-// 	luc := LandUseColl(m)
-// 	return &luc
-// }
-
 // LandUse holds model parameters associated with land use/cover
 type LandUse struct {
 	Fimp, Intfct float64
