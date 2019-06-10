@@ -1,7 +1,6 @@
 package basin
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"sort"
@@ -24,15 +23,15 @@ type sample struct {
 	rill   float64
 }
 
-func (b *subdomain) toSampleU(u ...float64) (sample, []string) {
+func (b *subdomain) toSampleU(u ...float64) sample {
 	var wg sync.WaitGroup
 
 	ws := make(hru.WtrShd, b.ncid)
 	var gw gwru.TMQ
-	str := make([]string, 0, len(u))
+	// str := make([]string, 0, len(u))
 
 	// transform sample space
-	str = append(str, "rill", "topm", "dsoil", "dpsto", "itsto")
+	// str = append(str, "rill", "topm", "dsoil", "dpsto", "itsto")
 	rill := mmaths.LogLinearTransform(0.001, 0.1, u[0])
 	topm := mmaths.LogLinearTransform(0.001, 10., u[1])
 	dsoil := mmaths.LinearTransform(0.01, 1., u[2])
@@ -58,7 +57,7 @@ func (b *subdomain) toSampleU(u ...float64) (sample, []string) {
 		sg := sdf[k]
 		pksat[k], ppor[k], _ = sg.Sample(u[ksg+nsg*i], u[ksg+nsg*i+1])
 		pfc[k] = fc(u[ksg+nsg*i+2])
-		str = append(str, fmt.Sprintf("%d:ksat", k), fmt.Sprintf("%d:por", k), fmt.Sprintf("%d:fc", k))
+		// str = append(str, fmt.Sprintf("%d:ksat", k), fmt.Sprintf("%d:por", k), fmt.Sprintf("%d:fc", k))
 		i++
 	}
 
@@ -75,7 +74,7 @@ func (b *subdomain) toSampleU(u ...float64) (sample, []string) {
 		pfimp[k] = lu.Fimp
 		pinfct[k] = lu.Intfct
 		pn[k] = mann(u[klu+nlu*i])
-		str = append(str, fmt.Sprintf("%d:mann", k))
+		// str = append(str, fmt.Sprintf("%d:mann", k))
 		i++
 	}
 
@@ -123,7 +122,7 @@ func (b *subdomain) toSampleU(u ...float64) (sample, []string) {
 	go buildTopmodel()
 	wg.Wait()
 
-	fmt.Println(str)
+	// fmt.Println(str)
 
 	return sample{
 		ws:   ws,
@@ -131,7 +130,7 @@ func (b *subdomain) toSampleU(u ...float64) (sample, []string) {
 		p0:   b.buildC0(n, ts),
 		p1:   b.buildC2(n, ts),
 		rill: rill,
-	}, str
+	}
 }
 
 func (b *subdomain) buildC0(n map[int]float64, ts float64) map[int]float64 {

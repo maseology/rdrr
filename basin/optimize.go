@@ -23,7 +23,7 @@ func Optimize(ldr *Loader) {
 	ver := b.evalCascKineWB
 
 	gen := func(u []float64) float64 {
-		smpl, _ := b.toSampleU(u...)
+		smpl := b.toSampleU(u...)
 		return ver(&smpl, false)
 	}
 
@@ -32,7 +32,7 @@ func Optimize(ldr *Loader) {
 	// uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
 
 	fmt.Printf("\nfinal parameters: %v\n", uFinal)
-	final, _ := b.toSampleU(uFinal...)
+	final := b.toSampleU(uFinal...)
 	ver(&final, true)
 }
 
