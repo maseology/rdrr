@@ -170,9 +170,16 @@ func (b *subdomain) evalNoCasc(p *sample) float64 {
 func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 	nstep := b.frc.h.Nstep()
 	dtb, dte, intvl := b.frc.h.BeginEndInterval()
-	gc := b.strc.w / float64(intvl)   // grid celerity (w/ts)
-	cf := b.contarea / float64(intvl) // q to cms conversion factor
+	gc := b.strc.w / float64(intvl)        // grid celerity (w/ts)
+	cf := b.contarea / float64(intvl)      // q to cms conversion factor
+	af := 365.25 * 1000.0 / float64(nstep) // aggrate conversion factor (mm/yr)
+
+	// timeseries
 	o, g, x, s, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
+
+	// distributed
+	gr := make(map[int]float64, b.ncid)
+
 	defer func() {
 		kge := objfunc.KGEi(o, s)
 		mwr2 := objfunc.Krausei(computeMonthly(dt, o, s, float64(intvl), b.contarea))
@@ -180,8 +187,9 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		if print {
 			sumHydrograph(dt, o, s, g, x)
 			sumMonthly(dt, o, s, float64(intvl), b.contarea)
+			saveBinaryMap1(gr, "recharge.rmap")
 			fmt.Printf("Total number of cells: %d\t %d timesteps\t catchent area: %.3f km²\n", b.ncid, nstep, b.contarea/1000./1000.)
-			fmt.Printf("  KGE: %.3f  wr2mon: %.3f  Bias: %.3f\n", kge, mwr2, objfunc.Biasi(o, s))
+			fmt.Printf("  KGE: %.3f  NSE: %.3f  mon-wr2: %.3f  Bias: %.3f\n", kge, objfunc.NSEi(o, s), mwr2, objfunc.Biasi(o, s))
 		}
 	}()
 
@@ -190,6 +198,7 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 	for _, c := range b.cids {
 		qi[c] = 0.
 		qo[c] = 0.
+		gr[c] = 0.
 	}
 
 	// run model
@@ -221,6 +230,7 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 			}
 			asum += a
 			gsum += g
+			gr[c] += g * af
 
 			// cascade
 			f, d := 0., 0.
@@ -270,14 +280,14 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 			ksum += ki - ko + r
 			qi[c] = 0.
 		}
-		ssum /= b.fncid
-		slsum /= b.fncid
-		asum /= b.fncid
-		rsum /= b.fncid
-		xsum /= b.fncid
-		gsum /= b.fncid
-		fsum /= b.fncid
-		ksum /= b.fncid
+		ssum /= b.fncid  // current storage
+		slsum /= b.fncid // last storage
+		asum /= b.fncid  // evaporation
+		rsum /= b.fncid  // runoff (at outlet)
+		xsum /= b.fncid  // saturation excess runoff
+		gsum /= b.fncid  // recharge
+		fsum /= b.fncid  // infiltration
+		ksum /= b.fncid  // asdf
 
 		bf := p.gw.Update(gsum) / b.contarea // unit baseflow ([m³/ts] to [m/ts])
 		rsum += bf
@@ -299,9 +309,9 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		// save results
 		dt[i] = d
 		o[i] = v[met.UnitDischarge] * cf
-		g[i] = bf * cf
-		x[i] = xsum * cf
-		s[i] = rsum * cf
+		g[i] = bf * cf   // groundwater discharge to streams
+		x[i] = xsum * cf // saturation excess runoff
+		s[i] = rsum * cf // total runoff at outlet
 		i++
 	}
 	return
