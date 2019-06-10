@@ -176,7 +176,7 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 	defer func() {
 		kge := objfunc.KGEi(o, s)
 		mwr2 := objfunc.Krausei(computeMonthly(dt, o, s, float64(intvl), b.contarea))
-		of = (1. - kge) * (1. - mwr2)
+		of = (1. - kge) //* (1. - mwr2)
 		if print {
 			sumHydrograph(dt, o, s, g, x)
 			sumMonthly(dt, o, s, float64(intvl), b.contarea)

@@ -3,6 +3,7 @@ package basin
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/maseology/glbopt"
@@ -15,7 +16,6 @@ func Optimize(ldr *Loader) {
 	d := newDomain(ldr)
 	b := d.newSubDomain(ldr.outlet)
 
-	const ncmplx = 16
 	nsmpl := len(b.mpr.lu) + len(b.mpr.sg)*3 + 5
 
 	rng := rand.New(mrg63k3a.New())
@@ -23,15 +23,16 @@ func Optimize(ldr *Loader) {
 	ver := b.evalCascKineWB
 
 	gen := func(u []float64) float64 {
-		smpl := b.toSampleU(u...)
+		smpl, _ := b.toSampleU(u...)
 		return ver(&smpl, false)
 	}
 
 	fmt.Println(" optimizing..")
-	uFinal, _ := glbopt.SCE(ncmplx, nsmpl, rng, gen, true)
+	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
+	// uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
 
 	fmt.Printf("\nfinal parameters: %v\n", uFinal)
-	final := b.toSampleU(uFinal...)
+	final, _ := b.toSampleU(uFinal...)
 	ver(&final, true)
 }
 
