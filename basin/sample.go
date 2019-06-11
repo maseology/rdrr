@@ -20,7 +20,6 @@ type sample struct {
 	ws     hru.WtrShd // hru watershed
 	gw     gwru.TMQ   // topmodel
 	p0, p1 map[int]float64
-	rill   float64
 }
 
 func (b *subdomain) toSampleU(u ...float64) sample {
@@ -32,11 +31,10 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 
 	// transform sample space
 	// str = append(str, "rill", "topm", "dsoil", "dpsto", "itsto")
-	rill := mmaths.LogLinearTransform(0.001, 0.1, u[0])
-	topm := mmaths.LogLinearTransform(0.001, 10., u[1])
-	dsoil := mmaths.LinearTransform(0.01, 1., u[2])
-	dpsto := mmaths.LogLinearTransform(0.0001, 0.001, u[3])
-	itsto := mmaths.LinearTransform(0.0001, 0.004, u[4]) // short and tall vegetation interception
+	topm := mmaths.LogLinearTransform(0.001, 10., u[0])
+	dsoil := mmaths.LinearTransform(0.01, 1., u[1])
+	dpsto := mmaths.LogLinearTransform(0.0001, 0.001, u[2])
+	itsto := mmaths.LinearTransform(0.0001, 0.004, u[3]) // short and tall vegetation interception
 	mann := func(u float64) float64 {
 		return mmaths.LogLinearTransform(0.0001, 100., u)
 	}
@@ -45,7 +43,7 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	}
 
 	// sample surficial geology types
-	ksg, nsg, i := 5, 3, 0
+	ksg, nsg, i := 4, 3, 0
 	pksat, ppor, pfc := make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg))
 	keys := make([]int, 0)
 	for k := range b.mpr.sg {
@@ -125,11 +123,10 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	// fmt.Println(str)
 
 	return sample{
-		ws:   ws,
-		gw:   gw,
-		p0:   b.buildC0(n, ts),
-		p1:   b.buildC2(n, ts),
-		rill: rill,
+		ws: ws,
+		gw: gw,
+		p0: b.buildC0(n, ts),
+		p1: b.buildC2(n, ts),
 	}
 }
 

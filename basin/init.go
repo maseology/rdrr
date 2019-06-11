@@ -19,7 +19,7 @@ func (b *subdomain) buildSfrac(f1 float64) map[int]float64 {
 	return fc
 }
 
-func (b *subdomain) toDefaultSample(rill, m, n float64) sample {
+func (b *subdomain) toDefaultSample(m, n float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.h.IntervalSec()
@@ -96,10 +96,9 @@ func (b *subdomain) toDefaultSample(rill, m, n float64) sample {
 		na[i] = n
 	}
 	return sample{
-		ws:   ws,
-		gw:   gw,
-		p0:   b.buildC0(na, ts), // b.buildSfrac(f1),
-		p1:   b.buildC2(na, ts),
-		rill: rill,
+		ws: ws,
+		gw: gw,
+		p0: b.buildC0(na, ts), // b.buildSfrac(f1),
+		p1: b.buildC2(na, ts),
 	}
 }

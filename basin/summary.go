@@ -38,10 +38,15 @@ func computeMonthly(dt, o, s []interface{}, ts, ca float64) ([]interface{}, []in
 	return osi, ssi
 }
 
-func sumHydrograph(dt, o, s, g, x []interface{}) {
+func sumHydrograph(dt, o, s, g []interface{}) {
 	// C:/Users/mason/OneDrive/R/dygraph/obssim_csv_viewer.R
-	mmio.WriteCSV("hydrograph.csv", "date,obs,sim,gw,excess", dt, o, s, g, x)
+	mmio.WriteCSV("hydrograph.csv", "date,obs,sim,bf", dt, o, s, g)
 	// mmio.ObsSim("hydrograph.png", o[730:], s[730:])
+}
+
+func sumHydrographWB(dt, s, a, g, x, f []interface{}) {
+	// C:/Users/mason/OneDrive/R/dygraph/obssim_csv_viewer.R
+	mmio.WriteCSV("waterbalance.csv", "date,sto,aet,rch,exs,inf", dt, s, a, g, x, f)
 }
 
 func sumMonthly(dt, o, s []interface{}, ts, ca float64) {

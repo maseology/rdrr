@@ -16,7 +16,7 @@ func Optimize(ldr *Loader) {
 	d := newDomain(ldr)
 	b := d.newSubDomain(ldr.outlet)
 
-	nsmpl := len(b.mpr.lu) + len(b.mpr.sg)*3 + 5
+	nsmpl := len(b.mpr.lu) + len(b.mpr.sg)*3 + 4
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
@@ -58,14 +58,14 @@ func Optimize3(ldr *Loader) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	ver := b.evalCascKineWB
+	ver := b.evalCascWB
 
 	gen := func(u []float64) float64 {
 		p0 := t0(u[0]) // rill storage
 		p1 := t1(u[1]) // topmodel m
 		p2 := t2(u[2]) // manning's n
-		smpl := b.toDefaultSample(p0, p1, p2)
-		return ver(&smpl, false)
+		smpl := b.toDefaultSample(p1, p2)
+		return ver(&smpl, p0, false)
 	}
 
 	fmt.Println(" optimizing..")
@@ -75,6 +75,6 @@ func Optimize3(ldr *Loader) {
 	p1 := t1(uFinal[1]) // topmodel m
 	p2 := t2(uFinal[2]) // manning's n
 	fmt.Printf("\nfinal parameters: %v\n", []float64{p0, p1, p2})
-	final := b.toDefaultSample(p0, p1, p2)
-	ver(&final, true)
+	final := b.toDefaultSample(p1, p2)
+	ver(&final, p0, true)
 }
