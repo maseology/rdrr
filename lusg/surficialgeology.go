@@ -84,8 +84,8 @@ func buildLogTrapezoid(l, m, n, h float64) *invdistr.Map {
 	n10 := math.Log10(n)
 	h10 := math.Log10(h)
 	return &invdistr.Map{
-		Low:   l,
-		High:  h,
+		Low:   l10,
+		High:  h10,
 		Log:   true,
 		Distr: invdistr.NewTrapezoid((m10-l10)/(h10-l10), (n10-l10)/(h10-l10), 2., 2.),
 	}
