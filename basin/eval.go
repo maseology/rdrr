@@ -23,7 +23,7 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 
 	// timeseries monitors
 	o, s, g, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
-	ws, wa, wg, wx, wf := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep)
+	ws, wd, wa, wg, wx, wf := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep)
 
 	// distributed monitors
 	gg, gr := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid)
@@ -35,7 +35,7 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		of = (1. - kge) //* (1. - mwr2)
 		if print {
 			sumHydrograph(dt, o, s, g)
-			sumHydrographWB(dt, ws, wa, wg, wx, wf)
+			sumHydrographWB(dt, ws, wd, wa, wg, wx, wf)
 			sumMonthly(dt, o, s, float64(intvl), b.contarea)
 			saveBinaryMap1(gr, "runoff.rmap")
 			saveBinaryMap1(gg, "recharge.rmap")
@@ -205,9 +205,10 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		g[i] = bf * cf   // groundwater discharge to streams
 		s[i] = rsum * cf // total runoff at outlet
 
+		ws[i] = ssum * 1000.            // CE storage
+		wd[i] = p.gw.Dm                 // GW deficit
 		wg[i] = gsum * 1000.            // groundwater recharge
 		wx[i] = xsum * 1000.            // saturation excess runoff
-		ws[i] = ssum * 1000.            // CE storage
 		wa[i] = asum * 1000.            // evaporation
 		wf[i] = (fdsum + frsum) * 1000. // infiltration
 

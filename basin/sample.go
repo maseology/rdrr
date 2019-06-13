@@ -1,6 +1,7 @@
 package basin
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"sort"
@@ -22,6 +23,71 @@ type sample struct {
 	p0, p1 map[int]float64
 }
 
+func topm(u float64) float64 { // TOPMODEL m
+	return mmaths.LogLinearTransform(0.001, 10., u)
+}
+
+func dsoil(u float64) float64 { // depth of soil [m]
+	return mmaths.LinearTransform(0.01, 1., u)
+}
+
+func dpsto(u float64) float64 { // impervious depression storage [m]
+	return mmaths.LogLinearTransform(0.0001, 0.001, u)
+}
+
+func intsto(u float64) float64 { // short and tall vegetation interception storage
+	return mmaths.LinearTransform(0.0001, 0.004, u)
+}
+
+func mann(u float64) float64 {
+	return mmaths.LogLinearTransform(0.0001, 100., u)
+}
+func fc(u float64) float64 {
+	return mmaths.LinearTransform(0.01, 0.4, u)
+}
+
+func (b *subdomain) printParam(u ...float64) {
+	// transform sample space
+	fmt.Printf("topm\t\t%.5f\n", topm(u[0]))
+	fmt.Printf("dsoil\t\t%.5f\n", dsoil(u[1]))
+	fmt.Printf("dpsto\t\t%.5f\n", dpsto(u[2]))
+	fmt.Printf("intsto\t\t%.5f\n", intsto(u[3]))
+
+	// sample surficial geology types
+	ksg, nsg, i := 4, 3, 0
+	keys := make([]int, 0)
+	for k := range b.mpr.sg {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	sdf := b.mpr.sg
+	for _, k := range keys {
+		sg := sdf[k]
+		ksat, por, _ := sg.Sample(u[ksg+nsg*i], u[ksg+nsg*i+1])
+		fmt.Printf(" === SG %d\n", k)
+		fmt.Printf("ksat\t\t%.5e\n", ksat)
+		fmt.Printf("por\t\t%.5f\n", por)
+		fmt.Printf("fc\t\t%.5f\n", fc(u[ksg+nsg*i+2]))
+		i++
+	}
+
+	// sample landuse types
+	klu, nlu, i := ksg+len(b.mpr.sg)*nsg, 1, 0
+	keys = make([]int, 0)
+	for k := range b.mpr.lu {
+		keys = append(keys, k)
+	}
+	sort.Ints(keys)
+	for _, k := range keys {
+		lu := b.mpr.lu[k]
+		fmt.Printf(" === LU %d\n", k)
+		fmt.Printf("fimp\t\t%.5f\n", lu.Fimp)
+		fmt.Printf("intfct\t\t%.5f\n", lu.Intfct)
+		fmt.Printf("mann\t\t%.5f\n", mann(u[klu+nlu*i]))
+		i++
+	}
+}
+
 func (b *subdomain) toSampleU(u ...float64) sample {
 	var wg sync.WaitGroup
 
@@ -30,7 +96,7 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	// str := make([]string, 0, len(u))
 
 	// transform sample space
-	// str = append(str, "rill", "topm", "dsoil", "dpsto", "itsto")
+	// str = append(str, "topm", "dsoil", "dpsto", "itsto")
 	topm := mmaths.LogLinearTransform(0.001, 10., u[0])
 	dsoil := mmaths.LinearTransform(0.01, 1., u[1])
 	dpsto := mmaths.LogLinearTransform(0.0001, 0.001, u[2])

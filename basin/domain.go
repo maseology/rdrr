@@ -14,11 +14,24 @@ type domain struct {
 
 func newDomain(ldr *Loader) domain {
 	frc, strc, mpr, gd := ldr.load()
-	d := domain{
+	return domain{
 		frc:  &frc,
 		strc: &strc,
 		mpr:  &mpr,
 		gd:   gd,
 	}
-	return d
+}
+
+func newUniformDomain(ldr *Loader) domain {
+	frc, strc, mpr, gd := ldr.load()
+	for i := range mpr.ilu {
+		mpr.ilu[i] = -9999
+		mpr.isg[i] = -9999
+	}
+	return domain{
+		frc:  &frc,
+		strc: &strc,
+		mpr:  &mpr,
+		gd:   gd,
+	}	
 }

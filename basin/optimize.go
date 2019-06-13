@@ -3,11 +3,9 @@ package basin
 import (
 	"fmt"
 	"math/rand"
-	"runtime"
 	"time"
 
 	"github.com/maseology/glbopt"
-	"github.com/maseology/mmaths"
 	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
@@ -36,44 +34,60 @@ func Optimize(ldr *Loader) {
 	ver(&final, true)
 }
 
-// Optimize3 solves the model to a given basin outlet
-// changes only 3 basin-wide parameters (rill, m, n)
-func Optimize3(ldr *Loader) {
-	d := newDomain(ldr)
+// OptimizeUniform solves a uniform-parameter model to a given basin outlet
+// changes only 3 basin-wide parameters (m, n)
+func OptimizeUniform(ldr *Loader) {
+	d := newUniformDomain(ldr)
 	b := d.newSubDomain(ldr.outlet)
 
-	const nsmpl = 3
-
-	// sample ranges
-	t0 := func(u float64) float64 {
-		return mmaths.LogLinearTransform(0.01, 1., u)
-	}
-	t1 := func(u float64) float64 {
-		return mmaths.LogLinearTransform(0.001, 10., u)
-	}
-	t2 := func(u float64) float64 {
-		return mmaths.LogLinearTransform(0.0001, 100., u)
-	}
+	nsmpl := len(b.mpr.lu) + len(b.mpr.sg)*3 + 4
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	ver := b.evalCascWB
+	ver := b.evalCascKineWB
 
 	gen := func(u []float64) float64 {
-		p0 := t0(u[0]) // rill storage
-		p1 := t1(u[1]) // topmodel m
-		p2 := t2(u[2]) // manning's n
-		smpl := b.toDefaultSample(p1, p2)
-		return ver(&smpl, p0, false)
+		smpl := b.toSampleU(u...)
+		return ver(&smpl, false)
 	}
 
 	fmt.Println(" optimizing..")
-	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
+	// uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
+	uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
 
-	p0 := t0(uFinal[0]) // rill storage
-	p1 := t1(uFinal[1]) // topmodel m
-	p2 := t2(uFinal[2]) // manning's n
-	fmt.Printf("\nfinal parameters: %v\n", []float64{p0, p1, p2})
-	final := b.toDefaultSample(p1, p2)
-	ver(&final, p0, true)
+	fmt.Printf("\nfinal parameters: %v\n", uFinal)
+	final := b.toSampleU(uFinal...)
+	ver(&final, true)
+
+	// const nsmpl = 2
+
+	// // sample ranges
+	// topm := func(u float64) float64 {
+	// 	return mmaths.LogLinearTransform(0.001, 10., u)
+	// }
+	// mann := func(u float64) float64 {
+	// 	return mmaths.LogLinearTransform(0.0001, 100., u)
+	// }
+
+	// rng := rand.New(mrg63k3a.New())
+	// rng.Seed(time.Now().UnixNano())
+	// ver := b.evalCascKineWB
+
+	// gen := func(u []float64) float64 {
+	// 	topm := topm(u[1]) // topmodel m
+	// 	mann := mann(u[2]) // manning's n
+	// 	smpl := b.toDefaultSample(topm, mann)
+	// 	return ver(&smpl, false)
+	// }
+
+	// fmt.Println(" optimizing..")
+	// uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
+
+	// func() {
+	// 	topm := topm(uFinal[1]) // topmodel m
+	// 	mann := mann(uFinal[2]) // manning's n
+	// 	fmt.Printf("\nfinal parameters: %v\n", []float64{topm, mann})
+	// 	final := b.toDefaultSample(topm, mann)
+	// 	ver(&final, true)
+	// }()
 }
