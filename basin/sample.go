@@ -48,10 +48,10 @@ func fc(u float64) float64 {
 
 func (b *subdomain) printParam(u ...float64) {
 	// transform sample space
-	fmt.Printf("topm\t\t%.5f\n", topm(u[0]))
-	fmt.Printf("dsoil\t\t%.5f\n", dsoil(u[1]))
-	fmt.Printf("dpsto\t\t%.5f\n", dpsto(u[2]))
-	fmt.Printf("intsto\t\t%.5f\n", intsto(u[3]))
+	fmt.Printf("topm\t\t%.5f\t(%.5f)\n", topm(u[0]), u[0])
+	fmt.Printf("dsoil\t\t%.5f\t(%.5f)\n", dsoil(u[1]), u[1])
+	fmt.Printf("dpsto\t\t%.5f\t(%.5f)\n", dpsto(u[2]), u[2])
+	fmt.Printf("intsto\t\t%.5f\t(%.5f)\n", intsto(u[3]), u[3])
 
 	// sample surficial geology types
 	ksg, nsg, i := 4, 3, 0
@@ -65,9 +65,9 @@ func (b *subdomain) printParam(u ...float64) {
 		sg := sdf[k]
 		ksat, por, _ := sg.Sample(u[ksg+nsg*i], u[ksg+nsg*i+1])
 		fmt.Printf(" === SG %d\n", k)
-		fmt.Printf("ksat\t\t%.5e\n", ksat)
-		fmt.Printf("por\t\t%.5f\n", por)
-		fmt.Printf("fc\t\t%.5f\n", fc(u[ksg+nsg*i+2]))
+		fmt.Printf("ksat\t\t%.2e\t(%.5f)\n", ksat, u[ksg+nsg*i])
+		fmt.Printf("por\t\t%.5f\t(%.5f)\n", por, u[ksg+nsg*i+1])
+		fmt.Printf("fc\t\t%.5f\t(%.5f)\n", fc(u[ksg+nsg*i+2]), u[ksg+nsg*i+2])
 		i++
 	}
 
@@ -83,7 +83,7 @@ func (b *subdomain) printParam(u ...float64) {
 		fmt.Printf(" === LU %d\n", k)
 		fmt.Printf("fimp\t\t%.5f\n", lu.Fimp)
 		fmt.Printf("intfct\t\t%.5f\n", lu.Intfct)
-		fmt.Printf("mann\t\t%.5f\n", mann(u[klu+nlu*i]))
+		fmt.Printf("mann\t\t%.5f\t(%.5f)\n", mann(u[klu+nlu*i]), u[klu+nlu*i])
 		i++
 	}
 }
@@ -99,8 +99,8 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	// str = append(str, "topm", "dsoil", "dpsto", "itsto")
 	topm := mmaths.LogLinearTransform(0.001, 10., u[0])
 	dsoil := mmaths.LinearTransform(0.01, 1., u[1])
-	dpsto := mmaths.LogLinearTransform(0.0001, 0.001, u[2])
-	itsto := mmaths.LinearTransform(0.0001, 0.004, u[3]) // short and tall vegetation interception
+	// dpsto := mmaths.LogLinearTransform(0.0001, 0.001, u[2])
+	// itsto := mmaths.LinearTransform(0.0001, 0.004, u[3]) // short and tall vegetation interception
 	mann := func(u float64) float64 {
 		return mmaths.LogLinearTransform(0.0001, 100., u)
 	}
@@ -153,7 +153,7 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 			ksat[cid] = pksat[b.mpr.isg[cid]]
 			n[cid] = pn[b.mpr.ilu[cid]]
 			drnsto := ppor[b.mpr.isg[cid]] * (1. - pfc[b.mpr.isg[cid]]) * dsoil
-			srfsto := ppor[b.mpr.isg[cid]]*pfc[b.mpr.isg[cid]]*dsoil + itsto*pinfct[b.mpr.ilu[cid]]*(1.-pfimp[b.mpr.ilu[cid]]) + dpsto*pfimp[b.mpr.ilu[cid]]
+			srfsto := ppor[b.mpr.isg[cid]] * pfc[b.mpr.isg[cid]] * dsoil //+ itsto*pinfct[b.mpr.ilu[cid]]*(1.-pfimp[b.mpr.ilu[cid]]) + dpsto*pfimp[b.mpr.ilu[cid]]
 			hnew.Initialize(drnsto, srfsto, pfimp[b.mpr.ilu[cid]], ksat[cid], ts)
 			ws[cid] = &hnew
 			for _, upcid := range b.strc.t.UpIDs(cid) {

@@ -40,7 +40,7 @@ func OptimizeUniform(ldr *Loader) {
 	d := newUniformDomain(ldr)
 	b := d.newSubDomain(ldr.outlet)
 
-	nsmpl := len(b.mpr.lu) + len(b.mpr.sg)*3 + 4
+	nsmpl := len(b.mpr.lu) + len(b.mpr.sg)*3 + 2
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
