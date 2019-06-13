@@ -28,8 +28,8 @@ func Optimize(ldr *Loader) {
 	}
 
 	fmt.Println(" optimizing..")
-	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
-	// uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
+	// uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
+	uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
 
 	fmt.Printf("\nfinal parameters: %v\n", uFinal)
 	final := b.toSampleU(uFinal...)
@@ -42,7 +42,6 @@ func Optimize3(ldr *Loader) {
 	d := newDomain(ldr)
 	b := d.newSubDomain(ldr.outlet)
 
-	const ncmplx = 16
 	const nsmpl = 3
 
 	// sample ranges
@@ -69,7 +68,7 @@ func Optimize3(ldr *Loader) {
 	}
 
 	fmt.Println(" optimizing..")
-	uFinal, _ := glbopt.SCE(ncmplx, nsmpl, rng, gen, true)
+	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
 
 	p0 := t0(uFinal[0]) // rill storage
 	p1 := t1(uFinal[1]) // topmodel m
