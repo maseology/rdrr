@@ -3,6 +3,7 @@ package basin
 import (
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/maseology/glbopt"
@@ -52,8 +53,8 @@ func OptimizeUniform(ldr *Loader) {
 	}
 
 	fmt.Println(" optimizing..")
-	// uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
-	uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
+	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
+	// uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
 
 	fmt.Printf("\nfinal parameters: %v\n", uFinal)
 	final := b.toSampleU(uFinal...)

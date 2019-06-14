@@ -97,19 +97,13 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 
 	// transform sample space
 	// str = append(str, "topm", "dsoil", "dpsto", "itsto")
-	topm := mmaths.LogLinearTransform(0.001, 10., u[0])
-	dsoil := mmaths.LinearTransform(0.01, 1., u[1])
-	// dpsto := mmaths.LogLinearTransform(0.0001, 0.001, u[2])
-	// itsto := mmaths.LinearTransform(0.0001, 0.004, u[3]) // short and tall vegetation interception
-	mann := func(u float64) float64 {
-		return mmaths.LogLinearTransform(0.0001, 100., u)
-	}
-	fc := func(u float64) float64 {
-		return mmaths.LinearTransform(0.01, 0.4, u)
-	}
+	topm := topm(u[0])
+	dsoil := dsoil(u[1])
+	// dpsto := dpsto( u[2])
+	// itsto := intsto(u[3]) // short and tall vegetation interception
 
 	// sample surficial geology types
-	ksg, nsg, i := 4, 3, 0
+	ksg, nsg, i := 2, 3, 0
 	pksat, ppor, pfc := make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg))
 	keys := make([]int, 0)
 	for k := range b.mpr.sg {
