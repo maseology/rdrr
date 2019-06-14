@@ -48,13 +48,14 @@ func fc(u float64) float64 {
 
 func (b *subdomain) printParam(u ...float64) {
 	// transform sample space
+	ksg := 2
 	fmt.Printf("topm\t\t%.5f\t(%.5f)\n", topm(u[0]), u[0])
 	fmt.Printf("dsoil\t\t%.5f\t(%.5f)\n", dsoil(u[1]), u[1])
-	fmt.Printf("dpsto\t\t%.5f\t(%.5f)\n", dpsto(u[2]), u[2])
-	fmt.Printf("intsto\t\t%.5f\t(%.5f)\n", intsto(u[3]), u[3])
+	// fmt.Printf("dpsto\t\t%.5f\t(%.5f)\n", dpsto(u[2]), u[2])
+	// fmt.Printf("intsto\t\t%.5f\t(%.5f)\n", intsto(u[3]), u[3])
 
 	// sample surficial geology types
-	ksg, nsg, i := 4, 3, 0
+	nsg, i := 3, 0
 	keys := make([]int, 0)
 	for k := range b.mpr.sg {
 		keys = append(keys, k)
@@ -96,6 +97,7 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	// str := make([]string, 0, len(u))
 
 	// transform sample space
+	ksg := 2
 	// str = append(str, "topm", "dsoil", "dpsto", "itsto")
 	topm := topm(u[0])
 	dsoil := dsoil(u[1])
@@ -103,7 +105,7 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	// itsto := intsto(u[3]) // short and tall vegetation interception
 
 	// sample surficial geology types
-	ksg, nsg, i := 2, 3, 0
+	nsg, i := 3, 0
 	pksat, ppor, pfc := make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg))
 	keys := make([]int, 0)
 	for k := range b.mpr.sg {
