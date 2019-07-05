@@ -19,8 +19,8 @@ import (
 
 // Loader holds the required input filepaths
 type Loader struct {
-	metfp, indir, gdfn, temfn, lufn, sgfn string
-	outlet                                int
+	Dir, Fmet, Fgd, Fhdem, Fsws, Flu, Fsg string
+	Outlet                                int
 }
 
 // LoaderDefault returns a default Loader
@@ -34,14 +34,15 @@ func LoaderDefault(rootdir string, outlet int) *Loader {
 	// 	sgfn:   "ORMGP_50_hydrocorrect_PorousMedia_ID.grd",
 	// 	outlet: -1, // <0: from .met index, 0: no outlet, >0: outlet cell ID
 	// }
+	rtcoarse := rootdir + "coarse/"
 	lout := Loader{
-		metfp:  rootdir + "02EC018.met",
-		indir:  rootdir + "coarse/",
-		temfn:  "ORMGP_500_hydrocorrect.uhdem",
-		gdfn:   "ORMGP_500_hydrocorrect.uhdem.gdef",
-		lufn:   "ORMGP_500_hydrocorrect_SOLRISv2_ID.grd",
-		sgfn:   "ORMGP_500_hydrocorrect_PorousMedia_ID.grd",
-		outlet: outlet, //127669, // 128667, // <0: from .met index, 0: no outlet, >0: outlet cell ID
+		Fmet:   rootdir + "02EC018.met",
+		Dir:    rtcoarse,
+		Fhdem:  rtcoarse + "ORMGP_500_hydrocorrect.uhdem",
+		Fgd:    rtcoarse + "ORMGP_500_hydrocorrect.uhdem.gdef",
+		Flu:    rtcoarse + "ORMGP_500_hydrocorrect_SOLRISv2_ID.grd",
+		Fsg:    rtcoarse + "ORMGP_500_hydrocorrect_PorousMedia_ID.grd",
+		Outlet: outlet, //127669, // 128667, // <0: from .met index, 0: no outlet, >0: outlet cell ID
 	}
 	lout.check()
 	return &lout
@@ -52,8 +53,8 @@ func (l *Loader) check() {
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).Type() == reflect.TypeOf("") {
 			st1 := v.Field(i).String()
-			if st1 != l.indir {
-				if _, ok := mmio.FileExists(l.indir + st1); !ok {
+			if st1 != l.Dir {
+				if _, ok := mmio.FileExists(l.Dir + st1); !ok {
 					if _, ok := mmio.FileExists(st1); !ok {
 						log.Panicf("Loader.check() File does not exist:\n  %s", v.Field(i).String())
 					}
@@ -75,7 +76,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	var hd met.Header
 	readmet := func() {
 		defer wg.Done()
-		m, d, err := met.ReadMET(l.metfp)
+		m, d, err := met.ReadMET(l.Fmet)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -84,7 +85,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	}
 
 	// import structural data and mapping arrays
-	gd, err := grid.ReadGDEF(l.indir + l.gdfn)
+	gd, err := grid.ReadGDEF(l.Fgd)
 	if err != nil {
 		log.Fatalf("ReadGDEF: %v", err)
 	}
@@ -92,10 +93,10 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	var coord map[int]mmaths.Point
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
-	var ilu, isg map[int]int
+	var ilu, isg, sws map[int]int
 	readtopo := func() {
 		defer wg.Done()
-		if cc, err := t.New(l.indir + l.temfn); err != nil {
+		if cc, err := t.New(l.Fhdem); err != nil {
 			log.Fatalf("TEM.New: %v", err)
 		} else {
 			coord = cc
@@ -103,23 +104,36 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	}
 	readLU := func() {
 		defer wg.Done()
-		fmt.Printf(" loading: %s\n", l.indir+l.lufn)
+		fmt.Printf(" loading: %s\n", l.Flu)
 		var g grid.Indx
 		g.LoadGDef(gd)
-		g.NewShort(l.indir+l.lufn, false)
+		g.NewShort(l.Flu, false)
 		ulu := g.UniqueValues()
 		lu = *lusg.LoadLandUse(ulu)
 		ilu = g.Values()
 	}
 	readSG := func() {
 		defer wg.Done()
-		fmt.Printf(" loading: %s\n", l.indir+l.sgfn)
+		fmt.Printf(" loading: %s\n", l.Fsg)
 		var g grid.Indx
 		g.LoadGDef(gd)
-		g.NewShort(l.indir+l.sgfn, false)
+		g.NewShort(l.Fsg, false)
 		usg := g.UniqueValues()
 		sg = *lusg.LoadSurfGeo(usg)
 		isg = g.Values()
+	}
+	readSWS := func() {
+		defer wg.Done()
+		fmt.Printf(" loading: %s\n", l.Fsws)
+		sws, err = mmio.ReadBinaryIMAP(l.Fsws)
+		if err != nil {
+			log.Fatalf("Loader.readSWS error with ReadBinaryIMAP\n")
+		}
+		// var g grid.Indx
+		// g.LoadGDef(gd)
+		// g.NewIMAP(sws)
+		// g.ToASC("N:/CreditSWAT/t.asc", false)
+		// print("")
 	}
 
 	wg.Add(4)
@@ -127,12 +141,19 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	go readtopo()
 	go readLU()
 	go readSG()
+	if len(l.Fsws) > 0 {
+		wg.Add(1)
+		go readSWS()
+	}
 	wg.Wait()
 
 	// compute static variables
-	cid0 := int(hd.Locations[0][0].(int32)) // gauge outlet id
-	if l.outlet > 0 {
-		cid0 = l.outlet
+	cid0 := -1
+	if len(hd.Locations) > 0 {
+		cid0 = int(hd.Locations[0][0].(int32)) // gauge outlet id
+	}
+	if l.Outlet > 0 {
+		cid0 = l.Outlet
 	}
 	nc := t.UpCnt(cid0)
 	sif := make(map[int][366]float64, nc)
@@ -146,6 +167,19 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		default:
 			log.Fatalf("buildSolIrradFrac error, unknown ESPG code specified %d", hd.ESPG)
 		}
+
+		// cmpt := func(tec tem.TEC, cid int) {
+		// 	latitude, _, err := UTM.ToLatLon(coord[cid].X, coord[cid].Y, utmzone, "", true)
+		// 	if err != nil {
+		// 		log.Fatalf("buildSolIrradFrac error, no TEC assigned to cell ID %d", cid)
+		// 	}
+		// 	si := solirrad.New(latitude, math.Tan(tec.S), math.Pi/2.-tec.A)
+		// 	sif[cid] = si.PSIfactor()
+		// }
+		// for k, v := range t.TEC {
+		// 	cmpt(v, k)
+		// }
+
 		var recurs func(int)
 		recurs = func(cid int) {
 			if tec, ok := t.TEC[cid]; ok {
@@ -182,12 +216,13 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	mpr := MAPR{
 		lu:  lu,
 		sg:  sg,
+		sws: sws,
 		ilu: ilu,
 		isg: isg,
 	}
 
-	if l.outlet == -1 {
-		l.outlet = cid0
+	if l.Outlet == -1 {
+		l.Outlet = cid0
 	}
 	return frc, mdl, mpr, gd
 }

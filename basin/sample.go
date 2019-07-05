@@ -18,8 +18,8 @@ const (
 )
 
 type sample struct {
-	ws     hru.WtrShd // hru watershed
-	gw     gwru.TMQ   // topmodel
+	ws     hru.WtrShd        // hru watershed
+	gw     map[int]*gwru.TMQ // topmodel
 	p0, p1 map[int]float64
 }
 
@@ -93,7 +93,7 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	var wg sync.WaitGroup
 
 	ws := make(hru.WtrShd, b.ncid)
-	var gw gwru.TMQ
+	var gw map[int]*gwru.TMQ
 	// str := make([]string, 0, len(u))
 
 	// transform sample space
@@ -174,7 +174,9 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 			log.Fatalf("toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
 		}
 		medQ := b.frc.Q0 * b.strc.a * float64(len(ksat)) // [m/d] to [m³/d]
-		gw.New(ksat, b.strc.t, b.strc.w, medQ, 2*medQ, topm)
+		gw = make(map[int]*gwru.TMQ, 1)
+		print("fix")
+		gw[0].New(ksat, b.strc.t, b.strc.w, medQ, 2*medQ, topm)
 	}
 
 	wg.Add(2)

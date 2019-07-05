@@ -15,7 +15,7 @@ type subdomain struct {
 
 func (d *domain) newSubDomain(outlet int) subdomain {
 	newSTRC, cids, ds := d.strc.subset(outlet)
-	newMAPR := d.mpr.subset(cids)
+	newMAPR := d.mpr.subset(cids, outlet)
 	ncid := len(cids)
 	fncid := float64(ncid)
 

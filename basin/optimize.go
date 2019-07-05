@@ -13,7 +13,7 @@ import (
 // Optimize solves the model to a give basin outlet
 func Optimize(ldr *Loader) {
 	d := newDomain(ldr)
-	b := d.newSubDomain(ldr.outlet)
+	b := d.newSubDomain(ldr.Outlet)
 
 	nsmpl := len(b.mpr.lu) + len(b.mpr.sg)*3 + 4
 
@@ -39,7 +39,7 @@ func Optimize(ldr *Loader) {
 // changes only 3 basin-wide parameters (m, n)
 func OptimizeUniform(ldr *Loader) {
 	d := newUniformDomain(ldr)
-	b := d.newSubDomain(ldr.outlet)
+	b := d.newSubDomain(ldr.Outlet)
 
 	nsmpl := len(b.mpr.lu) + len(b.mpr.sg)*3 + 2
 

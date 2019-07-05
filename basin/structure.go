@@ -15,7 +15,6 @@ func (s *STRC) subset(cid0 int) (*STRC, []int, map[int]int) {
 	newTEM := s.t.SubSet(cid0)
 	cids, ds := newTEM.DownslopeContributingAreaIDs(cid0)
 	f := make(map[int][366]float64, len(cids))
-
 	for _, cid := range cids {
 		f[cid] = s.f[cid]
 	}

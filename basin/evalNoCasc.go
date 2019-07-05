@@ -21,7 +21,7 @@ func (b *subdomain) evalNoCasc(p *sample, rill float64) float64 {
 		v := b.frc.c[d]
 		rsum, gsum := 0., 0.
 		for _, c := range b.cids {
-			di := p.gw.GetDi(c)
+			di := p.gw[0].GetDi(c)
 			if di < -rill { // saturation excess runoff (Di: groundwater deficit)
 				di += rill
 			} else {
@@ -33,7 +33,7 @@ func (b *subdomain) evalNoCasc(p *sample, rill float64) float64 {
 		}
 		rsum /= b.fncid
 		gsum /= b.fncid
-		rsum += p.gw.Update(gsum) / b.contarea // unit baseflow ([m³/ts] to [m/ts])
+		rsum += p.gw[0].Update(gsum) / b.contarea // unit baseflow ([m³/ts] to [m/ts])
 
 		// save results
 		dt[i] = d
@@ -62,12 +62,12 @@ func (b *subdomain) evalNoCascWB(p *sample, rill float64, print bool) (of float6
 	for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
 		// fmt.Println(d)
 		v := b.frc.c[d]
-		gwlast := p.gw.Dm
+		gwlast := p.gw[0].Dm
 		wbal, asum, rsum, xsum, gsum, ssum, slsum := 0., 0., 0., 0., 0., 0., 0.
 		for _, c := range b.cids {
 			slast := p.ws[c].Storage() // initial HRU storage
 			slsum += slast
-			di := p.gw.GetDi(c)
+			di := p.gw[0].GetDi(c)
 			if di < -rill { // saturation excess runoff (Di: groundwater deficit)
 				di += rill
 				xsum -= di // saturation excess runoff
@@ -98,18 +98,18 @@ func (b *subdomain) evalNoCascWB(p *sample, rill float64, print bool) (of float6
 		rsum /= b.fncid
 		xsum /= b.fncid
 		gsum /= b.fncid
-		bf := p.gw.Update(gsum) / b.contarea // unit baseflow ([m³/ts] to [m/ts])
+		bf := p.gw[0].Update(gsum) / b.contarea // unit baseflow ([m³/ts] to [m/ts])
 		rsum += bf
 
 		if math.Abs(wbal/b.fncid) > nearzero {
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
 			log.Fatalf(" hru water-balance error, |wbal| = %.3e m", math.Abs(wbal))
 		}
-		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum - (-p.gw.Dm + ssum + asum + rsum)
-		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw.Dm) < 5. {
+		wbalBasin := v[met.AtmosphericYield] - gwlast + slsum - (-p.gw[0].Dm + ssum + asum + rsum)
+		if math.Abs(wbalBasin) > nearzero && math.Log10(p.gw[0].Dm) < 5. {
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", v[met.AtmosphericYield], xsum, asum, gsum, rsum, v[met.UnitDischarge])
-			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gw: %.5f  wbal: % .2e\n", slsum, ssum, gwlast, p.gw.Dm, wbalBasin)
-			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, rill, p.gw.M)
+			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gw: %.5f  wbal: % .2e\n", slsum, ssum, gwlast, p.gw[0].Dm, wbalBasin)
+			fmt.Printf(" step: %d  rillsto: %.5f  m: %.5f\n", i, rill, p.gw[0].M)
 			log.Fatalf(" basin water-balance error, |wbalBasin| = %.3e m", math.Abs(wbalBasin))
 		}
 
