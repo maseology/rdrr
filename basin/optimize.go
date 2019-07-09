@@ -23,7 +23,7 @@ func Optimize(ldr *Loader) {
 
 	gen := func(u []float64) float64 {
 		smpl := b.toSampleU(u...)
-		return ver(&smpl, false)
+		return ver(&smpl, 0., false)
 	}
 
 	fmt.Println(" optimizing..")
@@ -32,7 +32,7 @@ func Optimize(ldr *Loader) {
 
 	fmt.Printf("\nfinal parameters: %v\n", uFinal)
 	final := b.toSampleU(uFinal...)
-	ver(&final, true)
+	ver(&final, 0., true)
 }
 
 // OptimizeUniform solves a uniform-parameter model to a given basin outlet
@@ -49,7 +49,7 @@ func OptimizeUniform(ldr *Loader) {
 
 	gen := func(u []float64) float64 {
 		smpl := b.toSampleU(u...)
-		return ver(&smpl, false)
+		return ver(&smpl, 0., false)
 	}
 
 	fmt.Println(" optimizing..")
@@ -58,7 +58,7 @@ func OptimizeUniform(ldr *Loader) {
 
 	fmt.Printf("\nfinal parameters: %v\n", uFinal)
 	final := b.toSampleU(uFinal...)
-	ver(&final, true)
+	ver(&final, 0., true)
 
 	// const nsmpl = 2
 

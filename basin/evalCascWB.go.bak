@@ -10,10 +10,8 @@ import (
 	"github.com/maseology/objfunc"
 )
 
-const nearzero = 1e-10
-
 // evalCascWB same as evalCasc() except with rigorous mass balance checking
-func (b *subdomain) evalCascWB(p *sample, print bool) (of float64) {
+func (b *subdomain) xevalCascWB(p *sample, print bool) (of float64) {
 	// constants
 	nstep := b.frc.h.Nstep()                      // number of time steps
 	dtb, dte, intvl := b.frc.h.BeginEndInterval() // start date, end date, time step interval [s]
