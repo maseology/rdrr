@@ -20,16 +20,16 @@ func Run(ldr *Loader, u []float64) float64 {
 		}
 	}
 	b.printParam(u...)
-	return b.evalCascKineWB(&smpl, true)
+	return b.evalCascWB(&smpl, true)
 }
 
 // RunDefault runs simulation with default parameters
-func RunDefault(ldr *Loader, topm, mann float64) float64 {
+func RunDefault(ldr *Loader, topf, topm, fcasc float64) float64 {
 	d := newDomain(ldr)
 	b := d.newSubDomain(ldr.Outlet)
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
-	smpl := b.toDefaultSample(topm, mann)
+	smpl := b.toDefaultSample(topf, topm, fcasc)
 
 	for _, c := range b.cids {
 		if smpl.ws[c] == nil {
@@ -38,5 +38,5 @@ func RunDefault(ldr *Loader, topm, mann float64) float64 {
 	}
 
 	fmt.Printf(" running model..\n\n")
-	return b.evalCascKineWB(&smpl, true)
+	return b.evalCascWB(&smpl, true)
 }

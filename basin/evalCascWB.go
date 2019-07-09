@@ -12,12 +12,11 @@ import (
 
 const nearzero = 1e-10
 
-// evalCascKineWB same as evalCascKine() except with rigorous mass balance checking
-func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
+// evalCascWB same as evalCasc() except with rigorous mass balance checking
+func (b *subdomain) evalCascWB(p *sample, print bool) (of float64) {
 	// constants
 	nstep := b.frc.h.Nstep()                      // number of time steps
 	dtb, dte, intvl := b.frc.h.BeginEndInterval() // start date, end date, time step interval [s]
-	gc := b.strc.w / float64(intvl)               // grid celerity (w/ts = m/s) (assuming uniform square cells)
 	h2cms := b.contarea / float64(intvl)          // [m/ts] to [m³/s] conversion factor
 	af := 365.24 * 1000. / float64(nstep)         // aggrate conversion factor [mm/yr]
 
@@ -48,11 +47,10 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		}
 	}()
 
-	// initialize cell-based variables; initialize monitors
-	qi, qo := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid) // inflow this timestep [m²/s], outflow last timestep
+	// initialize cell-based state variables; initialize monitors
+	hq, klsum := make(map[int]float64, b.ncid), 0. // depth of mobile water [m]
 	for _, c := range b.cids {
-		qi[c] = 0.
-		qo[c] = 0.
+		hq[c] = 0.
 		gp[c] = 0.
 		ga[c] = 0.
 		gr[c] = 0.
@@ -65,7 +63,10 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		v := b.frc.c[d] // climate forcings
 
 		// basin-HRU water budgeting [water balance; atmos.yeild; AET; runoff; excess runoff; GW infiltration; runon infiltration; storage at end, storage at beginning; mobile runoff at end; mobile runoff at beginning; baseflow]
-		wbsum, ysum, asum, rsum, xsum, fdsum, fqsum, ssum, slsum, ksum, klsum, bfsum := 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
+		wbsum, ysum, asum, rsum, xsum, fdsum, fqsum, ssum, slsum, ksum, bfsum := 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
+		// for _, c := range b.cids {
+		// 	klsum += hq[c]
+		// }
 		gwdlast, ggwsum, ggwcnt := 0., make(map[int]float64, len(p.gw)), make(map[int]float64, len(p.gw))
 		for k, v := range p.gw {
 			gwdlast += v.Dm * v.Ca
@@ -149,6 +150,10 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 			asum += a + ge   // sum AET
 			ggwsum[sid] += g // sum recharge
 			ggwcnt[sid]++    // count recharge
+			ep -= a
+			if ep < -nearzero {
+				log.Fatalf(" hru water-balance error, available ET < 0: ep = %.3e mm", ep*1000.)
+			}
 
 			// pre-runoff waterbalance
 			s1 := p.ws[c].Storage()
@@ -163,74 +168,136 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 			ga[c] += (a + ge) * af // sum grid AET [mm/yr]
 			gg[c] += (g + di) * af // sum grid recharge [mm/yr]; -di = groundwater discharge
 
-			// kinematic cascade
+			// Cascade
 			rt := r - di // adding groundwater excess to precipitation excess (generated runoff)
-			// kosv := qo[c] / gc
+			hqsv := hq[c]
 			if rt > 0. {
-				qo[c] = p.p0[c]*(qi[c]+gc*rt) + p.p1[c]*qo[c]
-			} else {
-				fq = p.ws[c].Infiltrability() // potential infiltration from runoff stor
-				if fq < 0. {
-					log.Fatalf(" hru water-balance error, HRU potential infiltration = %.3e mm", fq*1000.)
-				}
-				fx := (p.p0[c]*qi[c] + p.p1[c]*qo[c]) / p.p0[c] / gc // max available from runoff stor to infiltrate [m]
-				if fx < nearzero {
-					fx = 0.
-				}
-				if fq > fx {
-					fq = fx
-				}
-				qo[c] = p.p0[c]*(qi[c]-gc*fq) + p.p1[c]*qo[c]
-				rr := p.ws[c].UpdateStorage(fq) // add infiltration
-				if math.Abs(rr) > nearzero {
-					log.Fatalf(" hru water-balance error, HRU infiltration from runon exceeds capacity: f = %.3e mm, x = %.3e mm", fq*1000., rr*1000.)
-				}
-				if qo[c] < -nearzero {
-					log.Fatalf(" hru water-balance error, negative runoff computed = %.3e mm", qo[c]/gc*1000.)
-				}
+				hq[c] += rt
+			}
+			fq = p.ws[c].Infiltrability() // potential infiltration from runoff stor
+			if fq < 0. {
+				log.Fatalf(" hru water-balance error, HRU potential infiltration = %.3e mm", fq*1000.)
+			}
+			if fq > hq[c] {
+				fq = hq[c]
+			}
+			hq[c] -= fq
+			rr := p.ws[c].UpdateStorage(fq) // add infiltration
+			if math.Abs(rr) > nearzero {
+				log.Fatalf(" hru water-balance error, HRU infiltration from runon exceeds capacity: f = %.3e mm, x = %.3e mm", fq*1000., rr*1000.)
+			}
+			hqo := p.p0[c] * hq[c] // outflow [m]
+			hq[c] -= hqo
+			if hqo < -nearzero {
+				log.Fatalf(" mobile water-balance error, negative outflow computed = %.3e mm", hqo*1000.)
 			}
 			if b.ds[c] == -1 {
-				rsum += qo[c] / gc // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case sc[c]=0. [m]
+				rsum += hqo // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case sc[c]=0. [m/ts]
 				if _, ok := p.gw[c]; !ok {
 					log.Fatalf(" model error: outlet not assigned a groundwater reservoir")
 				}
-				bfsum += p.gw[c].Update(ggwsum[c] / ggwcnt[c]) // basin baseflow [m³]
+				bfsum += p.gw[c].Update(ggwsum[sid]/ggwcnt[sid]) * p.gw[c].Ca // basin baseflow [m³/ts]
 			} else {
 				if _, ok := p.gw[c]; ok {
-					Qbf := p.gw[c].Update(ggwsum[c] / ggwcnt[c]) // baseflow from gw[c] discharging to cell c [m³]
-					qi[b.ds[c]] += Qbf / b.strc.w                // adding baseflow to input of downstream cell
-					bfsum += Qbf                                 // basin baseflow [m³]
+					Qbf := p.gw[c].Update(ggwsum[sid] / ggwcnt[sid]) // baseflow from gw[c] discharging to cell c [m/ts]
+					hq[b.ds[c]] += Qbf                               // adding baseflow to input of downstream cell [m/ts]
+					bfsum += Qbf * p.gw[c].Ca                        // basin baseflow [m³/ts]
 				}
-				qi[b.ds[c]] += qo[c]
+				hq[b.ds[c]] += hqo
 			}
-			gr[c] += qo[c] / gc * 1000.
-			ki, ko := qi[c]/gc, qo[c]/gc // runon; runoff
+			gr[c] += hqo * 1000.
+
+			me := 0.                   // evaporation from mobile water
+			if ep > 0. && hq[c] > 0. { // evaporate from mobile
+				if ep > hq[c] {
+					me = hq[c]
+					ep -= hq[c]
+					hq[c] = 0.
+				} else {
+					me = ep
+					hq[c] -= ep
+					ep = 0.
+				}
+				asum += me
+			}
+
+			// qosv := qo[c] // [m²/s]
+			// if rt > 0. {
+			// 	qo[c] = p.p0[c]*(qi[c]+gc*rt) + p.p1[c]*qo[c] // [m²/s]
+			// } else {
+			// 	fq = p.ws[c].Infiltrability() // potential infiltration from runoff stor
+			// 	if fq < 0. {
+			// 		log.Fatalf(" hru water-balance error, HRU potential infiltration = %.3e mm", fq*1000.)
+			// 	}
+			// 	fx := (p.p0[c]*qi[c] + p.p1[c]*qo[c]) / p.p0[c] / gc // max available from runoff stor to infiltrate [m]
+			// 	if fx < nearzero {
+			// 		fx = 0.
+			// 	}
+			// 	if fq > fx {
+			// 		fq = fx
+			// 	}
+			// 	qo[c] = p.p0[c]*(qi[c]-gc*fq) + p.p1[c]*qo[c]
+			// 	rr := p.ws[c].UpdateStorage(fq) // add infiltration
+			// 	if math.Abs(rr) > nearzero {
+			// 		log.Fatalf(" hru water-balance error, HRU infiltration from runon exceeds capacity: f = %.3e mm, x = %.3e mm", fq*1000., rr*1000.)
+			// 	}
+			// 	if qo[c] < -nearzero {
+			// 		log.Fatalf(" hru water-balance error, negative runoff computed = %.3e mm", qo[c]/gc*1000.)
+			// 	}
+			// }
+			// if b.ds[c] == -1 {
+			// 	rsum += qo[c] / gc // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case sc[c]=0. [m/ts]
+			// 	if _, ok := p.gw[c]; !ok {
+			// 		log.Fatalf(" model error: outlet not assigned a groundwater reservoir")
+			// 	}
+			// 	bfsum += p.gw[c].Update(ggwsum[sid] / ggwcnt[sid]) // basin baseflow [m³/ts]
+			// } else {
+			// 	if _, ok := p.gw[c]; ok {
+			// 		Qbf := p.gw[c].Update(ggwsum[sid] / ggwcnt[sid]) // baseflow from gw[c] discharging to cell c [m³/ts]
+			// 		qi[b.ds[c]] += Qbf / b.strc.w                    // adding baseflow to input of downstream cell [m²/ts]
+			// 		bfsum += Qbf                                     // basin baseflow [m³/ts]
+			// 	}
+			// 	qi[b.ds[c]] += qo[c]
+			// }
+			// gr[c] += qo[c] / gc * 1000.
+			// ki, ko := qi[c]/gc, qo[c]/gc // runon; runoff
+			// dk := (qi[c] - qo[c]) / gc
 
 			// HRU waterbalance (post runoff)
 			s2 := p.ws[c].Storage()
 			ds2 := s2 - slast // change in storage
 			wbal2 := y + fd + fq - (ds2 + r + g + a)
 			if math.Abs(wbal2) > nearzero {
-				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ri: %.5f   ro: %.5f\n", y, -di, s2, slast, a, g, ki, ko)
+				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ri: %.5f   ro: %.5f\n", y, -di, s2, slast, a, g, hq[c], hqo)
 				fmt.Printf(" gw2sto: %.5f  ro2sto: %.5f\n", fd, fq)
 				log.Fatalf(" cell %d: HRU water-balance error, |wbal| = %.5e m", c, math.Abs(wbal2))
 			}
 
 			// // check mobile runoff
-			dsk := ki + r - di - fq - ko
-			// wbalM := dsk + kosv
-			// if wbalM < -nearzero {
-			// 	fmt.Printf(" p0: %f  p1: %f\n", p.p0[c], p.p1[c])
-			// 	fmt.Printf(" inflow: %f  genro: %f  excess: %f  infil: %f  outflow: %f  outflow_prev: %f\n", ki, r, -di, fq, ko, kosv)
+			dsk := hq[c] - hqsv
+			wbalM := dsk - (r - di - fq - me - hqo)
+			if wbalM < -nearzero {
+				fmt.Printf(" inflow: %f  genro: %f  excess: %f  infil: %f  evap: %f outflow: %f\n", hqsv, r, -di, fq, me, hqo)
+				log.Fatalf(" mobile water balance error: negative net volume %.3e mm", wbalM*1000.)
+			}
+			// wbalM := dsk + qosv/gc
+			// if wbalM < -nearzero || math.Log10(ki) >= 5. {
+			// 	ucnt := b.strc.t.UpCnt(c)
+			// 	fmt.Printf(" C0: %f  C2: %f\n", p.p0[c], p.p1[c])
+			// 	fmt.Println(ucnt, rt, float64(ucnt)*rt)
+			// 	// fmt.Println(b.ds[c], ggwsum[sid]/ggwcnt[sid], ggwcnt[sid])
+			// 	fmt.Println(c, qi[c], qo[c], qosv, dk)
+			// 	fmt.Printf(" inflow: %f  genro: %f  excess: %f  infil: %f  outflow: %f  outflow_prev: %f\n", ki, r, -di, fq, ko, qosv/gc)
+			// 	fmt.Printf(" likely breaking of the Courant condition..\n")
 			// 	log.Fatalf(" mobile water balance error: negative net volume %.3e mm", wbalM*1000.)
 			// }
 
 			// CE waterbalance
 			dsg := g - fd - ge + di
 			dsa := ds2 + dsk + dsg
-			wbal3 := y + ki - (dsa + ko + (a + ge))
-			if math.Abs(wbal3) > nearzero {
-				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ri: %.5f   ro: %.5f\n", y, -di, s2, slast, (a + ge), g, ki, ko)
+			wbal3 := y - (dsa + hqo + (a + ge + me))
+			if math.Abs(wbal3) > nearzero { //&& math.Log10(ki) < 5. {
+				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ri: %.5f   ro: %.5f\n", y, -di, s2, slast, (a + ge + me), g, hq[c], hqo)
 				fmt.Printf(" gw2sto: %.5f  ro2sto: %.5f\n", fd, fq)
 				log.Fatalf(" cell %d: CE water-balance error, |wbal| = %.5e m", c, math.Abs(wbal3))
 			}
@@ -239,8 +306,8 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 			ssum += s2     // total basin-HRU storage at end of timestep [m]
 			fdsum += fd    // total HRU infiltration from groundwater
 			fqsum += fq    // total HRU infiltration from runon
-			ksum += dsk    // total volume of "active runoff"
-			qi[c] = 0.     // reset
+			ksum += hq[c]  // total volume of "mobile/active runoff"
+			// hq[c] = 0.            // reset
 		}
 
 		// normalize wbsum, asum, rsum, xsum, fdsum, fqsum, ssum, slsum, ksum, bfsum
@@ -254,9 +321,10 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		ssum /= b.fncid  // current storage
 		slsum /= b.fncid // last storage
 		ksum /= b.fncid  // volume of mobile water / "mobile" storage
-		gsum := 0.
+		gsum, gwcnttot := 0., 0.
 		for i, v := range ggwsum {
 			gsum += v / ggwcnt[i]
+			gwcnttot += ggwcnt[i] * 50. * 50.
 		}
 		gsum /= b.fncid     // recharge
 		bfsum /= b.contarea // unit baseflow ([m³/ts] to [m/ts])
@@ -281,12 +349,12 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		if math.IsNaN(wbalBasin) {
 			log.Fatalf(" basin water-balance error, NaN")
 		}
-		if math.Abs(wbalBasin) > nearzero && math.Log10(gwd) < 5. {
+		if math.Abs(wbalBasin) > nearzero { //&& math.Log10(gwd) < 5. {
 			fmt.Printf(" step: %d\n", i)
 			fmt.Printf(" pre: %.5f   ex: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", ysum, xsum, asum, gsum, rsum, v[met.UnitDischarge])
-			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f\n", slsum, ssum, gwdlast, gwd)
+			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f  klast: %.5f  ksto: %.5f\n", slsum, ssum, gwdlast, gwd, klsum, ksum)
 			fmt.Printf(" dsto-hru: %.5f  dsto-gw: %.5f  dsto-k: %.5f  wbal: % .5e\n", dsh, dgwd, dsk, wbalBasin)
-			log.Fatalf(" basin water-balance error, |wbalBasin| = %.5e m", math.Abs(wbalBasin))
+			fmt.Printf(" basin water-balance error, |wbalBasin| = %.5e m", math.Abs(wbalBasin))
 		}
 
 		// save results
@@ -302,12 +370,7 @@ func (b *subdomain) evalCascKineWB(p *sample, print bool) (of float64) {
 		wa[i] = asum * 1000.                // evaporation
 		wf[i] = (fdsum + fqsum) * 1000.     // infiltration
 		i++
-
-		// if rsum*h2cms > 60. {
-		// 	println("")
-		// }
-
-		klsum = ksum // save mobile runoff state
+		klsum = ksum
 	}
 	return
 }

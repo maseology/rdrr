@@ -19,7 +19,7 @@ func Optimize(ldr *Loader) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	ver := b.evalCascKineWB
+	ver := b.evalCascWB
 
 	gen := func(u []float64) float64 {
 		smpl := b.toSampleU(u...)
@@ -45,7 +45,7 @@ func OptimizeUniform(ldr *Loader) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	ver := b.evalCascKineWB
+	ver := b.evalCascWB
 
 	gen := func(u []float64) float64 {
 		smpl := b.toSampleU(u...)
