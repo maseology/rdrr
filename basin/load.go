@@ -133,7 +133,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		case ".imap":
 			sws, err = mmio.ReadBinaryIMAP(l.Fsws)
 			if err != nil {
-				log.Fatalf("Loader.readSWS error with ReadBinaryIMAP\n")
+				log.Fatalf("Loader.readSWS error with ReadBinaryIMAP: %v\n\n", err)
 			}
 			// var g grid.Indx
 			// g.LoadGDef(gd)
