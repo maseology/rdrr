@@ -204,7 +204,7 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 			fmt.Printf(" step: %d  freeboard: %.5f\n", i, freeboard)
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", ysum, xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])
 			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f  wbal: % .2e\n", slsum, ssum, gwdlast, gwd, wbalBasin)
-			fmt.Printf(" basin water-balance error, |wbalBasin| = %.5e m", math.Abs(wbalBasin))
+			fmt.Printf(" basin water-balance error, |wbalBasin| = %.5e m\n", math.Abs(wbalBasin))
 		}
 
 		// save results

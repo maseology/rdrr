@@ -112,7 +112,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		ulu := g.UniqueValues()
 		lu = *lusg.LoadLandUse(ulu)
 		ilu = g.Values()
-		// g.ToASC("N:/CreditSWAT/lu.asc", false)
+		// g.ToASC(l.Dir+"lu.asc", false)
 	}
 	readSG := func() {
 		defer wg.Done()
@@ -123,12 +123,11 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		usg := g.UniqueValues()
 		sg = *lusg.LoadSurfGeo(usg)
 		isg = g.Values()
-		// g.ToASC("N:/CreditSWAT/sg.asc", false)
+		// g.ToASC(l.Dir+"sg.asc", false)
 	}
 	readSWS := func() {
 		defer wg.Done()
 		fmt.Printf(" loading: %s\n", l.Fsws)
-		print(filepath.Ext(l.Fsws))
 		switch filepath.Ext(l.Fsws) {
 		case ".imap":
 			sws, err = mmio.ReadBinaryIMAP(l.Fsws)
@@ -138,12 +137,13 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 			// var g grid.Indx
 			// g.LoadGDef(gd)
 			// g.NewIMAP(sws)
-			// g.ToASC("N:/CreditSWAT/sws.asc", false)
+			// g.ToASC(l.Dir+"sws.asc", false)
 		case ".indx":
 			var g grid.Indx
 			g.LoadGDef(gd)
-			g.New(l.Flu, true)
+			g.New(l.Fsws, false)
 			sws = g.Values()
+			// g.ToASC(l.Dir+"sws.asc", false)
 		default:
 			log.Fatalf("Loader.readSWS: unrecognised file type: %s\n", l.Fsws)
 		}
