@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"path/filepath"
 	"reflect"
 	"sync"
 
@@ -111,6 +112,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		ulu := g.UniqueValues()
 		lu = *lusg.LoadLandUse(ulu)
 		ilu = g.Values()
+		// g.ToASC("N:/CreditSWAT/lu.asc", false)
 	}
 	readSG := func() {
 		defer wg.Done()
@@ -121,19 +123,30 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		usg := g.UniqueValues()
 		sg = *lusg.LoadSurfGeo(usg)
 		isg = g.Values()
+		// g.ToASC("N:/CreditSWAT/sg.asc", false)
 	}
 	readSWS := func() {
 		defer wg.Done()
 		fmt.Printf(" loading: %s\n", l.Fsws)
-		sws, err = mmio.ReadBinaryIMAP(l.Fsws)
-		if err != nil {
-			log.Fatalf("Loader.readSWS error with ReadBinaryIMAP\n")
+		print(filepath.Ext(l.Fsws))
+		switch filepath.Ext(l.Fsws) {
+		case ".imap":
+			sws, err = mmio.ReadBinaryIMAP(l.Fsws)
+			if err != nil {
+				log.Fatalf("Loader.readSWS error with ReadBinaryIMAP\n")
+			}
+			// var g grid.Indx
+			// g.LoadGDef(gd)
+			// g.NewIMAP(sws)
+			// g.ToASC("N:/CreditSWAT/sws.asc", false)
+		case ".indx":
+			var g grid.Indx
+			g.LoadGDef(gd)
+			g.New(l.Flu, true)
+			sws = g.Values()
+		default:
+			log.Fatalf("Loader.readSWS: unrecognised file type: %s\n", l.Fsws)
 		}
-		// var g grid.Indx
-		// g.LoadGDef(gd)
-		// g.NewIMAP(sws)
-		// g.ToASC("N:/CreditSWAT/t.asc", false)
-		// print("")
 	}
 
 	wg.Add(4)
