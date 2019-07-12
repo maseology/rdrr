@@ -92,6 +92,10 @@ func (b *subdomain) printParam(u ...float64) {
 func (b *subdomain) toSampleU(u ...float64) sample {
 	var wg sync.WaitGroup
 
+	ts := b.frc.h.IntervalSec()
+	if ts <= 0. {
+		log.Fatalf("toDefaultSample error, timestep (IntervalSec) = %v", ts)
+	}
 	ws := make(hru.WtrShd, b.ncid)
 	var gw map[int]*gwru.TMQ
 	// str := make([]string, 0, len(u))
@@ -139,7 +143,6 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 	}
 
 	n := make(map[int]float64)
-	ts := b.frc.h.IntervalSec()
 	assignHRUs := func() {
 		defer wg.Done()
 		ksat := make(map[int]float64)

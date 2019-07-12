@@ -200,7 +200,7 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 			log.Fatalf(" (integrated) hru water-balance error, |wbsum| = %.5e m", math.Abs(wbsum))
 		}
 		wbalBasin := ysum - gwdlast + slsum + slaglast - (-gwd + ssum + asum + rsum + slag)
-		if i > 25 && math.Abs(wbalBasin) > nearzero { //&& math.Log10(gwd) < 5. {
+		if i > 25 && math.Abs(wbalBasin) > nearzero {
 			fmt.Printf(" step: %d  freeboard: %.5f\n", i, freeboard)
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", ysum, xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])
 			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f  wbal: % .2e\n", slsum, ssum, gwdlast, gwd, wbalBasin)
