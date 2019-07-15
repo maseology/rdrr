@@ -11,7 +11,7 @@ import (
 	"github.com/maseology/goHydro/hru"
 )
 
-const secperday = 86400.0
+const secperday = 86400.
 
 func (b *subdomain) buildSfrac(f1 float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))

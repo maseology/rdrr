@@ -24,7 +24,7 @@ func Run(ldr *Loader, u []float64) float64 {
 }
 
 // RunDefault runs simulation with default parameters
-func RunDefault(ldr *Loader, topf, topm, fcasc, rill float64) float64 {
+func RunDefault(ldr *Loader, topf, topm, fcasc, freeboard float64) float64 {
 	d := newDomain(ldr)
 	b := d.newSubDomain(ldr.Outlet)
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
@@ -38,5 +38,5 @@ func RunDefault(ldr *Loader, topf, topm, fcasc, rill float64) float64 {
 	}
 
 	fmt.Printf(" running model..\n\n")
-	return b.evalCascWB(&smpl, rill, true)
+	return b.evalCascWB(&smpl, freeboard, true)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/maseology/objfunc"
 )
 
-const nearzero = 1e-8
+const nearzero = 1e-6
 
 // evalCascWB same as evalCasc() except with rigorous mass balance checking
 func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of float64) {
@@ -18,15 +18,15 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 	nstep := b.frc.h.Nstep()                      // number of time steps
 	dtb, dte, intvl := b.frc.h.BeginEndInterval() // start date, end date, time step interval [s]
 	h2cms := b.contarea / float64(intvl)          // [m/ts] to [m³/s] conversion factor
-	af := 365.24 * 1000. / float64(nstep)         // aggrate conversion factor [mm/yr]
+	// af := 365.24 * 1000. / float64(nstep)         // aggrate conversion factor [mm/yr]
 
 	// monitors
 	// outlet discharge [m³/s]: observes, simulated, baseflow
 	o, s, bf, dt, i := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), 0
-	// water budget [mm]
-	ws, wd, wa, wg, wx, wk := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep)
-	// distributed monitors [mm/yr]
-	gp, ga, gr, gg, gl := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid)
+	// // water budget [mm]
+	// ws, wd, wa, wg, wx, wk := make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep), make([]interface{}, nstep)
+	// // distributed monitors [mm/yr]
+	// gp, ga, gr, gg, gl := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid)
 
 	defer func() {
 		rmse := objfunc.RMSEi(o, s)
@@ -35,13 +35,13 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 			kge := objfunc.KGEi(o, s)
 			mwr2 := objfunc.Krausei(computeMonthly(dt, o, s, float64(intvl), b.contarea))
 			sumHydrograph(dt, o, s, bf)
-			sumHydrographWB(dt, ws, wd, wa, wg, wx, wk)
-			sumMonthly(dt, o, s, float64(intvl), b.contarea)
-			saveBinaryMap1(gp, "precipitation.rmap")
-			saveBinaryMap1(ga, "aet.rmap")
-			saveBinaryMap1(gr, "runoff.rmap")
-			saveBinaryMap1(gg, "recharge.rmap")
-			saveBinaryMap1(gl, "mobile.rmap")
+			// sumHydrographWB(dt, ws, wd, wa, wg, wx, wk)
+			// sumMonthly(dt, o, s, float64(intvl), b.contarea)
+			// saveBinaryMap1(gp, "precipitation.rmap")
+			// saveBinaryMap1(ga, "aet.rmap")
+			// saveBinaryMap1(gr, "runoff.rmap")
+			// saveBinaryMap1(gg, "recharge.rmap")
+			// saveBinaryMap1(gl, "mobile.rmap")
 			fmt.Printf("Total number of cells: %d\t %d timesteps\t catchent area: %.3f km²\n", b.ncid, nstep, b.contarea/1000./1000.)
 			fmt.Printf("  KGE: %.3f  NSE: %.3f  mon-wr2: %.3f  Bias: %.3f\n", kge, objfunc.NSEi(o, s), mwr2, objfunc.Biasi(o, s))
 		}
@@ -50,10 +50,10 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 	// initialize cell-based state variables; initialize monitors
 	for _, c := range b.cids {
 		lag[c] = 0.
-		gp[c] = 0.
-		ga[c] = 0.
-		gr[c] = 0.
-		gg[c] = 0.
+		// gp[c] = 0.
+		// ga[c] = 0.
+		// gr[c] = 0.
+		// gg[c] = 0.
 		// check for consistent gw res mapping
 		sid, ok := b.mpr.sws[c]
 		if !ok && len(b.mpr.sws) > 0 {
@@ -66,7 +66,7 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 
 	// run model
 	for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
-		fmt.Println(d)
+		// fmt.Println(d)
 		v := b.frc.c[d]
 
 		gwdlast, slaglast := 0., 0.
@@ -128,10 +128,10 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 			wbal := y - di + slast + laglast - (s + g + a)
 
 			// pre-runoff summations
-			ysum += y              // sum precipitation (rainfall + snowmelt)
-			gp[c] += y * af        // sum grid precip monitor [mm/yr]
-			ga[c] += a * af        // sum grid AET [mm/yr]
-			gg[c] += (g + di) * af // sum grid recharge [mm/yr]; -di = groundwater discharge
+			ysum += y // sum precipitation (rainfall + snowmelt)
+			// gp[c] += y * af        // sum grid precip monitor [mm/yr]
+			// ga[c] += a * af        // sum grid AET [mm/yr]
+			// gg[c] += (g + di) * af // sum grid recharge [mm/yr]; -di = groundwater discharge
 
 			// cascade
 			if b.ds[c] == -1 {
@@ -143,7 +143,7 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 				rsum += r + hbf           // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case p.pa[c]=0.
 				lag[c] = 0.
 				wbal -= r
-				gr[c] += r * 1000.
+				// gr[c] += r * 1000.
 			} else {
 				if _, ok := p.gw[c]; ok {
 					hbf := p.gw[c].Update(ggwsum[sid] / ggwcnt[sid]) // baseflow from gw[c] discharging to cell c [m/ts]
@@ -158,12 +158,13 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 				}
 				lag[b.ds[c]] += rt
 				wbal -= rt + lag[c]
-				gr[c] += rt * 1000.
+				// gr[c] += rt * 1000.
 			}
 
 			if math.Abs(wbal) > nearzero {
+				fmt.Printf(" step: %d  cell ID: %d\n", i, c)
 				fmt.Printf(" pre: %.5f   ex: %.5f  sto: %.5f  slast: %.5f  aet: %.5f  rch: % .5f   ro: %.5f\n", y, -di, s, slast, a, g, r*p.p0[c])
-				log.Fatalf(" cell %d: water-balance error, |wbal| = %.5e m", c, math.Abs(wbal))
+				fmt.Printf(" cell %d: water-balance error, |wbal| = %.5e m", c, math.Abs(wbal))
 			}
 			wbsum += wbal
 			ssum += s
@@ -180,9 +181,9 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 		rsum += bfsum
 
 		slag := 0.
-		for k, v := range lag {
+		for _, v := range lag {
 			slag += v
-			gl[k] = v * 1000.
+			// gl[k] = v * 1000.
 		}
 		slag /= b.fncid
 		slaglast /= b.fncid
@@ -200,10 +201,10 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 			log.Fatalf(" (integrated) hru water-balance error, |wbsum| = %.5e m", math.Abs(wbsum))
 		}
 		wbalBasin := ysum - gwdlast + slsum + slaglast - (-gwd + ssum + asum + rsum + slag)
-		if i > 25 && math.Abs(wbalBasin) > nearzero {
+		if i > 50 && math.Abs(wbalBasin) > nearzero {
 			fmt.Printf(" step: %d  freeboard: %.5f\n", i, freeboard)
 			fmt.Printf(" pre: %.5f   ex: %.5f  lag: %.5f  aet: %.5f  rch: % .5f  sim: %.5f  obs: %.5f\n", ysum, xsum, slag, asum, gsum, rsum, v[met.UnitDischarge])
-			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f  wbal: % .2e\n", slsum, ssum, gwdlast, gwd, wbalBasin)
+			fmt.Printf(" stolast: %.5f  sto: %.5f  gwlast: %.5f  gwsto: %.5f  wbalBasin: % .2e\n", slsum, ssum, gwdlast, gwd, wbalBasin)
 			fmt.Printf(" basin water-balance error, |wbalBasin| = %.5e m\n", math.Abs(wbalBasin))
 		}
 
@@ -213,12 +214,12 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 		bf[i] = bfsum * h2cms // groundwater discharge to streams [m³/s]
 		// x[i] = xsum * h2cms
 		s[i] = rsum * h2cms
-		ws[i] = ssum * 1000. // CE storage
-		wd[i] = gwd * 1000.  // GW deficit
-		wg[i] = gsum * 1000. // groundwater recharge
-		wx[i] = xsum * 1000. // saturation excess runoff
-		wk[i] = slag * 1000. // mobile runoff
-		wa[i] = asum * 1000. // evaporation
+		// ws[i] = ssum * 1000. // CE storage
+		// wd[i] = gwd * 1000.  // GW deficit
+		// wg[i] = gsum * 1000. // groundwater recharge
+		// wx[i] = xsum * 1000. // saturation excess runoff
+		// wk[i] = slag * 1000. // mobile runoff
+		// wa[i] = asum * 1000. // evaporation
 		i++
 	}
 	return

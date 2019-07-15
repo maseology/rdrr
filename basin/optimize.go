@@ -37,14 +37,14 @@ func Optimize(ldr *Loader) {
 }
 
 // OptimizeDefault solves a default-parameter model to a given basin outlet
-// changes only 3 basin-wide parameters (topf, topm, fcasc); rill set to 0.
-func OptimizeDefault(ldr *Loader) float64 {
+// changes only 3 basin-wide parameters (topf, topm, fcasc); freeboard set to 0.
+func OptimizeDefault(ldr *Loader) (float64, []float64) {
 	d := newDomain(ldr)
 	b := d.newSubDomain(ldr.Outlet)
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
-	nsmpl := 3 // defaulting rill=0.
+	nsmpl := 3 // defaulting freeboard=0.
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
@@ -68,7 +68,7 @@ func OptimizeDefault(ldr *Loader) float64 {
 	p0, p1, p2 := par3(uFinal)
 	fmt.Printf("\nfinal parameters:\n\tfQ0: %v\n\tTMQm: %v\n\tfcasc: %v\n\n", p0, p1, p2)
 	final := b.toDefaultSample(p0, p1, p2)
-	return ver(&final, 0., true)
+	return ver(&final, 0., true), []float64{p0, p1, p2}
 }
 
 // OptimizeUniform solves a uniform-parameter model to a given basin outlet
