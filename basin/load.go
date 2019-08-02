@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/im7mortal/UTM"
 	"github.com/maseology/goHydro/grid"
@@ -80,6 +81,15 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		m, d, err := met.ReadMET(l.Fmet)
 		if err != nil {
 			log.Fatalln(err)
+		}
+		dtb, dte, intvl := m.BeginEndInterval() // start date, end date, time step interval [s]
+		for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
+			v := d[dt]
+			// y := v[met.AtmosphericYield]     // precipitation/atmospheric yield (rainfall + snowmelt)
+			ep := v[met.AtmosphericDemand] // evaporative demand
+			if ep < 0. {
+				d[dt][met.AtmosphericDemand] = 0.
+			}
 		}
 		dc = d
 		hd = *m

@@ -12,6 +12,8 @@
 *.out
 
 # others
+*.bak
+*.rar
 /bak
 /doc/latex
 /doc/images

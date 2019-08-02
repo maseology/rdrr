@@ -21,12 +21,12 @@ func (b *subdomain) buildSfrac(f1 float64) map[int]float64 {
 	return fc
 }
 
-func (b *subdomain) toDefaultSample(fQ0, m, fcasc float64) sample {
+func (b *subdomain) toDefaultSample(Qomm, m, fcasc float64) sample {
 	var wg sync.WaitGroup
 
-	ts := b.frc.h.IntervalSec()
+	ts := b.frc.h.IntervalSec() // [s/ts]
 	if ts <= 0. {
-		log.Fatalf("toDefaultSample error, timestep (IntervalSec) = %v", ts)
+		log.Fatalf(" toDefaultSample error, timestep (IntervalSec) = %v", ts)
 	}
 	ws := make(hru.WtrShd, b.ncid)
 	var gw map[int]*gwru.TMQ
@@ -38,18 +38,18 @@ func (b *subdomain) toDefaultSample(fQ0, m, fcasc float64) sample {
 			var ll, gg int
 			var ok bool
 			if ll, ok = b.mpr.ilu[cid]; !ok {
-				log.Fatalf("toDefaultSample.assignHRUs error, no LandUse assigned to cell ID %d", cid)
+				log.Fatalf(" toDefaultSample.assignHRUs error, no LandUse assigned to cell ID %d", cid)
 			}
 			if gg, ok = b.mpr.isg[cid]; !ok {
-				log.Fatalf("toDefaultSample.assignHRUs error, no SurfGeo assigned to cell ID %d", cid)
+				log.Fatalf(" toDefaultSample.assignHRUs error, no SurfGeo assigned to cell ID %d", cid)
 			}
 			var lu lusg.LandUse
 			var sg lusg.SurfGeo
 			if lu, ok = b.mpr.lu[ll]; !ok {
-				log.Fatalf("toDefaultSample.assignHRUs error, no LandUse assigned of type %d", ll)
+				log.Fatalf(" toDefaultSample.assignHRUs error, no LandUse assigned of type %d", ll)
 			}
 			if sg, ok = b.mpr.sg[gg]; !ok {
-				log.Fatalf("toDefaultSample.assignHRUs error, no SurfGeo assigned to type %d", gg)
+				log.Fatalf(" toDefaultSample.assignHRUs error, no SurfGeo assigned to type %d", gg)
 			}
 
 			var h hru.HRU
@@ -61,7 +61,7 @@ func (b *subdomain) toDefaultSample(fQ0, m, fcasc float64) sample {
 			}
 		}
 		recurs(b.cid0)
-		printHRUprops(ws)
+		// printHRUprops(ws)
 	}
 
 	buildTopmodel := func() {
@@ -89,24 +89,26 @@ func (b *subdomain) toDefaultSample(fQ0, m, fcasc float64) sample {
 							}
 						}
 					} else {
-						log.Fatalf("toDefaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
+						log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
 					}
 				} else {
-					log.Fatalf("toDefaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", cid)
+					log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", cid)
 				}
 			}
 			recurs(k)
 
 			if len(ksat) != len(v) {
-				log.Fatalf("toDefaultSample.buildTopmodel topology error")
+				log.Fatalf(" toDefaultSample.buildTopmodel topology error")
 			}
 			if b.frc.Q0 <= 0. {
-				log.Fatalf("toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
+				log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
 			}
-			medQ := b.frc.Q0 // [m/ts] * b.strc.a * float64(len(ksat)) // [m/ts] to [m³/ts]
+			// medQ := b.frc.Q0 // [m/ts] * b.strc.a * float64(len(ksat)) // [m/ts] to [m³/ts]
 
 			var gwt gwru.TMQ
-			ti, g := gwt.New(ksat, b.strc.t, b.strc.w, medQ, fQ0*medQ, m)
+			// ti, g := gwt.New(ksat, b.strc.t, b.strc.w, medQ, fQ0*medQ, m)
+			Qomm1 := Qomm * b.contarea * ts / 1000. / 365.24 / 86400. // [mm/yr] to [m³/ts]
+			ti, g := gwt.New(ksat, b.strc.t, b.strc.w, b.frc.Q0, Qomm1, m)
 			for i, k := range ksat {
 				ksatC[i] = k
 				tiC[i] = ti[i]
@@ -114,9 +116,9 @@ func (b *subdomain) toDefaultSample(fQ0, m, fcasc float64) sample {
 			}
 			gw[k] = &gwt
 		}
-		saveBinaryMap1(tiC, "tmq.topographic_index.rmap")
-		saveBinaryMap1(gC, "tmq.gamma.rmap")
-		saveBinaryMap1(ksatC, "tmq.ksat_mpts.rmap")
+		// saveBinaryMap1(tiC, "tmq.topographic_index.rmap")
+		// saveBinaryMap1(gC, "tmq.gamma.rmap")
+		// saveBinaryMap1(ksatC, "tmq.ksat_mpts.rmap")
 	}
 
 	wg.Add(2)

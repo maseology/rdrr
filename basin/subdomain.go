@@ -9,7 +9,7 @@ type subdomain struct {
 	ep              map[int][366]float64 // potential evaporation
 	ds              map[int]int          // downslope cell ID
 	cids            []int                // cell IDs (topologically ordered)
-	contarea, fncid float64              // contributing area, (float) number of cells
+	contarea, fncid float64              // contributing area [m²], (float) number of cells
 	ncid, cid0      int                  // number of cells, outlet cell ID
 }
 

@@ -50,10 +50,10 @@ func OptimizeDefault(ldr *Loader) (float64, []float64) {
 	rng.Seed(time.Now().UnixNano())
 	ver := b.evalCascWB
 
-	par3 := func(u []float64) (fQ0, m, fcasc float64) {
-		fQ0 = mmaths.LinearTransform(0.1, 5., u[0])
-		m = mmaths.LogLinearTransform(0.001, 10., u[1])
-		fcasc = mmaths.LogLinearTransform(0.1, 100., u[2])
+	par3 := func(u []float64) (Qomm, m, fcasc float64) {
+		Qomm = mmaths.LogLinearTransform(1., 1000., u[0])
+		m = mmaths.LogLinearTransform(0.001, 1., u[1])
+		fcasc = mmaths.LogLinearTransform(0.1, 10., u[2])
 		return
 	}
 	gen := func(u []float64) float64 {
@@ -66,9 +66,39 @@ func OptimizeDefault(ldr *Loader) (float64, []float64) {
 	// uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
 
 	p0, p1, p2 := par3(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tfQ0: %v\n\tTMQm: %v\n\tfcasc: %v\n\n", p0, p1, p2)
+	fmt.Printf("\nfinal parameters:\n\tQomm: %v\n\tTMQm: %v\n\tfcasc: %v\n\n", p0, p1, p2)
 	final := b.toDefaultSample(p0, p1, p2)
 	return ver(&final, 0., true), []float64{p0, p1, p2}
+}
+
+// OptimizeDefault1 solves a default-parameter model to a given basin outlet
+// changes only 1 basin-wide parameter (choice hard-coded); freeboard set to 0.
+func OptimizeDefault1(ldr *Loader, Qomm, m, fcasc float64) (float64, []float64) {
+	d := newDomain(ldr)
+	b := d.newSubDomain(ldr.Outlet)
+	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
+	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
+
+	ver := b.evalCascWB
+
+	par1 := func(u []float64) float64 {
+		Qomm = mmaths.LogLinearTransform(1., 1000., u[0])
+		// m = mmaths.LogLinearTransform(0.001, 1., u[1])
+		// fcasc = mmaths.LogLinearTransform(0.1, 10., u[2])
+		return Qomm
+	}
+	gen := func(u []float64) float64 {
+		smpl := b.toDefaultSample(par1(u), m, fcasc)
+		return ver(&smpl, 0., false)
+	}
+
+	fmt.Println(" optimizing..")
+	uFinal, _ := glbopt.Fibonacci(gen)
+
+	Qomm = par1([]float64{uFinal})
+	fmt.Printf("\nfinal parameter:\t%v\n", Qomm)
+	final := b.toDefaultSample(Qomm, m, fcasc)
+	return ver(&final, 0., true), []float64{Qomm}
 }
 
 // OptimizeUniform solves a uniform-parameter model to a given basin outlet
