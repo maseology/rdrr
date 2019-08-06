@@ -24,12 +24,12 @@ func Run(ldr *Loader, u []float64) float64 {
 }
 
 // RunDefault runs simulation with default parameters
-func RunDefault(ldr *Loader, topf, topm, fcasc, freeboard float64) float64 {
+func RunDefault(ldr *Loader, topQo, topm, fcasc, freeboard float64) float64 {
 	d := newDomain(ldr)
 	b := d.newSubDomain(ldr.Outlet)
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
-	smpl := b.toDefaultSample(topf, topm, fcasc)
+	smpl := b.toDefaultSample(topQo, topm, fcasc)
 
 	for _, c := range b.cids {
 		if smpl.ws[c] == nil {

@@ -51,7 +51,7 @@ func OptimizeDefault(ldr *Loader) (float64, []float64) {
 	ver := b.evalCascWB
 
 	par3 := func(u []float64) (Qomm, m, fcasc float64) {
-		Qomm = mmaths.LogLinearTransform(1., 1000., u[0])
+		Qomm = mmaths.LogLinearTransform(0.001, 1., u[0])
 		m = mmaths.LogLinearTransform(0.001, 1., u[1])
 		fcasc = mmaths.LogLinearTransform(0.1, 10., u[2])
 		return
@@ -82,7 +82,7 @@ func OptimizeDefault1(ldr *Loader, Qomm, m, fcasc float64) (float64, []float64) 
 	ver := b.evalCascWB
 
 	par1 := func(u []float64) float64 {
-		Qomm = mmaths.LogLinearTransform(1., 1000., u[0])
+		Qomm = mmaths.LogLinearTransform(0.001, 1., u[0])
 		// m = mmaths.LogLinearTransform(0.001, 1., u[1])
 		// fcasc = mmaths.LogLinearTransform(0.1, 10., u[2])
 		return Qomm

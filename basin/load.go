@@ -98,7 +98,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	// import structural data and mapping arrays
 	gd, err := grid.ReadGDEF(l.Fgd)
 	if err != nil {
-		log.Fatalf("ReadGDEF: %v", err)
+		log.Fatalf(" grid.ReadGDEF: %v", err)
 	}
 	var t tem.TEM
 	var coord map[int]mmaths.Point
@@ -108,7 +108,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	readtopo := func() {
 		defer wg.Done()
 		if cc, err := t.New(l.Fhdem); err != nil {
-			log.Fatalf("TEM.New: %v", err)
+			log.Fatalf(" TEM.New: %v", err)
 		} else {
 			coord = cc
 		}
@@ -142,7 +142,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		case ".imap":
 			sws, err = mmio.ReadBinaryIMAP(l.Fsws)
 			if err != nil {
-				log.Fatalf("Loader.readSWS error with ReadBinaryIMAP: %v\n\n", err)
+				log.Fatalf(" Loader.readSWS error with ReadBinaryIMAP: %v\n\n", err)
 			}
 			// var g grid.Indx
 			// g.LoadGDef(gd)
@@ -155,7 +155,7 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 			sws = g.Values()
 			// g.ToASC(l.Dir+"sws.asc", false)
 		default:
-			log.Fatalf("Loader.readSWS: unrecognised file type: %s\n", l.Fsws)
+			log.Fatalf(" Loader.readSWS: unrecognised file type: %s\n", l.Fsws)
 		}
 	}
 
@@ -182,26 +182,14 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	sif := make(map[int][366]float64, nc)
 	buildSolIrradFrac := func() {
 		defer wg.Done()
-		fmt.Printf("\n building potential solar irradiation\n")
+		fmt.Printf(" building potential solar irradiation field\n")
 		var utmzone int
 		switch hd.ESPG {
 		case 26917: // UTM zone 17N
 			utmzone = 17
 		default:
-			log.Fatalf("buildSolIrradFrac error, unknown ESPG code specified %d", hd.ESPG)
+			log.Fatalf(" buildSolIrradFrac error, unknown ESPG code specified %d", hd.ESPG)
 		}
-
-		// cmpt := func(tec tem.TEC, cid int) {
-		// 	latitude, _, err := UTM.ToLatLon(coord[cid].X, coord[cid].Y, utmzone, "", true)
-		// 	if err != nil {
-		// 		log.Fatalf("buildSolIrradFrac error, no TEC assigned to cell ID %d", cid)
-		// 	}
-		// 	si := solirrad.New(latitude, math.Tan(tec.S), math.Pi/2.-tec.A)
-		// 	sif[cid] = si.PSIfactor()
-		// }
-		// for k, v := range t.TEC {
-		// 	cmpt(v, k)
-		// }
 
 		var recurs func(int)
 		recurs = func(cid int) {

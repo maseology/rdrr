@@ -21,7 +21,7 @@ func (b *subdomain) buildSfrac(f1 float64) map[int]float64 {
 	return fc
 }
 
-func (b *subdomain) toDefaultSample(Qomm, m, fcasc float64) sample {
+func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.h.IntervalSec() // [s/ts]
@@ -103,12 +103,10 @@ func (b *subdomain) toDefaultSample(Qomm, m, fcasc float64) sample {
 			if b.frc.Q0 <= 0. {
 				log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
 			}
-			// medQ := b.frc.Q0 // [m/ts] * b.strc.a * float64(len(ksat)) // [m/ts] to [m³/ts]
 
 			var gwt gwru.TMQ
-			// ti, g := gwt.New(ksat, b.strc.t, b.strc.w, medQ, fQ0*medQ, m)
-			Qomm1 := Qomm * b.contarea * ts / 1000. / 365.24 / 86400. // [mm/yr] to [m³/ts]
-			ti, g := gwt.New(ksat, b.strc.t, b.strc.w, b.frc.Q0, Qomm1, m)
+			Qo1 := Qo * ts / 365.24 / 86400. // [m/yr] to [m/ts]
+			ti, g := gwt.New(ksat, b.strc.t, b.strc.w, Qo1, m)
 			for i, k := range ksat {
 				ksatC[i] = k
 				tiC[i] = ti[i]

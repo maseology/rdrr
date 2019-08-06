@@ -6,8 +6,11 @@ import (
 	"time"
 
 	"github.com/maseology/goHydro/met"
+	mmio "github.com/maseology/mmio"
 	"github.com/maseology/objfunc"
 )
+
+const nearzero = 1e-10
 
 // evalCascWB same as evalCasc() except with rigorous mass balance checking
 func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of float64) {
@@ -62,6 +65,11 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 		gwdlast /= b.contarea // basin groundwater deficit at beginning of timestep
 		for _, v := range lag {
 			slaglast += v
+		}
+		swsr, celr := make(map[int]float64, len(p.gw)), make(map[int]float64, len(p.gw))
+		for k, v := range p.gw {
+			swsr[k] = v.Ca / b.contarea
+			celr[k] = v.Ca / b.strc.a
 		}
 
 		wbsum, ysum, asum, rsum, csum, xsum, gsum, ssum, slsum, bfsum := 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
@@ -123,21 +131,22 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 			// gg[c] += (g + di) * af // sum grid recharge [mm/yr]; -di = groundwater discharge
 
 			// cascade
-			if b.ds[c] == -1 {
+			if b.ds[c] == -1 { // outlet cell
 				if _, ok := p.gw[c]; !ok {
 					fmt.Printf(" model error: outlet not assigned a groundwater reservoir")
 				}
-				hbf := p.gw[c].Update(ggwsum[sid] / ggwcnt[sid])
-				bfsum += hbf * p.gw[c].Ca // basin baseflow [m³/ts]
-				rsum += r + hbf           // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case p.pa[c]=0.
+				hbf := p.gw[c].Update(ggwsum[sid] / ggwcnt[sid]) // baseflow from gw[c] discharging to cell c [m/ts]
+				bfsum += hbf * swsr[c]                           // basin baseflow [m/ts] (area-corrected)
+				rsum += r + hbf*celr[c]                          //+ hbf/p.gw[c].Ca                       // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case p.pa[c]=0.
+				// fmt.Println(i, r+hbf/p.gw[c].Ca, r, hbf, hbf/p.gw[c].Ca, hbf*swsr[c], hbf*celr[c])
 				lag[c] = 0.
 				wbal -= r
 				// gr[c] += r * 1000.
 			} else {
 				if _, ok := p.gw[c]; ok {
 					hbf := p.gw[c].Update(ggwsum[sid] / ggwcnt[sid]) // baseflow from gw[c] discharging to cell c [m/ts]
-					lag[b.ds[c]] += hbf                              // adding baseflow to input of downstream cell [m/ts]
-					bfsum += hbf * p.gw[c].Ca                        // basin baseflow [m³/ts]
+					bfsum += hbf * swsr[c]                           // basin baseflow [m/ts] (area-corrected)
+					lag[b.ds[c]] += hbf * celr[c]                    // adding baseflow to input of downstream cell [m/ts]
 				}
 				rt := r * p.p0[c]
 				lag[c] = r * (1. - p.p0[c]) // retention
@@ -170,8 +179,6 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 		csum /= b.fncid
 		xsum /= b.fncid
 		gsum /= b.fncid
-		bfsum /= b.contarea // unit baseflow ([m³/ts] to [m/ts])
-		rsum += bfsum
 
 		slag := 0.
 		for _, v := range lag {
@@ -233,6 +240,7 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 		// saveBinaryMap1(gr, "runoff.rmap")
 		// saveBinaryMap1(gg, "recharge.rmap")
 		// saveBinaryMap1(gl, "mobile.rmap")
+		mmio.ObsSim("hyd.png", mmio.InterfaceToFloat(o), mmio.InterfaceToFloat(s))
 		fmt.Printf("Total number of cells: %d\t %d timesteps\t catchent area: %.3f km²\n", b.ncid, nstep, b.contarea/1000./1000.)
 		fmt.Printf("  KGE: %.3f  NSE: %.3f  mon-wr2: %.3f  Bias: %.3f\n", kge, objfunc.NSEi(o, s), mwr2, objfunc.Biasi(o, s))
 	}

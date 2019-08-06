@@ -176,10 +176,9 @@ func (b *subdomain) toSampleU(u ...float64) sample {
 		if b.frc.Q0 <= 0. {
 			log.Fatalf("toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
 		}
-		medQ := b.frc.Q0 * b.strc.a * float64(len(ksat)) // [m/d] to [m³/d]
 		gw = make(map[int]*gwru.TMQ, 1)
 		print("fix")
-		gw[0].New(ksat, b.strc.t, b.strc.w, medQ, 2*medQ, topm)
+		gw[0].New(ksat, b.strc.t, b.strc.w, b.frc.Q0, topm)
 	}
 
 	wg.Add(2)
