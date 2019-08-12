@@ -14,16 +14,12 @@ import (
 	"github.com/maseology/goHydro/met"
 	"github.com/maseology/goHydro/solirrad"
 	"github.com/maseology/goHydro/tem"
-	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
 	"github.com/maseology/rdrr/lusg"
 )
 
 // Loader holds the required input filepaths
-type Loader struct {
-	Dir, Fmet, Fgd, Fhdem, Fsws, Flu, Fsg string
-	Outlet                                int
-}
+type Loader struct{ Dir, Fmet, Fgd, Fhdem, Fsws, Flu, Fsg string }
 
 // LoaderDefault returns a default Loader
 func LoaderDefault(rootdir string, outlet int) *Loader {
@@ -38,13 +34,13 @@ func LoaderDefault(rootdir string, outlet int) *Loader {
 	// }
 	rtcoarse := rootdir + "coarse/"
 	lout := Loader{
-		Fmet:   rootdir + "02EC018.met",
-		Dir:    rtcoarse,
-		Fhdem:  rtcoarse + "ORMGP_500_hydrocorrect.uhdem",
-		Fgd:    rtcoarse + "ORMGP_500_hydrocorrect.uhdem.gdef",
-		Flu:    rtcoarse + "ORMGP_500_hydrocorrect_SOLRISv2_ID.grd",
-		Fsg:    rtcoarse + "ORMGP_500_hydrocorrect_PorousMedia_ID.grd",
-		Outlet: outlet, //127669, // 128667, // <0: from .met index, 0: no outlet, >0: outlet cell ID
+		Fmet:  rootdir + "02EC018.met",
+		Dir:   rtcoarse,
+		Fhdem: rtcoarse + "ORMGP_500_hydrocorrect.uhdem",
+		Fgd:   rtcoarse + "ORMGP_500_hydrocorrect.uhdem.gdef",
+		Flu:   rtcoarse + "ORMGP_500_hydrocorrect_SOLRISv2_ID.grd",
+		Fsg:   rtcoarse + "ORMGP_500_hydrocorrect_PorousMedia_ID.grd",
+		// Outlet: outlet, //127669, // 128667, // <0: from .met index, 0: no outlet, >0: outlet cell ID
 	}
 	lout.check()
 	return &lout
@@ -70,29 +66,17 @@ func (l *Loader) check() {
 	}
 }
 
-func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
+func (l *Loader) load() (*FORC, STRC, MAPR, *grid.Definition) {
 	var wg sync.WaitGroup
 
 	// import forcings
-	var dc met.Coll
-	var hd met.Header
+	var frc *FORC
 	readmet := func() {
 		defer wg.Done()
-		m, d, err := met.ReadMET(l.Fmet)
-		if err != nil {
-			log.Fatalln(err)
+		if len(l.Fmet) > 0 {
+			fmt.Printf(" loading: %s\n", l.Fmet)
 		}
-		dtb, dte, intvl := m.BeginEndInterval() // start date, end date, time step interval [s]
-		for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
-			v := d[dt]
-			// y := v[met.AtmosphericYield]     // precipitation/atmospheric yield (rainfall + snowmelt)
-			ep := v[met.AtmosphericDemand] // evaporative demand
-			if ep < 0. {
-				d[dt][met.AtmosphericDemand] = 0.
-			}
-		}
-		dc = d
-		hd = *m
+		frc, _ = loadForcing(l.Fmet, true)
 	}
 
 	// import structural data and mapping arrays
@@ -101,16 +85,15 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		log.Fatalf(" grid.ReadGDEF: %v", err)
 	}
 	var t tem.TEM
-	var coord map[int]mmaths.Point
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
 	var ilu, isg, sws map[int]int
+
 	readtopo := func() {
 		defer wg.Done()
-		if cc, err := t.New(l.Fhdem); err != nil {
+		fmt.Printf(" loading: %s\n", l.Fhdem)
+		if err := t.New(l.Fhdem); err != nil {
 			log.Fatalf(" TEM.New: %v", err)
-		} else {
-			coord = cc
 		}
 	}
 	readLU := func() {
@@ -171,53 +154,85 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 	wg.Wait()
 
 	// compute static variables
-	cid0 := -1
-	if len(hd.Locations) > 0 {
-		cid0 = int(hd.Locations[0][0].(int32)) // gauge outlet id
+	cid0, nc := -1, gd.Nactives()
+	if frc != nil {
+		if frc.h.Nloc() == 1 && frc.h.LocationCode() > 0 {
+			cid0 = int(frc.h.Locations[0][0].(int32)) // gauge outlet id found in met file
+		} else {
+			log.Fatalf(" Loader.load error: unrecognized .met type\n")
+		}
+		if cid0 >= 0 {
+			nc = t.UpCnt(cid0) // recount number of cells
+		}
 	}
-	if l.Outlet > 0 {
-		cid0 = l.Outlet
-	}
-	nc := t.UpCnt(cid0)
+
 	sif := make(map[int][366]float64, nc)
 	buildSolIrradFrac := func() {
 		defer wg.Done()
 		fmt.Printf(" building potential solar irradiation field\n")
 		var utmzone int
-		switch hd.ESPG {
-		case 26917: // UTM zone 17N
-			utmzone = 17
-		default:
-			log.Fatalf(" buildSolIrradFrac error, unknown ESPG code specified %d", hd.ESPG)
+		if frc != nil {
+			switch frc.h.ESPG {
+			case 26917: // UTM zone 17N
+				utmzone = 17
+			default:
+				log.Fatalf(" buildSolIrradFrac error, unknown ESPG code specified %d", frc.h.ESPG)
+			}
+		} else {
+			utmzone = 17 // UTM zone 17N (by default)
 		}
 
-		var recurs func(int)
-		recurs = func(cid int) {
-			if tec, ok := t.TEC[cid]; ok {
-				latitude, _, err := UTM.ToLatLon(coord[cid].X, coord[cid].Y, utmzone, "", true)
-				if err != nil {
-					log.Fatalf("buildSolIrradFrac error, no TEC assigned to cell ID %d", cid)
+		type kv struct {
+			k int
+			v [366]float64
+		}
+		var wg1 sync.WaitGroup
+		ch := make(chan kv, nc)
+		psi := func(tec tem.TEC, cid int) {
+			defer wg1.Done()
+			latitude, _, err := UTM.ToLatLon(gd.Coord[cid].X, gd.Coord[cid].Y, utmzone, "", true)
+			if err != nil {
+				log.Fatalf(" buildSolIrradFrac error: %v -- (x,y)=(%f, %f); cid: %d\n", err, gd.Coord[cid].X, gd.Coord[cid].Y, cid)
+			}
+			si := solirrad.New(latitude, math.Tan(tec.S), math.Pi/2.-tec.A)
+			ch <- kv{k: cid, v: si.PSIfactor()}
+		}
+
+		if cid0 >= 0 {
+			var recurs func(int)
+			recurs = func(cid int) {
+				if tec, ok := t.TEC[cid]; ok {
+					wg1.Add(1)
+					go psi(tec, cid)
+					for _, upcid := range t.UpIDs(cid) {
+						recurs(upcid)
+					}
+				} else {
+					log.Fatalf(" buildSolIrradFrac (recurse) error, no TEC assigned to cell ID %d", cid)
 				}
-				si := solirrad.New(latitude, math.Tan(tec.S), math.Pi/2.-tec.A)
-				sif[cid] = si.PSIfactor()
-				for _, upcid := range t.UpIDs(cid) {
-					recurs(upcid)
+			}
+			recurs(cid0)
+		} else {
+			for _, cid := range gd.Actives() {
+				if tec, ok := t.TEC[cid]; ok {
+					wg1.Add(1)
+					go psi(tec, cid)
+				} else {
+					log.Fatalf(" buildSolIrradFrac error, no TEC assigned to cell ID %d", cid)
 				}
-			} else {
-				log.Fatalf("buildSolIrradFrac error, no TEC assigned to cell ID %d", cid)
 			}
 		}
-		recurs(cid0)
+		wg1.Wait()
+		close(ch)
+		for kv := range ch {
+			sif[kv.k] = kv.v
+		}
 	}
 
 	wg.Add(1)
 	go buildSolIrradFrac()
 	wg.Wait()
 
-	frc := FORC{
-		c: dc,
-		h: hd,
-	}
 	mdl := STRC{
 		t: t,
 		f: sif,
@@ -232,8 +247,38 @@ func (l *Loader) load() (FORC, STRC, MAPR, *grid.Definition) {
 		isg: isg,
 	}
 
-	if l.Outlet == -1 {
-		l.Outlet = cid0
-	}
 	return frc, mdl, mpr, gd
+}
+
+// LoadForcing (re-)loads forcing data
+func loadForcing(fp string, print bool) (*FORC, int) {
+	// import forcings
+	if _, ok := mmio.FileExists(fp); !ok {
+		return nil, -1
+	}
+	m, d, err := met.ReadMET(fp, print)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// checks
+	dtb, dte, intvl := m.BeginEndInterval() // start date, end date, time step interval [s]
+	for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
+		v := d[dt]
+		// y := v[met.AtmosphericYield]     // precipitation/atmospheric yield (rainfall + snowmelt)
+		ep := v[met.AtmosphericDemand] // evaporative demand
+		if ep < 0. {
+			d[dt][met.AtmosphericDemand] = 0.
+		}
+	}
+
+	if m.Nloc() != 1 && m.LocationCode() <= 0 {
+		log.Fatalf(" basin.RunDefault error: unrecognized .met type\n")
+	}
+	outlet := int(m.Locations[0][0].(int32))
+
+	return &FORC{
+		c: d,  // met.Coll
+		h: *m, // met.Header
+	}, outlet
 }

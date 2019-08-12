@@ -24,6 +24,7 @@ func (f *FORC) subset(cids []int) *FORC {
 	// 	Q0: f.medQ(),
 	// }
 	// return &newFORC
+	log.Fatalf(" FORC.subset error: unsupported met format")
 	return nil
 }
 

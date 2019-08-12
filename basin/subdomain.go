@@ -1,5 +1,7 @@
 package basin
 
+import "log"
+
 // subdomain carries all non-parameter data for a particular region (eg a catchment).
 // Forcing variables are collected and held to be run independently for each sample.
 type subdomain struct {
@@ -13,14 +15,24 @@ type subdomain struct {
 	ncid, cid0      int                  // number of cells, outlet cell ID
 }
 
-func (d *domain) newSubDomain(outlet int) subdomain {
-	newSTRC, cids, ds := d.strc.subset(outlet)
+func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
+	newSTRC, cids, ds := d.strc.subset(d.gd, outlet)
 	newMAPR := d.mpr.subset(cids, outlet)
 	ncid := len(cids)
 	fncid := float64(ncid)
 
+	var frc1 *FORC
+	if frc == nil {
+		if d.frc == nil {
+			log.Fatalf(" domain.newSubDomain error: no forcing data provided")
+		}
+		frc1 = d.frc.subset(cids)
+	} else {
+		frc1 = frc.subset(cids)
+	}
+
 	b := subdomain{
-		frc:      d.frc.subset(cids),
+		frc:      frc1,
 		strc:     newSTRC,
 		mpr:      newMAPR,
 		cids:     cids,
@@ -30,7 +42,8 @@ func (d *domain) newSubDomain(outlet int) subdomain {
 		contarea: d.strc.a * fncid, // basin contributing area [m²]
 		cid0:     outlet,
 	}
-	b.buildEp()
+	// b.buildEp()
+
 	return b
 }
 

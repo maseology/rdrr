@@ -13,10 +13,10 @@ import (
 
 const secperday = 86400.
 
-func (b *subdomain) buildSfrac(f1 float64) map[int]float64 {
+func (b *subdomain) buildSfrac(fcasc float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
-		fc[c] = math.Min(f1*math.Sqrt(b.strc.t.TEC[c].S), 1.)
+		fc[c] = math.Min(fcasc*math.Sqrt(b.strc.t.TEC[c].S), 1.)
 	}
 	return fc
 }

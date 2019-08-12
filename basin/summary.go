@@ -7,28 +7,28 @@ import (
 	"github.com/maseology/mmio"
 )
 
-func computeMonthly(dt, o, s []interface{}, ts, ca float64) ([]interface{}, []interface{}) {
+func computeMonthly(dt []interface{}, o, s []float64, ts, ca float64) ([]float64, []float64) {
 	tso, tss := make(mmio.TimeSeries, len(dt)), make(mmio.TimeSeries, len(dt))
 	for i, d := range dt {
-		if o[i] == nil || s[i] == nil {
+		if math.IsNaN(o[i]) || math.IsNaN(s[i]) {
 			continue
 		}
 		dt1 := d.(time.Time)
-		tso[dt1] = o[i].(float64)
-		tss[dt1] = s[i].(float64)
+		tso[dt1] = o[i]
+		tss[dt1] = s[i]
 	}
 	os, _ := mmio.MonthlySumCount(tso)
 	ss, _ := mmio.MonthlySumCount(tss)
 	dn, dx := mmio.MinMaxTimeseries(tso)
 	i := 0
-	osi, ssi := make([]interface{}, len(os)*12), make([]interface{}, len(ss)*12)
+	osi, ssi := make([]float64, len(os)*12), make([]float64, len(ss)*12)
+	cf := ts * 1000. / ca // sum(cms) to mm/mo
 	for y := mmio.Yr(dn.Year()); y <= mmio.Yr(dx.Year()); y++ {
 		for m := mmio.Mo(1); m <= 12; m++ {
 			if v, ok := os[y][m]; ok {
 				if math.IsNaN(v) || math.IsNaN(ss[y][m]) {
 					continue
 				}
-				cf := ts * 1000. / ca // sum(cms) to mm/mo
 				osi[i] = v * cf
 				ssi[i] = ss[y][m] * cf
 				i++
