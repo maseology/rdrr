@@ -30,7 +30,12 @@ func RunDefault(metfp string, topQo, topm, fcasc, freeboard float64, print bool)
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
 	}
-	b := masterDomain.newSubDomain(loadForcing(metfp, print)) // gauge outlet cell id found in .met file
+	var b subdomain
+	if len(metfp) == 0 && masterDomain.frc != nil {
+		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
+	} else {
+		b = masterDomain.newSubDomain(loadForcing(metfp, print)) // gauge outlet cell id found in .met file
+	}
 
 	if print {
 		fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
@@ -47,5 +52,5 @@ func RunDefault(metfp string, topQo, topm, fcasc, freeboard float64, print bool)
 	if print {
 		fmt.Printf(" running model..\n\n")
 	}
-	return b.evalCascWB(&smpl, freeboard, print)
+	return b.evalCasc(&smpl, freeboard, print)
 }

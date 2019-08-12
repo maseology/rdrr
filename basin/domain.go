@@ -22,7 +22,6 @@ type domain struct {
 func LoadMasterDomain(ldr *Loader) {
 	fmt.Println("Loading Master Domain..")
 	masterDomain = newDomain(ldr)
-	print("")
 }
 
 // ReLoadMasterForcings loads forcing data to master domain

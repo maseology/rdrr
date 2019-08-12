@@ -273,7 +273,7 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 	}
 
 	if m.Nloc() != 1 && m.LocationCode() <= 0 {
-		log.Fatalf(" basin.RunDefault error: unrecognized .met type\n")
+		log.Fatalf(" basin.loadForcing error: unrecognized .met type\n")
 	}
 	outlet := int(m.Locations[0][0].(int32))
 
@@ -281,4 +281,12 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 		c: d,  // met.Coll
 		h: *m, // met.Header
 	}, outlet
+}
+
+// masterForcing returns forcing data from mastreDomain
+func masterForcing() (*FORC, int) {
+	if masterDomain.frc.h.Nloc() != 1 && masterDomain.frc.h.LocationCode() <= 0 {
+		log.Fatalf(" basin.masterForcing error: invalid *FROC type in masterDomain\n")
+	}
+	return masterDomain.frc, int(masterDomain.frc.h.Locations[0][0].(int32))
 }
