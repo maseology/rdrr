@@ -3,6 +3,7 @@ package basin
 import (
 	"log"
 	"math"
+	"time"
 
 	"github.com/maseology/goHydro/met"
 	"github.com/maseology/mmaths"
@@ -10,22 +11,23 @@ import (
 
 // FORC holds forcing data
 type FORC struct {
-	c  met.Coll
-	h  met.Header
-	Q0 float64
+	c   met.Coll
+	h   met.Header
+	Q0  float64
+	nam string
 }
 
-func (f *FORC) subset(cids []int) *FORC {
+func (f *FORC) subset(cids []int) {
 	if f.h.Nloc() == 1 {
 		f.Q0 = f.medQ()
-		return f
+	} else {
+		// newFORC := FORC{
+		// 	Q0: f.medQ(),
+		// }
+		// return &newFORC
+		log.Fatalf(" FORC.subset error: unsupported met format")
 	}
-	// newFORC := FORC{
-	// 	Q0: f.medQ(),
-	// }
-	// return &newFORC
-	log.Fatalf(" FORC.subset error: unsupported met format")
-	return nil
+	return
 }
 
 // approximating "baseflow when basin is fully saturated" (TOPMODEL) as median discharge
@@ -43,4 +45,17 @@ func (f *FORC) medQ() float64 {
 		return 0.
 	}
 	return mmaths.SliceMedian(a)
+}
+
+func (f *FORC) trimFrc(nYrs int) (nstep int, dtb, dte time.Time, intvl int64) {
+	nstep = f.h.Nstep()                      // number of time steps
+	dtb, dte, intvl = f.h.BeginEndInterval() // start date, end date, time step interval [s]
+	if nYrs > 0 {
+		dur, durx := dte.Sub(dtb), time.Duration(nYrs*365*86400)*time.Second
+		if dur > durx {
+			dtb = dte.Add(-durx)
+			nstep = int(dte.Add(time.Second*time.Duration(intvl)).Sub(dtb).Seconds() / float64(intvl))
+		}
+	}
+	return
 }

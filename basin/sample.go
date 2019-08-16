@@ -18,9 +18,9 @@ const (
 )
 
 type sample struct {
-	ws     hru.WtrShd        // hru watershed
-	gw     map[int]*gwru.TMQ // topmodel
-	p0, p1 map[int]float64
+	ws                 hru.WtrShd        // hru watershed
+	gw                 map[int]*gwru.TMQ // topmodel
+	swsr, celr, p0, p1 map[int]float64
 }
 
 func topm(u float64) float64 { // TOPMODEL m

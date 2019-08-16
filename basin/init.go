@@ -1,6 +1,7 @@
 package basin
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"sync"
@@ -30,8 +31,10 @@ func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 	}
 	ws := make(hru.WtrShd, b.ncid)
 	var gw map[int]*gwru.TMQ
+	var swsr, celr map[int]float64
 
 	assignHRUs := func() {
+		defer fmt.Println(" assignHRUs complete")
 		defer wg.Done()
 		var recurs func(int)
 		recurs = func(cid int) {
@@ -65,18 +68,61 @@ func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 	}
 
 	buildTopmodel := func() {
+		defer fmt.Println(" buildTopmodel complete")
 		defer wg.Done()
-		swsid := make(map[int][]int, len(b.mpr.sws)) // id'd by outlet cell (typically a stream cell)
-		for k, v := range b.mpr.sws {
-			if _, ok := swsid[v]; !ok {
-				swsid[v] = []int{k}
+		// // sws := make(map[int]int, b.ncid)
+		// // if len(b.mpr.sws) > 0 {
+		// // 	osws := b.mpr.sws[outlet]
+		// // 	for _, cid := range b.cids {
+		// // 		if i, ok := b.mpr.sws[cid]; ok {
+		// // 			if i == osws {
+		// // 				sws[cid] = outlet // crops sws to outlet
+		// // 			} else {
+		// // 				sws[cid] = i
+		// // 			}
+		// // 		} else {
+		// // 			sws[cid] = cid // main channel outlet cells
+		// // 		}
+		// // 	}
+		// // } else { // entire model domain is one subwatershed to outlet
+		// // 	for _, cid := range b.cids {
+		// // 		sws[cid] = outlet
+		// // 	}
+		// // }
+		// swscidxr := make(map[int][]int, b.ncid) // id'd by outlet cell (typically a stream cell)
+		// osws := b.mpr.sws[b.cid0]
+		// for _, cid := range b.cids {
+		// 	// if i, ok := b.mpr.sws[cid]; ok {
+		// 	// 	swsid := i
+		// 	// 	if i == osws {
+		// 	// 		swsid = b.cid0 // crops sws to outlet
+		// 	// 	}
+		// 	// } else {
+
+		// 	// }
+
+		// 	swsid := b.mpr.sws[cid]
+		// 	if swsid == osws {
+		// 		swsid = b.cid0
+		// 	}
+		// 	if _, ok := swscidxr[swsid]; !ok {
+		// 		swscidxr[swsid] = []int{cid}
+		// 	} else {
+		// 		swscidxr[swsid] = append(swscidxr[swsid], cid)
+		// 	}
+		// }
+		swscidxr := make(map[int][]int, len(b.rtr.sws)) // id'd by outlet cell (typically a stream cell)
+		for k, v := range b.rtr.sws {
+			if _, ok := swscidxr[v]; !ok {
+				swscidxr[v] = []int{k}
 			} else {
-				swsid[v] = append(swsid[v], k)
+				swscidxr[v] = append(swscidxr[v], k)
 			}
 		}
-		gw = make(map[int]*gwru.TMQ, len(swsid))
-		ksatC, tiC, gC := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid)
-		for k, v := range swsid {
+		gw = make(map[int]*gwru.TMQ, len(swscidxr))
+		// ksatC, tiC, gC := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid)
+		swsr, celr = make(map[int]float64, len(swscidxr)), make(map[int]float64, len(swscidxr))
+		for k, v := range swscidxr {
 			ksat := make(map[int]float64)
 			var recurs func(int)
 			recurs = func(cid int) {
@@ -84,7 +130,7 @@ func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 					if sg, ok := b.mpr.sg[gg]; ok {
 						ksat[cid] = sg.Ksat * ts // [m/ts]
 						for _, upcid := range b.strc.t.UpIDs(cid) {
-							if _, ok := swsid[upcid]; !ok { // not including outlet/stream cells
+							if _, ok := swscidxr[upcid]; !ok { // not including outlet/stream cells
 								recurs(upcid)
 							}
 						}
@@ -106,13 +152,16 @@ func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 
 			var gwt gwru.TMQ
 			Qo1 := Qo * ts / 365.24 / 86400. // [m/yr] to [m/ts]
-			ti, g := gwt.New(ksat, b.strc.t, b.strc.w, Qo1, m)
-			for i, k := range ksat {
-				ksatC[i] = k
-				tiC[i] = ti[i]
-				gC[i] = g
-			}
+			gwt.New(ksat, b.strc.t, b.strc.w, Qo1, m)
+			// ti, g := gwt.New(ksat, b.strc.t, b.strc.w, Qo1, m)
+			// for i, k := range ksat {
+			// 	ksatC[i] = k
+			// 	tiC[i] = ti[i]
+			// 	gC[i] = g
+			// }
 			gw[k] = &gwt
+			swsr[k] = gwt.Ca / b.contarea // groundwatershed area to catchment area
+			celr[k] = gwt.Ca / b.strc.a   // groundwatershed area to cell area
 		}
 		// saveBinaryMap1(tiC, "tmq.topographic_index.rmap")
 		// saveBinaryMap1(gC, "tmq.gamma.rmap")
@@ -131,9 +180,11 @@ func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 	// }
 
 	return sample{
-		ws: ws,
-		gw: gw,
-		p0: b.buildSfrac(fcasc),
+		ws:   ws,
+		gw:   gw,
+		p0:   b.buildSfrac(fcasc),
+		swsr: swsr,
+		celr: celr,
 		// p0: b.buildC0(ns, ts), // ,
 		// p1: b.buildC2(ns, ts),
 	}

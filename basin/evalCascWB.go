@@ -16,20 +16,9 @@ const nearzero = 1e-10
 // evalCascWB same as evalCasc() except with rigorous mass balance checking
 func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of float64) {
 	// constants and coefficients
-	nstep := b.frc.h.Nstep()                      // number of time steps
-	dtb, dte, intvl := b.frc.h.BeginEndInterval() // start date, end date, time step interval [s]
-	dur := dte.Sub(dtb)
-	if dur > 15*365*86400*time.Second {
-		dtb = dte.Add(-15 * 365 * 86400 * time.Second)
-	}
+	nstep, dtb, dte, intvl := b.frc.trimFrc(15)
 	h2cms := b.contarea / float64(intvl)  // [m/ts] to [m³/s] conversion factor
 	af := 365.24 * 1000. / float64(nstep) // aggrate conversion factor [mm/yr]
-
-	swsr, celr := make(map[int]float64, len(p.gw)), make(map[int]float64, len(p.gw))
-	for k, v := range p.gw {
-		swsr[k] = v.Ca / b.contarea // groundwatershed area to catchment area
-		celr[k] = v.Ca / b.strc.a   // groundwatershed area to cell area
-	}
 
 	// monitors
 	// outlet discharge [m³/s]: observes, simulated, baseflow
@@ -71,8 +60,8 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 		gr[c] = 0.
 		gg[c] = 0.
 		// check for consistent gw res mapping
-		sid, ok := b.mpr.sws[c]
-		if !ok && len(b.mpr.sws) > 0 {
+		sid, ok := b.rtr.sws[c]
+		if !ok && len(b.rtr.sws) > 0 {
 			log.Fatalf(" evalCascWB sws error\n")
 		}
 		if _, ok := p.gw[sid]; !ok {
@@ -109,7 +98,7 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 			csum += laglast
 
 			// groundwater discharge
-			sid := b.mpr.sws[c]
+			sid := b.rtr.sws[c]
 			di := p.gw[sid].GetDi(c)
 			if di < -freeboard { // saturation excess runoff (Di: groundwater deficit)
 				di += freeboard
@@ -155,16 +144,16 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 					fmt.Printf(" model error: outlet not assigned a groundwater reservoir")
 				}
 				hbf := p.gw[c].Update(ggwsum[sid] / ggwcnt[sid]) // baseflow from gw[c] discharging to cell c [m/ts]
-				bfsum += hbf * swsr[c]                           // basin baseflow [m/ts] (area-corrected)
-				rsum += r + hbf*celr[c]                          // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case p.pa[c]=0.
+				bfsum += hbf * p.swsr[c]                         // basin baseflow [m/ts] (area-corrected)
+				rsum += r + hbf*p.celr[c]                        // forcing outflow cells to become outlets simplifies proceedure, ie, no if-statement in case p.pa[c]=0.
 				lag[c] = 0.
 				wbal -= r
 				gr[c] += r * 1000.
 			} else {
 				if _, ok := p.gw[c]; ok {
 					hbf := p.gw[c].Update(ggwsum[sid] / ggwcnt[sid]) // baseflow from gw[c] discharging to cell c [m/ts]
-					bfsum += hbf * swsr[c]                           // basin baseflow [m/ts] (area-corrected)
-					lag[b.ds[c]] += hbf * celr[c]                    // adding baseflow to input of downstream cell [m/ts]
+					bfsum += hbf * p.swsr[c]                         // basin baseflow [m/ts] (area-corrected)
+					lag[b.ds[c]] += hbf * p.celr[c]                  // adding baseflow to input of downstream cell [m/ts]
 				}
 				rt := r * p.p0[c]
 				lag[c] = r * (1. - p.p0[c]) // retention

@@ -15,13 +15,14 @@ type domain struct {
 	frc  *FORC            // forcing data
 	strc *STRC            // structural (unchanging) data (eg, topography, solar irradiation fractions)
 	mpr  *MAPR            // land use/surficial geology mapping for parameter assignment
+	rtr  *RTR             // subwatershed topology
 	gd   *grid.Definition // grid definition
 }
 
 // LoadMasterDomain loads all data from which sub-domain scale models can be derived
-func LoadMasterDomain(ldr *Loader) {
+func LoadMasterDomain(ldr *Loader, buildEP bool) {
 	fmt.Println("Loading Master Domain..")
-	masterDomain = newDomain(ldr)
+	masterDomain = newDomain(ldr, buildEP)
 }
 
 // ReLoadMasterForcings loads forcing data to master domain
@@ -38,18 +39,19 @@ func (m *domain) IsEmpty() bool {
 	return m.strc == nil || m.mpr == nil || m.gd == nil
 }
 
-func newDomain(ldr *Loader) domain {
-	frc, strc, mpr, gd := ldr.load()
+func newDomain(ldr *Loader, buildEP bool) domain {
+	frc, strc, mpr, rtr, gd := ldr.load(buildEP)
 	return domain{
 		frc:  frc,
 		strc: &strc,
 		mpr:  &mpr,
+		rtr:  &rtr,
 		gd:   gd,
 	}
 }
 
-func newUniformDomain(ldr *Loader) domain {
-	frc, strc, mpr, gd := ldr.load()
+func newUniformDomain(ldr *Loader, buildEP bool) domain {
+	frc, strc, mpr, rtr, gd := ldr.load(buildEP)
 	for i := range mpr.ilu {
 		mpr.ilu[i] = -9999
 		mpr.isg[i] = -9999
@@ -58,6 +60,7 @@ func newUniformDomain(ldr *Loader) domain {
 		frc:  frc,
 		strc: &strc,
 		mpr:  &mpr,
+		rtr:  &rtr,
 		gd:   gd,
 	}
 }

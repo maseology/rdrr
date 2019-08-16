@@ -68,7 +68,7 @@ func (b *subdomain) evalCasc(p *sample, freeboard float64, print bool) (of float
 			ep *= b.strc.f[c][d.YearDay()-1] // adjust for slope-aspect
 
 			// groundwater discharge
-			sid := b.mpr.sws[c]
+			sid := b.rtr.sws[c]
 			di := p.gw[sid].GetDi(c)
 			if di < -freeboard { // saturation excess runoff (Di: groundwater deficit)
 				di += freeboard

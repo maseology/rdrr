@@ -28,10 +28,13 @@ import (
 // RunDefault runs simulation with default parameters
 func RunDefault(metfp string, topQo, topm, fcasc, freeboard float64, print bool) float64 {
 	if masterDomain.IsEmpty() {
-		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
+		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
 	}
 	var b subdomain
-	if len(metfp) == 0 && masterDomain.frc != nil {
+	if len(metfp) == 0 {
+		if masterDomain.frc == nil {
+			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
+		}
 		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
 	} else {
 		b = masterDomain.newSubDomain(loadForcing(metfp, print)) // gauge outlet cell id found in .met file
@@ -41,16 +44,18 @@ func RunDefault(metfp string, topQo, topm, fcasc, freeboard float64, print bool)
 		fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 		fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 	}
-
 	smpl := b.toDefaultSample(topQo, topm, fcasc)
-	for _, c := range b.cids {
-		if smpl.ws[c] == nil {
-			log.Fatalln(" basin.RunDefault() error: nil hru")
-		}
-	}
+	// for _, c := range b.cids {
+	// 	if smpl.ws[c] == nil {
+	// 		log.Fatalln(" basin.RunDefault() error: nil hru")
+	// 	}
+	// }
 
 	if print {
 		fmt.Printf(" running model..\n\n")
 	}
-	return b.evalCasc(&smpl, freeboard, print)
+	return b.evalCascWB(&smpl, freeboard, print)
+	// if print {
+	// 	masterDomain.gd.SaveAs("")
+	// }
 }
