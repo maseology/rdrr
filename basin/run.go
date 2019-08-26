@@ -3,6 +3,7 @@ package basin
 import (
 	"fmt"
 	"log"
+	"time"
 )
 
 // // Run a single simulation with water balance checking
@@ -26,7 +27,8 @@ import (
 // }
 
 // RunDefault runs simulation with default parameters
-func RunDefault(metfp string, topQo, topm, fcasc, freeboard float64, print bool) float64 {
+func RunDefault(metfp string, topm, fcasc, freeboard float64, print bool) float64 {
+	start := time.Now()
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
 	}
@@ -41,10 +43,12 @@ func RunDefault(metfp string, topQo, topm, fcasc, freeboard float64, print bool)
 	}
 
 	if print {
+		fmt.Printf(" sub-domain load complete %v\n", time.Now().Sub(start))
 		fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
-		fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
+		fmt.Printf(" building sample HRUs and TOPMODEL\n")
+		start = time.Now()
 	}
-	smpl := b.toDefaultSample(topQo, topm, fcasc)
+	smpl := b.toDefaultSample(topm, fcasc)
 	// for _, c := range b.cids {
 	// 	if smpl.ws[c] == nil {
 	// 		log.Fatalln(" basin.RunDefault() error: nil hru")
@@ -52,8 +56,11 @@ func RunDefault(metfp string, topQo, topm, fcasc, freeboard float64, print bool)
 	// }
 
 	if print {
-		fmt.Printf(" running model..\n\n")
+		fmt.Printf(" sampling load complete %v\n", time.Now().Sub(start))
+		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))
+		fmt.Printf("\n running model..\n\n")
 	}
+	// return b.evalCascWB(&smpl, freeboard, print)
 	return b.evalCascWB(&smpl, freeboard, print)
 	// if print {
 	// 	masterDomain.gd.SaveAs("")

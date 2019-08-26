@@ -8,6 +8,7 @@ import (
 type STRC struct {
 	t    tem.TEM              // topology
 	f    map[int][366]float64 // solar fraction
+	u    map[int]int          // cell upslope count (unit contributing area)
 	a, w float64              // cell area, cell width
 }
 

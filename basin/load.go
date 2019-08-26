@@ -86,7 +86,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	var t tem.TEM
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
-	var ilu, isg, sws, dsws map[int]int
+	var ilu, isg, sws, dsws, ucnt map[int]int
 
 	readtopo := func() {
 		defer wg.Done()
@@ -94,6 +94,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 		if err := t.New(l.Fhdem); err != nil {
 			log.Fatalf(" TEM.New: %v", err)
 		}
+		ucnt = t.ContributingCellMap()
 	}
 	readLU := func() {
 		defer wg.Done()
@@ -161,6 +162,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	mdl := STRC{
 		t: t,
 		f: sif,
+		u: ucnt,
 		a: gd.CellArea(),
 		w: gd.CellWidth(),
 	}

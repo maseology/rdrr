@@ -14,7 +14,8 @@ type subdomain struct {
 	mpr             *MAPR       // land use/surficial geology mapping
 	rtr             *RTR        // subwatershed topology
 	ds              map[int]int // downslope cell ID
-	cids, sids      []int       // cell IDs, sws IDs (topologically ordered)
+	swsord          [][]int     // sws IDs (topologically ordered, concurrent safe)
+	cids            []int       // cell IDs (topologically ordered)
 	contarea, fncid float64     // contributing area [m²], (float) number of cells
 	ncid, cid0      int         // number of cells, outlet cell ID
 }
@@ -27,7 +28,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
 	cids, ds := d.strc.t.DownslopeContributingAreaIDs(outlet)
-	newRTR, swsids := d.rtr.subset(cids, outlet)
+	newRTR, swsord, _ := d.rtr.subset(cids, outlet)
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)
@@ -38,7 +39,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		mpr:      d.mpr,
 		rtr:      newRTR,
 		cids:     cids,
-		sids:     swsids,
+		swsord:   swsord,
 		ds:       ds,
 		ncid:     ncid,
 		fncid:    fncid,
@@ -93,7 +94,8 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 func (d *domain) noSubDomain(frc *FORC) subdomain {
 	// to complete *************
 	cids, _ := d.strc.t.DownslopeContributingAreaIDs(-1)
-	_, swsids := d.rtr.subset(cids, -1)
+	_, swsord, swsids := d.rtr.subset(cids, -1)
+	mmio.WriteInts("E:/ormgp_rdrr/_swsord.txt", swsord[0])
 	mmio.WriteInts("E:/ormgp_rdrr/_sws.txt", swsids)
 	mmio.WriteInts("E:/ormgp_rdrr/_cid.txt", cids)
 	log.Fatalf(" domain.newSubDomain todo: outlet < 0\n")

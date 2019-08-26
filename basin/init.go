@@ -1,7 +1,6 @@
 package basin
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"sync"
@@ -22,7 +21,7 @@ func (b *subdomain) buildSfrac(fcasc float64) map[int]float64 {
 	return fc
 }
 
-func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
+func (b *subdomain) toDefaultSample(m, fcasc float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.h.IntervalSec() // [s/ts]
@@ -34,7 +33,7 @@ func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 	var swsr, celr map[int]float64
 
 	assignHRUs := func() {
-		defer fmt.Println(" assignHRUs complete")
+		// defer fmt.Println("  assignHRUs complete")
 		defer wg.Done()
 		var recurs func(int)
 		recurs = func(cid int) {
@@ -68,49 +67,12 @@ func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 	}
 
 	buildTopmodel := func() {
-		defer fmt.Println(" buildTopmodel complete")
+		// defer fmt.Println("  buildTopmodel complete")
 		defer wg.Done()
-		// // sws := make(map[int]int, b.ncid)
-		// // if len(b.mpr.sws) > 0 {
-		// // 	osws := b.mpr.sws[outlet]
-		// // 	for _, cid := range b.cids {
-		// // 		if i, ok := b.mpr.sws[cid]; ok {
-		// // 			if i == osws {
-		// // 				sws[cid] = outlet // crops sws to outlet
-		// // 			} else {
-		// // 				sws[cid] = i
-		// // 			}
-		// // 		} else {
-		// // 			sws[cid] = cid // main channel outlet cells
-		// // 		}
-		// // 	}
-		// // } else { // entire model domain is one subwatershed to outlet
-		// // 	for _, cid := range b.cids {
-		// // 		sws[cid] = outlet
-		// // 	}
-		// // }
-		// swscidxr := make(map[int][]int, b.ncid) // id'd by outlet cell (typically a stream cell)
-		// osws := b.mpr.sws[b.cid0]
-		// for _, cid := range b.cids {
-		// 	// if i, ok := b.mpr.sws[cid]; ok {
-		// 	// 	swsid := i
-		// 	// 	if i == osws {
-		// 	// 		swsid = b.cid0 // crops sws to outlet
-		// 	// 	}
-		// 	// } else {
+		if b.frc.Q0 <= 0. {
+			log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
+		}
 
-		// 	// }
-
-		// 	swsid := b.mpr.sws[cid]
-		// 	if swsid == osws {
-		// 		swsid = b.cid0
-		// 	}
-		// 	if _, ok := swscidxr[swsid]; !ok {
-		// 		swscidxr[swsid] = []int{cid}
-		// 	} else {
-		// 		swscidxr[swsid] = append(swscidxr[swsid], cid)
-		// 	}
-		// }
 		swscidxr := make(map[int][]int, len(b.rtr.sws)) // id'd by outlet cell (typically a stream cell)
 		for k, v := range b.rtr.sws {
 			if _, ok := swscidxr[v]; !ok {
@@ -119,65 +81,65 @@ func (b *subdomain) toDefaultSample(Qo, m, fcasc float64) sample {
 				swscidxr[v] = append(swscidxr[v], k)
 			}
 		}
-		gw = make(map[int]*gwru.TMQ, len(swscidxr))
-		// ksatC, tiC, gC := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]float64, b.ncid)
-		swsr, celr = make(map[int]float64, len(swscidxr)), make(map[int]float64, len(swscidxr))
-		for k, v := range swscidxr {
+		nsws := len(swscidxr)
+
+		type kv struct {
+			k int
+			v gwru.TMQ
+		}
+		var wg1 sync.WaitGroup
+		ch := make(chan kv, nsws)
+		getgw := func(sid int) {
+			defer wg1.Done()
 			ksat := make(map[int]float64)
-			var recurs func(int)
-			recurs = func(cid int) {
-				if gg, ok := b.mpr.isg[cid]; ok {
+			for _, c := range swscidxr[sid] {
+				if gg, ok := b.mpr.isg[c]; ok {
 					if sg, ok := b.mpr.sg[gg]; ok {
-						ksat[cid] = sg.Ksat * ts // [m/ts]
-						for _, upcid := range b.strc.t.UpIDs(cid) {
-							if _, ok := swscidxr[upcid]; !ok { // not including outlet/stream cells
-								recurs(upcid)
-							}
-						}
+						ksat[c] = sg.Ksat * ts // [m/ts]
 					} else {
 						log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
 					}
 				} else {
-					log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", cid)
+					log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", c)
 				}
-			}
-			recurs(k)
-
-			if len(ksat) != len(v) {
-				log.Fatalf(" toDefaultSample.buildTopmodel topology error")
-			}
-			if b.frc.Q0 <= 0. {
-				log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
 			}
 
 			var gwt gwru.TMQ
-			Qo1 := Qo * ts / 365.24 / 86400. // [m/yr] to [m/ts]
-			gwt.New(ksat, b.strc.t, b.strc.w, Qo1, m)
-			// ti, g := gwt.New(ksat, b.strc.t, b.strc.w, Qo1, m)
-			// for i, k := range ksat {
-			// 	ksatC[i] = k
-			// 	tiC[i] = ti[i]
-			// 	gC[i] = g
-			// }
+			gwt.New(ksat, b.strc.u, b.strc.t, b.strc.w, m, ts)
+
+			ch <- kv{k: sid, v: gwt}
+		}
+
+		for k := range swscidxr {
+			if b.cid0 >= 0 {
+				eval := make(map[int]bool)
+				for _, c := range b.strc.t.UpIDs(b.cid0) {
+					if _, ok := eval[b.rtr.sws[c]]; !ok {
+						eval[b.rtr.sws[c]] = true
+						wg1.Add(1)
+						go getgw(k)
+					}
+				}
+			} else {
+				log.Fatalf(" toDefaultSample.buildTopmodel: TODO")
+			}
+		}
+		wg1.Wait()
+		close(ch)
+		gw, swsr, celr = make(map[int]*gwru.TMQ, nsws), make(map[int]float64, nsws), make(map[int]float64, nsws)
+		for kv := range ch {
+			k, gwt := kv.k, kv.v
 			gw[k] = &gwt
 			swsr[k] = gwt.Ca / b.contarea // groundwatershed area to catchment area
 			celr[k] = gwt.Ca / b.strc.a   // groundwatershed area to cell area
 		}
-		// saveBinaryMap1(tiC, "tmq.topographic_index.rmap")
-		// saveBinaryMap1(gC, "tmq.gamma.rmap")
-		// saveBinaryMap1(ksatC, "tmq.ksat_mpts.rmap")
+		return
 	}
 
 	wg.Add(2)
 	go assignHRUs()
 	go buildTopmodel()
 	wg.Wait()
-
-	// // assumes uniform rounghness
-	// ns := make(map[int]float64, b.ncid)
-	// for i := range ws {
-	// 	ns[i] = n
-	// }
 
 	return sample{
 		ws:   ws,

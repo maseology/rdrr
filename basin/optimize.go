@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/maseology/glbopt"
@@ -47,40 +48,100 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
 	}
-	b := masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet id found in .met file
+	var b subdomain
+	if len(metfp) == 0 {
+		if masterDomain.frc == nil {
+			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
+		}
+		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
+	} else {
+		b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
+	}
 
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
-	nsmpl := 3 // defaulting freeboard=0.
+	nsmpl := 2 // defaulting freeboard=0.
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
 	ver := b.evalCascWB
 
-	par3 := func(u []float64) (Qo, m, fcasc float64) {
-		Qo = mmaths.LogLinearTransform(0.001, 1., u[0]) // [m]
-		m = mmaths.LogLinearTransform(0.01, 10., u[1])
-		fcasc = mmaths.LogLinearTransform(0.01, 1., u[2])
+	par3 := func(u []float64) (m, fcasc, freeboard float64) {
+		m = mmaths.LogLinearTransform(0.001, 1., u[0])
+		fcasc = mmaths.LogLinearTransform(0.01, 1., u[1])
+		freeboard = 0. //mmaths.LinearTransform(-1., 1., u[2])
 		return
 	}
 	gen := func(u []float64) float64 {
-		smpl := b.toDefaultSample(par3(u))
-		return ver(&smpl, 0., false)
+		m, fcasc, freeboard := par3(u)
+		smpl := b.toDefaultSample(m, fcasc)
+		return ver(&smpl, freeboard, false)
 	}
 
 	fmt.Println(" optimizing..")
-	// uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
-	uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
+	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
+	// uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
 
-	p0, p1, p2 := par3(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tQo:\t%v\n\tTMQm:\t%v\n\tfcasc:\t%v\n\n", p0, p1, p2)
-	final := b.toDefaultSample(p0, p1, p2)
-	return ver(&final, 0., true), []float64{p0, p1, p2}
+	m, fcasc, freeboard := par3(uFinal)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tfrebrd:\t%v\n\n", m, fcasc, freeboard)
+	final := b.toDefaultSample(m, fcasc)
+	return ver(&final, freeboard, true), []float64{m, fcasc, freeboard}
 }
 
-// // OptimizeDefault1 solves a default-parameter model to a given basin outlet
-// // changes only 1 basin-wide parameter (choice hard-coded); freeboard set to 0.
+// OptimizeDefault1 solves a default-parameter model to a given basin outlet
+// changes only 1 basin-wide parameter (choice hard-coded)
+func OptimizeDefault1(metfp string) (float64, []float64) {
+	if masterDomain.IsEmpty() {
+		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
+	}
+	var b subdomain
+	if len(metfp) == 0 {
+		if masterDomain.frc == nil {
+			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
+		}
+		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
+	} else {
+		b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
+	}
+
+	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
+	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
+
+	ver := b.evalCascWB
+
+	const (
+		TMQm  = 0.004191296639278929
+		fcasc = 0.2336020076838129
+		// freeboard = 0.
+	)
+
+	smpl1 := b.toDefaultSample(TMQm, fcasc)
+	par1 := func(u []float64) float64 {
+		// m := mmaths.LogLinearTransform(0.001, 1., u[0])
+		// fcasc := mmaths.LogLinearTransform(0.1, 10., u[0])
+		freeboard := mmaths.LinearTransform(-1., 1., u[0])
+		return freeboard
+	}
+	gen := func(u []float64) float64 {
+		smpl := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
+		return ver(&smpl, par1(u), false)
+	}
+
+	fmt.Println(" optimizing..")
+	uFinal, _ := glbopt.Fibonacci(gen)
+
+	freeboard := par1([]float64{uFinal})
+	fmt.Printf("\nfinal parameters:\n\t%v\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tfrebrd:\t%v\n\n", TMQm, fcasc, freeboard)
+	final := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
+	return ver(&final, freeboard, true), []float64{TMQm, fcasc, freeboard}
+
+	// p0, p1, p2 := par3(uFinal)
+	// fmt.Printf("\nfinal parameters:\n\tQo:\t%v\n\tTMQm:\t%v\n\tfcasc:\t%v\n\n", p0, p1, p2)
+	// final := b.toDefaultSample(p0, p1, p2)
+	// return ver(&final, 0., true), []float64{p0, p1, p2}
+}
+
 // func OptimizeDefault1(ldr *Loader, Qomm, m, fcasc float64) (float64, []float64) {
 // 	if masterDomain.IsEmpty() {
 // 		masterDomain = newDomain(ldr)
