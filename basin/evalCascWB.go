@@ -241,7 +241,7 @@ func (b *subdomain) evalCascWB(p *sample, freeboard float64, print bool) (of flo
 		sg += gsum
 		wy[i] = ysum * 1000. // yield (rainfall + snowmelt)
 		ws[i] = ssum * 1000. // CE storage
-		wd[i] = gwd * 1000.  // GW deficit
+		wd[i] = gwd          // GW deficit [m]
 		wg[i] = gsum * 1000. // groundwater recharge
 		wx[i] = xsum * 1000. // saturation excess runoff
 		wk[i] = slag * 1000. // mobile runoff

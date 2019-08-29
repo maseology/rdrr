@@ -56,13 +56,13 @@ func RunDefault(metfp string, topm, fcasc, freeboard float64, print bool) float6
 	// }
 
 	if print {
+		dir := "E:/ormgp_rdrr/check/"
+		b.print(dir)
+		smpl.print(dir)
 		fmt.Printf(" sample load complete %v\n", time.Now().Sub(start))
 		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))
 		fmt.Printf("\n running model..\n\n")
 	}
-	// return b.evalCascWB(&smpl, freeboard, print)
+
 	return b.evalCascWB(&smpl, freeboard, print)
-	// if print {
-	// 	masterDomain.gd.SaveAs("")
-	// }
 }

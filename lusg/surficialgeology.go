@@ -17,7 +17,7 @@ func LoadSurfGeo(UniqueValues []int) *SurfGeoColl {
 	for _, i := range UniqueValues {
 		if i == -9999 { // unknown material
 			p[-9999] = SurfGeo{
-				id:   -9999,
+				ID:   -9999,
 				Ksat: ksatFromID(6),
 				SY:   syFromID(6),
 				dK:   ksatDistrFromID(6),
@@ -25,7 +25,7 @@ func LoadSurfGeo(UniqueValues []int) *SurfGeoColl {
 			}
 		} else {
 			p[i] = SurfGeo{
-				id:   i,
+				ID:   i,
 				Ksat: ksatFromID(i),
 				SY:   syFromID(i),
 				dK:   ksatDistrFromID(i),
@@ -42,7 +42,7 @@ func LoadSurfGeo(UniqueValues []int) *SurfGeoColl {
 type SurfGeo struct {
 	dK, dP   *invdistr.Map
 	Ksat, SY float64
-	id       int
+	ID       int
 }
 
 /////////////////////////////////////////////////

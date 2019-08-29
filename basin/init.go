@@ -5,10 +5,9 @@ import (
 	"math"
 	"sync"
 
-	"github.com/maseology/rdrr/lusg"
-
 	"github.com/maseology/goHydro/gwru"
 	"github.com/maseology/goHydro/hru"
+	"github.com/maseology/rdrr/lusg"
 )
 
 const (
@@ -120,7 +119,7 @@ func (b *subdomain) toDefaultSample(m, fcasc float64) sample {
 			}
 
 			var gwt gwru.TMQ
-			gwt.New(ksat, b.strc.u, b.strc.t, b.strc.w, m, ts)
+			gwt.New(ksat, b.strc.u, b.strc.t, b.strc.w, m, b.frc.Q0)
 
 			ch <- kv{k: sid, v: gwt}
 		}

@@ -13,7 +13,7 @@ func LoadLandUse(UniqueValues []int) *LandUseColl {
 	p := make(map[int]LandUse, len(UniqueValues))
 	for _, i := range UniqueValues {
 		_, _, f, t := defaultsFromSOLRIS(i)
-		p[i] = LandUse{id: i, Fimp: f, Intfct: t}
+		p[i] = LandUse{ID: i, Fimp: f, Intfct: t}
 	}
 
 	luc := LandUseColl(p)
@@ -23,7 +23,7 @@ func LoadLandUse(UniqueValues []int) *LandUseColl {
 // LandUse holds model parameters associated with land use/cover
 type LandUse struct {
 	Fimp, Intfct float64
-	id           int
+	ID           int
 }
 
 /////////////////////////////////////////////////
@@ -33,7 +33,7 @@ type LandUse struct {
 // GetDefaultsSOLRIS returns default SOLRIS landuse properties
 // from a given LandUse struct. (rootzone/drainable storage, surface storage, fimp, interception factor)
 func (l *LandUse) GetDefaultsSOLRIS() (rzsto, surfsto, fimp, ifct float64) {
-	return defaultsFromSOLRIS(l.id)
+	return defaultsFromSOLRIS(l.ID)
 }
 
 // defaultsFromSOLRIS returns landuse properties from a given default

@@ -12,12 +12,38 @@ type subdomain struct {
 	frc             *FORC       // forcing data
 	strc            *STRC       // structural data
 	mpr             *MAPR       // land use/surficial geology mapping
-	rtr             *RTR        // subwatershed topology
+	rtr             *RTR        // subwatershed topology and mapping
 	ds              map[int]int // downslope cell ID
 	swsord          [][]int     // sws IDs (topologically ordered, concurrent safe)
 	cids            []int       // cell IDs (topologically ordered)
 	contarea, fncid float64     // contributing area [m²], (float) number of cells
 	ncid, cid0      int         // number of cells, outlet cell ID
+}
+
+func (b *subdomain) print(dir string) error {
+	b.rtr.print(dir + "b.rtr.")
+	b.mpr.printSubset(dir+"b.mpr.", b.cids)
+	us, strm := make(map[int]float64, b.ncid), make(map[int]bool, b.ncid)
+	for _, c := range b.cids {
+		us[c] = float64(b.strc.t.UnitContributingArea(c))
+		if us[c] > 400 {
+			strm[c] = true
+		}
+	}
+	mmio.WriteRMAP(dir+"b.strc.t.upcnt.rmap", us, false)
+	strmca := make(map[int]int, b.ncid)
+	for k := range strm {
+		strmca[k] = k
+		for _, c := range b.strc.t.UpIDs(k) {
+			if _, ok := strm[c]; !ok {
+				for _, c2 := range b.strc.t.ContributingAreaIDs(c) {
+					strmca[c2] = k
+				}
+			}
+		}
+	}
+	mmio.WriteIMAP(dir+"b.strc.t.strmca.imap", strmca)
+	return nil
 }
 
 func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {

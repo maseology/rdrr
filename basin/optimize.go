@@ -68,7 +68,7 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	ver := b.evalCascWB
 
 	par3 := func(u []float64) (m, fcasc, freeboard float64) {
-		m = mmaths.LogLinearTransform(0.001, 1., u[0])
+		m = mmaths.LogLinearTransform(0.001, 100., u[0])
 		fcasc = mmaths.LogLinearTransform(0.001, 10., u[1])
 		freeboard = 0. //mmaths.LinearTransform(-1., 1., u[2])
 		return
@@ -132,7 +132,7 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	uFinal, _ := glbopt.Fibonacci(gen)
 
 	freeboard := par1([]float64{uFinal})
-	fmt.Printf("\nfinal parameters:\n\t%v\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tfrebrd:\t%v\n\n", TMQm, fcasc, freeboard)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tfrebrd:\t%v\n\n", TMQm, fcasc, freeboard)
 	final := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
 	return ver(&final, freeboard, true), []float64{TMQm, fcasc, freeboard}
 

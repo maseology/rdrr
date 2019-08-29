@@ -1,6 +1,7 @@
 package basin
 
 import (
+	"github.com/maseology/mmio"
 	"github.com/maseology/rdrr/lusg"
 )
 
@@ -9,6 +10,23 @@ type MAPR struct {
 	lu       lusg.LandUseColl
 	sg       lusg.SurfGeoColl
 	ilu, isg map[int]int // cross reference of cid to lu/sg id
+}
+
+func (m *MAPR) print(dir string) error {
+	mmio.WriteIMAP(dir+"luid.imap", m.ilu)
+	mmio.WriteIMAP(dir+"sgid.imap", m.isg)
+	return nil
+}
+
+func (m *MAPR) printSubset(dir string, cids []int) error {
+	iluss, isgss := make(map[int]int, len(cids)), make(map[int]int, len(cids))
+	for _, c := range cids {
+		iluss[c] = m.ilu[c]
+		isgss[c] = m.isg[c]
+	}
+	mmio.WriteIMAP(dir+"luid.imap", iluss)
+	mmio.WriteIMAP(dir+"sgid.imap", isgss)
+	return nil
 }
 
 // func (m *MAPR) subset(cids []int, outlet int) (*MAPR, []int) {

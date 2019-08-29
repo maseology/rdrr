@@ -35,6 +35,16 @@ func (s *sample) copy() sample {
 	}
 }
 
+func (s *sample) print(dir string) error {
+	mmio.DeleteFile(dir + "s.gw.Qs.rmap")
+	mmio.DeleteFile(dir + "s.gw.g-Ti.rmap")
+	for _, v := range s.gw {
+		mmio.WriteRMAP(dir+"s.gw.Qs.rmap", v.Qs, true)
+		mmio.WriteRMAP(dir+"s.gw.g-Ti.rmap", v.RelTi(), true)
+	}
+	return nil
+}
+
 // func topm(u float64) float64 { // TOPMODEL m
 // 	return mmaths.LogLinearTransform(0.001, 10., u)
 // }

@@ -79,3 +79,8 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 		dsws: r.dsws,
 	}, ord, sids
 }
+
+func (r *RTR) print(dir string) {
+	mmio.WriteIMAP(dir+"sws.imap", r.sws)
+	mmio.WriteIMAP(dir+"dsws.imap", r.dsws)
+}
