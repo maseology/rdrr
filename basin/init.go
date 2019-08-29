@@ -11,14 +11,29 @@ import (
 	"github.com/maseology/goHydro/hru"
 )
 
-const secperday = 86400.
+const (
+	secperday = 86400.
+	minslope  = 0.001
+)
 
 func (b *subdomain) buildSfrac(fcasc float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
-		fc[c] = math.Min(fcasc*math.Sqrt(b.strc.t.TEC[c].S), 1.)
+		s := b.strc.t.TEC[c].S
+		if s <= minslope {
+			fc[c] = 0.
+		} else if s >= fcasc {
+			fc[c] = 1.
+		} else {
+			fc[c] = math.Log(minslope/s) / math.Log(minslope/fcasc) // see: fuzzy_slope.xlsx
+		}
 	}
 	return fc
+	// fc := make(map[int]float64, len(b.cids))
+	// for _, c := range b.cids {
+	// 	fc[c] = math.Min(fcasc*math.Sqrt(b.strc.t.TEC[c].S), 1.)
+	// }
+	// return fc
 }
 
 func (b *subdomain) toDefaultSample(m, fcasc float64) sample {

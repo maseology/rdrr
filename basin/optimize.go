@@ -69,7 +69,7 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 
 	par3 := func(u []float64) (m, fcasc, freeboard float64) {
 		m = mmaths.LogLinearTransform(0.001, 1., u[0])
-		fcasc = mmaths.LogLinearTransform(0.01, 1., u[1])
+		fcasc = mmaths.LogLinearTransform(0.001, 10., u[1])
 		freeboard = 0. //mmaths.LinearTransform(-1., 1., u[2])
 		return
 	}

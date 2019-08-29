@@ -56,7 +56,7 @@ func RunDefault(metfp string, topm, fcasc, freeboard float64, print bool) float6
 	// }
 
 	if print {
-		fmt.Printf(" sampling load complete %v\n", time.Now().Sub(start))
+		fmt.Printf(" sample load complete %v\n", time.Now().Sub(start))
 		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))
 		fmt.Printf("\n running model..\n\n")
 	}
