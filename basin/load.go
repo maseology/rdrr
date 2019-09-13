@@ -71,11 +71,13 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	// import forcings
 	var frc *FORC
 	readmet := func() {
+		tt := mmio.NewTimer()
 		defer wg.Done()
 		if len(l.Fmet) > 0 {
 			fmt.Printf(" loading: %s\n", l.Fmet)
 		}
 		frc, _ = loadForcing(l.Fmet, true)
+		tt.Lap("met loaded")
 	}
 
 	// import structural data and mapping arrays
@@ -88,15 +90,45 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	var sg lusg.SurfGeoColl
 	var ilu, isg, sws, dsws, ucnt map[int]int
 
+	wg.Add(1)
+	go readmet()
+
 	readtopo := func() {
+		tt := mmio.NewTimer()
 		defer wg.Done()
 		fmt.Printf(" loading: %s\n", l.Fhdem)
+		if _, ok := mmio.FileExists(l.Fhdem + ".TEM.gob"); ok {
+			var err error
+			t, err = tem.Load(l.Fhdem + ".TEM.gob")
+			if err!=nil{
+				log.Fatalf(" Loader.load.readtopo error: %v", err)
+			}
+		} else {
 		if err := t.New(l.Fhdem); err != nil {
-			log.Fatalf(" TEM.New: %v", err)
+			log.Fatalf(" Loader.load.readtopo tem.New() error: %v", err)
 		}
-		ucnt = t.ContributingCellMap()
+		if err := t.Save(l.Fhdem + ".TEM.gob"); err !=nil {
+			log.Fatalf(" Loader.load.readtopo tem.Save() error: %v", err)
+		}
+		}
+		tt.Lap("topo loaded")
+
+		if _, ok := mmio.FileExists(l.Fhdem + ".ContributingCellMap.gob"); ok {
+			var err error
+			ucnt, err = mmio.LoadGOB(l.Fhdem + ".ContributingCellMap.gob")
+			if err!=nil{
+				log.Fatalf(" Loader.load.readtopo error: %v", err)
+			}
+		} else {
+			ucnt = t.ContributingCellMap()
+			if err := mmio.SaveGOB(l.Fhdem + ".ContributingCellMap.gob",ucnt); err!=nil{
+				log.Fatalf(" topo.ContributingCellMap error: %v", err)
+			}
+		}
+		tt.Lap("topo.ContributingCellMap loaded")
 	}
 	readLU := func() {
+		tt := mmio.NewTimer()
 		defer wg.Done()
 		fmt.Printf(" loading: %s\n", l.Flu)
 		var g grid.Indx
@@ -106,8 +138,10 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 		lu = *lusg.LoadLandUse(ulu)
 		ilu = g.Values()
 		// g.ToASC(l.Dir+"lu.asc", false)
+		tt.Lap("LU loaded")
 	}
 	readSG := func() {
+		tt := mmio.NewTimer()
 		defer wg.Done()
 		fmt.Printf(" loading: %s\n", l.Fsg)
 		var g grid.Indx
@@ -117,15 +151,17 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 		sg = *lusg.LoadSurfGeo(usg)
 		isg = g.Values()
 		// g.ToASC(l.Dir+"sg.asc", false)
+		tt.Lap("SG loaded")
 	}
 	readSWS := func() {
+		tt := mmio.NewTimer()
 		defer wg.Done()
 		fmt.Printf(" loading: %s\n", l.Fsws)
 		sws, dsws = loadSWS(gd, l.Fsws)
+		tt.Lap("SWS loaded")
 	}
 
-	wg.Add(4)
-	go readmet()
+	wg.Add(3)
 	go readtopo()
 	go readLU()
 	go readSG()
@@ -150,9 +186,11 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 
 	var sif map[int][366]float64
 	buildSolIrradFrac := func() {
+		tt := mmio.NewTimer()
 		defer wg.Done()
 		fmt.Printf(" building potential solar irradiation field\n")
 		sif = loadSolIrradFrac(frc, &t, gd, nc, cid0, buildEp)
+		tt.Lap("SolIrrad loaded")
 	}
 
 	wg.Add(1)
@@ -160,7 +198,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	wg.Wait()
 
 	mdl := STRC{
-		t: t,
+		t: &t,
 		f: sif,
 		u: ucnt,
 		a: gd.CellArea(),

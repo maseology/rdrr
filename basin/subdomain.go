@@ -1,6 +1,7 @@
 package basin
 
 import (
+	"fmt"
 	"log"
 
 	mmio "github.com/maseology/mmio"
@@ -58,6 +59,20 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)
+
+	for _, c := range cids {
+		if p, ok := d.strc.t.TEC[c]; ok {
+			if p.S <= 0. {
+				fmt.Printf(" domain.newSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.S)
+				t := d.strc.t.TEC[c]
+				t.S = 0.0001
+				t.A = 0.
+				d.strc.t.TEC[c] = t
+			}
+		} else {
+			log.Fatalf(" domain.newSubDomain error: no topographic info available for cell %d", c)
+		}
+	}
 
 	b := subdomain{
 		frc:      frc,

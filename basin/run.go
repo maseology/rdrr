@@ -27,7 +27,7 @@ import (
 // }
 
 // RunDefault runs simulation with default parameters
-func RunDefault(metfp string, topm, fcasc, freeboard float64, print bool) float64 {
+func RunDefault(metfp string, topm, fcasc, Qs, freeboard float64, print bool) float64 {
 	start := time.Now()
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
@@ -56,7 +56,8 @@ func RunDefault(metfp string, topm, fcasc, freeboard float64, print bool) float6
 	// }
 
 	if print {
-		dir := "E:/ormgp_rdrr/check/"
+		dir := "S:/ormgp_rdrr/check/" //"E:/ormgp_rdrr/check/" //
+		masterDomain.gd.SaveAs(dir + "masterDomain.gdef")
 		b.print(dir)
 		smpl.print(dir)
 		fmt.Printf(" sample load complete %v\n", time.Now().Sub(start))
@@ -64,5 +65,5 @@ func RunDefault(metfp string, topm, fcasc, freeboard float64, print bool) float6
 		fmt.Printf("\n running model..\n\n")
 	}
 
-	return b.evalCascWB(&smpl, freeboard, print)
+	return b.evalCascWB(&smpl, Qs, freeboard, print)
 }

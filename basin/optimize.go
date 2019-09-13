@@ -61,32 +61,34 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
-	nsmpl := 2 // defaulting freeboard=0.
+	nsmpl := 3 // defaulting freeboard=0.
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
 	ver := b.evalCascWB
 
-	par3 := func(u []float64) (m, fcasc, freeboard float64) {
-		m = mmaths.LogLinearTransform(0.001, 100., u[0])
+	par4 := func(u []float64) (m, fcasc, Qo, freeboard float64) {
+		m = mmaths.LogLinearTransform(0.01, 10., u[0])
 		fcasc = mmaths.LogLinearTransform(0.001, 10., u[1])
-		freeboard = 0. //mmaths.LinearTransform(-1., 1., u[2])
+		Qo = mmaths.LinearTransform(0., 1., u[2])
+		freeboard = 0. // mmaths.LinearTransform(-1., 1., u[3])
 		return
 	}
 	gen := func(u []float64) float64 {
-		m, fcasc, freeboard := par3(u)
+		m, fcasc, Qo, freeboard := par4(u)
 		smpl := b.toDefaultSample(m, fcasc)
-		return ver(&smpl, freeboard, false)
+		// Qo *= b.frc.h.IntervalSec() / 1000. / 365.24 / 86400. // [mm/yr] to [m/ts]
+		return ver(&smpl, Qo, freeboard, false)
 	}
 
 	fmt.Println(" optimizing..")
 	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
 	// uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
 
-	m, fcasc, freeboard := par3(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tfrebrd:\t%v\n\n", m, fcasc, freeboard)
+	m, fcasc, Qo, freeboard := par4(uFinal)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tQo:\t%v\n\tfrebrd:\t%v\n\n", m, fcasc, Qo, freeboard)
 	final := b.toDefaultSample(m, fcasc)
-	return ver(&final, freeboard, true), []float64{m, fcasc, freeboard}
+	return ver(&final, Qo, freeboard, true), []float64{m, fcasc, Qo, freeboard}
 }
 
 // OptimizeDefault1 solves a default-parameter model to a given basin outlet
@@ -125,7 +127,7 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	}
 	gen := func(u []float64) float64 {
 		smpl := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
-		return ver(&smpl, par1(u), false)
+		return ver(&smpl, 1., par1(u), false)
 	}
 
 	fmt.Println(" optimizing..")
@@ -134,7 +136,7 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	freeboard := par1([]float64{uFinal})
 	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tfrebrd:\t%v\n\n", TMQm, fcasc, freeboard)
 	final := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
-	return ver(&final, freeboard, true), []float64{TMQm, fcasc, freeboard}
+	return ver(&final, 1., freeboard, true), []float64{TMQm, fcasc, freeboard}
 
 	// p0, p1, p2 := par3(uFinal)
 	// fmt.Printf("\nfinal parameters:\n\tQo:\t%v\n\tTMQm:\t%v\n\tfcasc:\t%v\n\n", p0, p1, p2)

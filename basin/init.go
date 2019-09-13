@@ -109,6 +109,9 @@ func (b *subdomain) toDefaultSample(m, fcasc float64) sample {
 			for _, c := range swscidxr[sid] {
 				if gg, ok := b.mpr.isg[c]; ok {
 					if sg, ok := b.mpr.sg[gg]; ok {
+						if sg.Ksat <= 0. {
+							log.Fatalf(" toDefaultSample.buildTopmodel error: cell %d has an assigned ksat = %v\n", c, sg.Ksat)
+						}
 						ksat[c] = sg.Ksat * ts // [m/ts]
 					} else {
 						log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
@@ -120,7 +123,6 @@ func (b *subdomain) toDefaultSample(m, fcasc float64) sample {
 
 			var gwt gwru.TMQ
 			gwt.New(ksat, b.strc.u, b.strc.t, b.strc.w, m, b.frc.Q0)
-
 			ch <- kv{k: sid, v: gwt}
 		}
 
