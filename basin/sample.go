@@ -1,9 +1,19 @@
 package basin
 
 import (
+	"log"
+	"fmt"
+	"math"
+	"math/rand"
+	"time"
+
+	"github.com/maseology/goHydro/met"
 	"github.com/maseology/goHydro/gwru"
 	"github.com/maseology/goHydro/hru"
 	"github.com/maseology/mmio"
+	"github.com/maseology/mmaths"
+	"github.com/maseology/montecarlo"
+	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
 const (
@@ -42,196 +52,104 @@ func (s *sample) print(dir string) error {
 		mmio.WriteRMAP(dir+"s.gw.Qs.rmap", v.Qs, true)
 		mmio.WriteRMAP(dir+"s.gw.g-Ti.rmap", v.RelTi(), true)
 	}
+	perc, fimp, cap := make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws))
+	for c, h := range s.ws {
+		perc[c], fimp[c], cap[c] = h.PercFimpCap()
+	}
+	mmio.WriteRMAP(dir+"s.ws.perc.rmap", perc, true)
+	mmio.WriteRMAP(dir+"s.ws.fimp.rmap", fimp, true)
+	mmio.WriteRMAP(dir+"s.ws.cap.rmap", cap, true)
 	return nil
 }
 
-// func topm(u float64) float64 { // TOPMODEL m
-// 	return mmaths.LogLinearTransform(0.001, 10., u)
-// }
+// SampleDefault solves a default-parameter model to a given basin outlet
+// changes only 3 basin-wide parameters (Qo, topm, fcasc); freeboard set to 0.
+func SampleDefault(metfp string, nsmpl int) {
+	if masterDomain.IsEmpty() {
+		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
+	}
+	var b subdomain
+	if len(metfp) == 0 {
+		if masterDomain.frc == nil {
+			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
+		}
+		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
+	} else {
+		b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
+	}
 
-// func dsoil(u float64) float64 { // depth of soil [m]
-// 	return mmaths.LinearTransform(0.01, 1., u)
-// }
+	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
+	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
-// func dpsto(u float64) float64 { // impervious depression storage [m]
-// 	return mmaths.LogLinearTransform(0.0001, 0.001, u)
-// }
+	ndim := 3 // defaulting freeboard=0.
 
-// func intsto(u float64) float64 { // short and tall vegetation interception storage
-// 	return mmaths.LinearTransform(0.0001, 0.004, u)
-// }
+	rng := rand.New(mrg63k3a.New())
+	rng.Seed(time.Now().UnixNano())
+	ver := b.evalCascWB
 
-// func mann(u float64) float64 {
-// 	return mmaths.LogLinearTransform(0.0001, 100., u)
-// }
-// func fc(u float64) float64 {
-// 	return mmaths.LinearTransform(0.01, 0.4, u)
-// }
+	par4 := func(u []float64) (m, fcasc, Qo, freeboard float64) {
+		m = mmaths.LogLinearTransform(0.1, 5., u[0])
+		fcasc = mmaths.LogLinearTransform(0.001, 10., u[1])
+		Qo = mmaths.LinearTransform(0., 10., u[2])
+		freeboard = 0. // mmaths.LinearTransform(-1., 1., u[3])
+		return
+	}
+	gen := func(u []float64) float64 {
+		m, fcasc, Qo, freeboard := par4(u)
+		smpl := b.toDefaultSample(m, fcasc)		
+		return ver(&smpl, Qo, freeboard, false)
+	}
 
-// func (b *subdomain) printParam(u ...float64) {
-// 	// transform sample space
-// 	ksg := 2
-// 	fmt.Printf("topm\t\t%.5f\t(%.5f)\n", topm(u[0]), u[0])
-// 	fmt.Printf("dsoil\t\t%.5f\t(%.5f)\n", dsoil(u[1]), u[1])
-// 	// fmt.Printf("dpsto\t\t%.5f\t(%.5f)\n", dpsto(u[2]), u[2])
-// 	// fmt.Printf("intsto\t\t%.5f\t(%.5f)\n", intsto(u[3]), u[3])
+	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, ndim)
+	u, f, d := montecarlo.RankedUnBiased(gen, ndim, nsmpl)	
 
-// 	// sample surficial geology types
-// 	nsg, i := 3, 0
-// 	keys := make([]int, 0)
-// 	for k := range b.mpr.sg {
-// 		keys = append(keys, k)
-// 	}
-// 	sort.Ints(keys)
-// 	sdf := b.mpr.sg
-// 	for _, k := range keys {
-// 		sg := sdf[k]
-// 		ksat, por, _ := sg.Sample(u[ksg+nsg*i], u[ksg+nsg*i+1])
-// 		fmt.Printf(" === SG %d\n", k)
-// 		fmt.Printf("ksat\t\t%.2e\t(%.5f)\n", ksat, u[ksg+nsg*i])
-// 		fmt.Printf("por\t\t%.5f\t(%.5f)\n", por, u[ksg+nsg*i+1])
-// 		fmt.Printf("fc\t\t%.5f\t(%.5f)\n", fc(u[ksg+nsg*i+2]), u[ksg+nsg*i+2])
-// 		i++
-// 	}
+	v := func() float64 {		
+		nstep, dtb, dte, intvl := b.frc.trimFrc(-1)
+		h2cms := b.contarea / float64(intvl)  // [m/ts] to [m³/s] conversion factor
+		o, i := make([]float64, nstep), 0
+		for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
+			v := b.frc.c[d]
+			o[i] = v[met.UnitDischarge] * h2cms
+			i++
+		}		
+		m, n, c := 0., 0., 0.
+		for i := range o {
+			if !math.IsNaN(o[i]) {
+				m += o[i]
+				c++
+			}
+		}
+		m /= c // mean
+		for i := range o {
+			if !math.IsNaN(o[i]) {
+				n += math.Pow(o[i]-m, 2.)
+			}
+		}
+		return n / c // population variance
+	}()
 
-// 	// sample landuse types
-// 	klu, nlu, i := ksg+len(b.mpr.sg)*nsg, 1, 0
-// 	keys = make([]int, 0)
-// 	for k := range b.mpr.lu {
-// 		keys = append(keys, k)
-// 	}
-// 	sort.Ints(keys)
-// 	for _, k := range keys {
-// 		lu := b.mpr.lu[k]
-// 		fmt.Printf(" === LU %d\n", k)
-// 		fmt.Printf("fimp\t\t%.5f\n", lu.Fimp)
-// 		fmt.Printf("intfct\t\t%.5f\n", lu.Intfct)
-// 		fmt.Printf("mann\t\t%.5f\t(%.5f)\n", mann(u[klu+nlu*i]), u[klu+nlu*i])
-// 		i++
-// 	}
-// }
-
-// func (b *subdomain) toSampleU(u ...float64) sample {
-// 	var wg sync.WaitGroup
-
-// 	ts := b.frc.h.IntervalSec()
-// 	if ts <= 0. {
-// 		log.Fatalf("toDefaultSample error, timestep (IntervalSec) = %v", ts)
-// 	}
-// 	ws := make(hru.WtrShd, b.ncid)
-// 	var gw map[int]*gwru.TMQ
-// 	// str := make([]string, 0, len(u))
-
-// 	// transform sample space
-// 	ksg := 2
-// 	// str = append(str, "topm", "dsoil", "dpsto", "itsto")
-// 	topm := topm(u[0])
-// 	dsoil := dsoil(u[1])
-// 	// dpsto := dpsto( u[2])
-// 	// itsto := intsto(u[3]) // short and tall vegetation interception
-
-// 	// sample surficial geology types
-// 	nsg, i := 3, 0
-// 	pksat, ppor, pfc := make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg)), make(map[int]float64, len(b.mpr.sg))
-// 	keys := make([]int, 0)
-// 	for k := range b.mpr.sg {
-// 		keys = append(keys, k)
-// 	}
-// 	sort.Ints(keys)
-// 	sdf := b.mpr.sg
-// 	for _, k := range keys {
-// 		sg := sdf[k]
-// 		pksat[k], ppor[k], _ = sg.Sample(u[ksg+nsg*i], u[ksg+nsg*i+1])
-// 		pfc[k] = fc(u[ksg+nsg*i+2])
-// 		// str = append(str, fmt.Sprintf("%d:ksat", k), fmt.Sprintf("%d:por", k), fmt.Sprintf("%d:fc", k))
-// 		i++
-// 	}
-
-// 	// sample landuse types
-// 	klu, nlu, i := ksg+len(b.mpr.sg)*nsg, 1, 0
-// 	pn, pfimp, pinfct := make(map[int]float64, len(b.mpr.lu)), make(map[int]float64, len(b.mpr.lu)), make(map[int]float64, len(b.mpr.lu))
-// 	keys = make([]int, 0)
-// 	for k := range b.mpr.lu {
-// 		keys = append(keys, k)
-// 	}
-// 	sort.Ints(keys)
-// 	for _, k := range keys {
-// 		lu := b.mpr.lu[k]
-// 		pfimp[k] = lu.Fimp
-// 		pinfct[k] = lu.Intfct
-// 		pn[k] = mann(u[klu+nlu*i])
-// 		// str = append(str, fmt.Sprintf("%d:mann", k))
-// 		i++
-// 	}
-
-// 	n := make(map[int]float64)
-// 	assignHRUs := func() {
-// 		defer wg.Done()
-// 		ksat := make(map[int]float64)
-// 		var recurs func(int)
-// 		recurs = func(cid int) {
-// 			var hnew hru.HRU
-// 			ksat[cid] = pksat[b.mpr.isg[cid]]
-// 			n[cid] = pn[b.mpr.ilu[cid]]
-// 			drnsto := ppor[b.mpr.isg[cid]] * (1. - pfc[b.mpr.isg[cid]]) * dsoil
-// 			srfsto := ppor[b.mpr.isg[cid]] * pfc[b.mpr.isg[cid]] * dsoil //+ itsto*pinfct[b.mpr.ilu[cid]]*(1.-pfimp[b.mpr.ilu[cid]]) + dpsto*pfimp[b.mpr.ilu[cid]]
-// 			hnew.Initialize(drnsto, srfsto, pfimp[b.mpr.ilu[cid]], ksat[cid], ts)
-// 			ws[cid] = &hnew
-// 			for _, upcid := range b.strc.t.UpIDs(cid) {
-// 				recurs(upcid)
-// 			}
-// 		}
-// 		recurs(b.cid0)
-// 	}
-// 	buildTopmodel := func() {
-// 		defer wg.Done()
-// 		ksat := make(map[int]float64)
-// 		var recurs func(int)
-// 		recurs = func(cid int) {
-// 			ksat[cid] = pksat[b.mpr.isg[cid]] * ts // [m/ts]
-// 			for _, upcid := range b.strc.t.UpIDs(cid) {
-// 				recurs(upcid)
-// 			}
-// 		}
-// 		recurs(b.cid0)
-
-// 		if b.frc.Q0 <= 0. {
-// 			log.Fatalf("toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
-// 		}
-// 		gw = make(map[int]*gwru.TMQ, 1)
-// 		print("fix")
-// 		gw[0].New(ksat, b.strc.t, b.strc.w, b.frc.Q0, topm)
-// 	}
-
-// 	wg.Add(2)
-// 	go assignHRUs()
-// 	go buildTopmodel()
-// 	wg.Wait()
-
-// 	// fmt.Println(str)
-
-// 	return sample{
-// 		ws: ws,
-// 		gw: gw,
-// 		p0: b.buildC0(n, ts),
-// 		p1: b.buildC2(n, ts),
-// 	}
-// }
-
-// func (b *subdomain) buildC0(n map[int]float64, ts float64) map[int]float64 {
-// 	c0 := make(map[int]float64, len(b.cids))
-// 	for _, cid := range b.cids {
-// 		c := fiveThirds * math.Sqrt(b.strc.t.TEC[cid].S) * ts / b.strc.w / n[cid]
-// 		c0[cid] = c / (1. + c)
-// 	}
-// 	return c0
-// }
-
-// func (b *subdomain) buildC2(n map[int]float64, ts float64) map[int]float64 {
-// 	c2 := make(map[int]float64, len(b.cids))
-// 	for _, cid := range b.cids {
-// 		c := fiveThirds * math.Sqrt(b.strc.t.TEC[cid].S) * ts / b.strc.w / n[cid]
-// 		c2[cid] = 1. / (1. + c)
-// 	}
-// 	return c2
-// }
+	t, err := mmio.NewTXTwriter("sample.csv")
+	defer t.Close()
+	if err != nil {
+		log.Fatalf(" Definition.SaveAs: %v", err)
+	}
+	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,fcasc,Qo", nsmpl))
+	for i, dd := range d {
+		nse := 1. - math.Pow(f[dd], 2.)/v // converting to nash-sutcliffe
+		m, fcasc, Qo, _ := par4(u[dd])
+		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f", i+1, nse, m, fcasc, Qo))
+	}
+	// str := fmt.Sprintf("rank(of %d),eval", nsmpl)
+	// for j := 0; j < ndim; j++ {
+	// 	str = str + fmt.Sprintf(",p%03d", j+1)
+	// }
+	// t.WriteLine(fmt.Sprintf("rank(of %d),eval", nsmpl))	
+	// for i, dd := range d {
+	// 	nse := 1. - math.Pow(f[dd], 2.)/v // converting to nash-sutcliffe
+	// 	str := fmt.Sprintf("%d,%f", i+1, nse)
+	// 	for j := 0; j < ndim; j++ {
+	// 		str = str + fmt.Sprintf(",%f", u[dd][j])
+	// 	}
+	// 	t.WriteLine(str)
+	// }
+}

@@ -57,6 +57,18 @@ func sumHydrographWB(dt, s, d, a, g, x, k []interface{}) {
 	mmio.WriteCSV("waterbalance.csv", "date,sto,dfc,aet,rch,exs,lag", dt, s, d, a, g, x, k)
 }
 
+func sumPlotHydrograph(fp string, o, s, b, x []interface{}) {
+	xs, ys := make([]float64, len(s)), make(map[string][]float64, 4)
+	for i := range s {
+		xs[i] = float64(i)
+	}
+	ys["obs"] = mmio.InterfaceToFloat(o)
+	ys["sim"] = mmio.InterfaceToFloat(s)
+	ys["bf"] = mmio.InterfaceToFloat(b)
+	ys["xs"] = mmio.InterfaceToFloat(x)
+	mmio.Line(fp, xs, ys)
+}
+
 func sumPlotHydrographWB(fp string, s, d, k, x, a, g []interface{}) {
 	xs, ys := make([]float64, len(s)), make(map[string][]float64, 6)
 	for i := range s {

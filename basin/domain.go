@@ -25,18 +25,10 @@ func LoadMasterDomain(ldr *Loader, buildEP bool) {
 	masterDomain = newDomain(ldr, buildEP)
 }
 
-// ReLoadMasterForcings loads forcing data to master domain
-func ReLoadMasterForcings(fp string) {
-	fmt.Printf(" re-loading: %s\n", fp)
-	if masterDomain.IsEmpty() {
-		log.Fatalf(" ReLoadMasterForcings error: masterDomain not loaded")
-	}
-	masterDomain.frc, _ = loadForcing(fp, true)
-}
-
-// IsEmpty returns true if the domain has no data
-func (m *domain) IsEmpty() bool {
-	return m.strc == nil || m.mpr == nil || m.gd == nil
+// LoadUniformMasterDomain loads all data from which sub-domain scale models can be derived
+func LoadUniformMasterDomain(ldr *Loader, buildEP bool) {
+	fmt.Println("Loading Master Domain..")
+	masterDomain = newUniformDomain(ldr, buildEP)
 }
 
 func newDomain(ldr *Loader, buildEP bool) domain {
@@ -63,4 +55,18 @@ func newUniformDomain(ldr *Loader, buildEP bool) domain {
 		rtr:  &rtr,
 		gd:   gd,
 	}
+}
+
+// ReLoadMasterForcings loads forcing data to master domain
+func ReLoadMasterForcings(fp string) {
+	fmt.Printf(" re-loading: %s\n", fp)
+	if masterDomain.IsEmpty() {
+		log.Fatalf(" ReLoadMasterForcings error: masterDomain not loaded")
+	}
+	masterDomain.frc, _ = loadForcing(fp, true)
+}
+
+// IsEmpty returns true if the domain has no data
+func (m *domain) IsEmpty() bool {
+	return m.strc == nil || m.mpr == nil || m.gd == nil
 }

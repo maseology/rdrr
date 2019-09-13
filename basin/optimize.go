@@ -61,7 +61,7 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
-	nsmpl := 3 // defaulting freeboard=0.
+	ndim := 3 // defaulting freeboard=0.
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
@@ -82,8 +82,8 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	}
 
 	fmt.Println(" optimizing..")
-	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nsmpl, rng, gen, true)
-	// uFinal, _ := glbopt.SurrogateRBF(500, nsmpl, rng, gen)
+	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), ndim, rng, gen, true)
+	// uFinal, _ := glbopt.SurrogateRBF(500, ndim, rng, gen)
 
 	m, fcasc, Qo, freeboard := par4(uFinal)
 	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tQo:\t%v\n\tfrebrd:\t%v\n\n", m, fcasc, Qo, freeboard)

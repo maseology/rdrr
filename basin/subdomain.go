@@ -24,14 +24,14 @@ type subdomain struct {
 func (b *subdomain) print(dir string) error {
 	b.rtr.print(dir + "b.rtr.")
 	b.mpr.printSubset(dir+"b.mpr.", b.cids)
-	us, strm := make(map[int]float64, b.ncid), make(map[int]bool, b.ncid)
+	ucnt, strm := make(map[int]float64, b.ncid), make(map[int]bool, b.ncid)
 	for _, c := range b.cids {
-		us[c] = float64(b.strc.t.UnitContributingArea(c))
-		if us[c] > 400 {
+		ucnt[c] = float64(b.strc.u[c])
+		if b.strc.u[c] > 400 {
 			strm[c] = true
 		}
 	}
-	mmio.WriteRMAP(dir+"b.strc.t.upcnt.rmap", us, false)
+	mmio.WriteRMAP(dir+"b.strc.t.upcnt.rmap", ucnt, false)
 	strmca := make(map[int]int, b.ncid)
 	for k := range strm {
 		strmca[k] = k

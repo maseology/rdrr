@@ -3,7 +3,7 @@ package basin
 import (
 	"fmt"
 	"log"
-	"time"
+	"github.com/maseology/mmio"
 )
 
 // // Run a single simulation with water balance checking
@@ -28,7 +28,7 @@ import (
 
 // RunDefault runs simulation with default parameters
 func RunDefault(metfp string, topm, fcasc, Qs, freeboard float64, print bool) float64 {
-	start := time.Now()
+	tt := mmio.NewTimer()
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
 	}
@@ -43,10 +43,9 @@ func RunDefault(metfp string, topm, fcasc, Qs, freeboard float64, print bool) fl
 	}
 
 	if print {
-		fmt.Printf(" sub-domain load complete %v\n", time.Now().Sub(start))
+		tt.Lap("sub-domain load complete")
 		fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
-		fmt.Printf(" building sample HRUs and TOPMODEL\n")
-		start = time.Now()
+		fmt.Printf(" building sample HRUs and TOPMODEL\n")		
 	}
 	smpl := b.toDefaultSample(topm, fcasc)
 	// for _, c := range b.cids {
@@ -56,11 +55,12 @@ func RunDefault(metfp string, topm, fcasc, Qs, freeboard float64, print bool) fl
 	// }
 
 	if print {
+		tt.Lap("sample build complete")		
 		dir := "S:/ormgp_rdrr/check/" //"E:/ormgp_rdrr/check/" //
 		masterDomain.gd.SaveAs(dir + "masterDomain.gdef")
 		b.print(dir)
 		smpl.print(dir)
-		fmt.Printf(" sample load complete %v\n", time.Now().Sub(start))
+		tt.Lap("sample map printing")	
 		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))
 		fmt.Printf("\n running model..\n\n")
 	}

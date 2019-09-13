@@ -13,6 +13,7 @@ import (
 const (
 	secperday = 86400.
 	minslope  = 0.001
+	strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"	
 )
 
 func (b *subdomain) buildSfrac(fcasc float64) map[int]float64 {
@@ -122,7 +123,7 @@ func (b *subdomain) toDefaultSample(m, fcasc float64) sample {
 			}
 
 			var gwt gwru.TMQ
-			gwt.New(ksat, b.strc.u, b.strc.t, b.strc.w, m, b.frc.Q0)
+			gwt.New(ksat, b.strc.u, b.strc.t, b.strc.w, m, b.frc.Q0, strmkm2)
 			ch <- kv{k: sid, v: gwt}
 		}
 
