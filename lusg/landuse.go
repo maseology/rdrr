@@ -42,9 +42,9 @@ func defaultsFromSOLRIS(id int) (rzsto, surfsto, fimp, ifct float64) {
 	const (
 		defaultDepSto    = 0.001  // [m]
 		defaultIntSto    = 0.0005 // [m]
-		defaultSoilDepth = 0.3    // [m]
-		defaultPorosity  = 0.3    // [-]
-		defaultFc        = 0.1    // [-]
+		defaultSoilDepth = 0.1    // [m]
+		defaultPorosity  = 0.2    // [-]
+		defaultFc        = 0.3    // [-]
 	)
 	return buildFromSOLRIS(defaultSoilDepth, defaultPorosity, defaultFc, defaultIntSto, defaultDepSto, id)
 }
@@ -90,7 +90,7 @@ func buildFromSOLRIS(soildepth, porosity, fc, intsto, depsto float64, id int) (r
 	case 170: // Open water (can include streams)
 		rzsto = 0.
 		surfsto = 0.
-	case 11, 21, 41, 204, 205, -9999: // bare (no vegetation)
+	case 11, 21, 41, 204, 205, -9999, -1: // bare (no vegetation)
 	// do nothing
 	default:
 		log.Fatalf("propsFromSOLRIS: no value asigned to SOLRIS ID %d", id)

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-
-	"github.com/maseology/goHydro/hru"
 )
 
 // saveRMap is used to output grid data as key-value pairs (*.rmap)
@@ -27,16 +25,18 @@ func saveRMap(d map[int]float64, fp string) {
 	}
 }
 
-func printHRUprops(ws hru.WtrShd) {
-	perc, fimp, cap := make(map[int]float64, len(ws)), make(map[int]float64, len(ws)), make(map[int]float64, len(ws))
-	for i, h := range ws {
-		perc[i], fimp[i], cap[i] = h.PercFimpCap()
-		cap[i] *= 1000. // [m] to [mm]
-	}
-	saveRMap(perc, "hru.perc_mpts.rmap")
-	saveRMap(fimp, "hru.fimp.rmap")
-	saveRMap(cap, "hru.cap_mm.rmap")
-}
+// func printHRUprops(ws hru.WtrShd) {
+// 	perc, fimp, smacap, srfcap := make(map[int]float64, len(ws)), make(map[int]float64, len(ws)), make(map[int]float64, len(ws)), make(map[int]float64, len(ws))
+// 	for i, h := range ws {
+// 		perc[i], fimp[i], smacap[i], srfcap[i] = h.PercFimpCap()
+// 		smacap[i] *= 1000. // [m] to [mm]
+// 		srfcap[i] *= 1000. // [m] to [mm]
+// 	}
+// 	saveRMap(perc, "hru.perc_mpts.rmap")
+// 	saveRMap(fimp, "hru.fimp.rmap")
+// 	saveRMap(smacap, "hru.cap_mm.rmap")
+// 	saveRMap(srfcap, "hru.cap_mm.rmap")
+// }
 
 // saveIMap is used to output grid data as key-value pairs (*.imap)
 // meant for singular data (i.e., long-term annual average)

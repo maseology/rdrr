@@ -11,8 +11,6 @@ import (
 	"github.com/maseology/objfunc"
 )
 
-const nearzero = 1e-8
-
 // evalCascWB same as evalCasc() except with rigorous mass balance checking
 func (b *subdomain) evalCascWB(p *sample, Qo, freeboard float64, print bool) (of float64) {
 	// constants and coefficients

@@ -15,6 +15,9 @@ type RTR struct {
 func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 	var sids []int // slice of subwatershed IDs, safely ordered downslope
 	sws, dsws := make(map[int]int, len(cids)), make(map[int]int, len(r.dsws))
+	if outlet < 0 {
+		log.Fatalf(" RTR.subset error: outlet cell needs to be provided")
+	}
 	if len(r.sws) > 0 {
 		osws := r.sws[outlet]
 		for _, cid := range cids {
@@ -41,7 +44,6 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 		}
 		sids = mmaths.OrderFromToTree(dsws, -1)
 	} else { // entire model domain is one subwatershed to outlet
-		log.Fatalf(" RTR.subset: to check...")
 		for _, cid := range cids {
 			sws[cid] = outlet
 		}
@@ -82,5 +84,7 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 
 func (r *RTR) print(dir string) {
 	mmio.WriteIMAP(dir+"sws.imap", r.sws)
-	mmio.WriteIMAP(dir+"dsws.imap", r.dsws)
+	if len(r.dsws) > 0 {
+		mmio.WriteIMAP(dir+"dsws.imap", r.dsws)
+	}
 }

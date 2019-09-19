@@ -14,26 +14,26 @@ type SurfGeoColl map[int]SurfGeo // cell ID to SurfGeo
 func LoadSurfGeo(UniqueValues []int) *SurfGeoColl {
 	// create SurfGeo collection
 	p := make(map[int]SurfGeo, len(UniqueValues))
-	for _, i := range UniqueValues {
-		if i == -9999 { // unknown material
-			p[-9999] = SurfGeo{
-				ID:   -9999,
+	for _, id := range UniqueValues {
+		switch id {
+		case -9999, -1:
+			p[id] = SurfGeo{
+				ID:   id,
 				Ksat: ksatFromID(6),
 				SY:   syFromID(6),
 				dK:   ksatDistrFromID(6),
 				dP:   porDistrFromID(6),
 			}
-		} else {
-			p[i] = SurfGeo{
-				ID:   i,
-				Ksat: ksatFromID(i),
-				SY:   syFromID(i),
-				dK:   ksatDistrFromID(i),
-				dP:   porDistrFromID(i),
+		default:
+			p[id] = SurfGeo{
+				ID:   id,
+				Ksat: ksatFromID(id),
+				SY:   syFromID(id),
+				dK:   ksatDistrFromID(id),
+				dP:   porDistrFromID(id),
 			}
 		}
 	}
-
 	sgc := SurfGeoColl(p)
 	return &sgc
 }
@@ -50,25 +50,25 @@ type SurfGeo struct {
 /////////////////////////////////////////////////
 
 // ksatFromID returns an approximate estimate of
-// hydraulic conductivity [m/s] for a given material type
+// saturated hydraulic conductivity [m/s] for a given material type
 func ksatFromID(sgid int) float64 {
 	switch sgid {
 	case 1: // Low
-		return 1e-8
+		return 1e-9
 	case 2: // Low_Medium
-		return 1e-7
+		return 1e-8 // ~316 mm/yr
 	case 3: // Medium
-		return 1e-6
+		return 1e-7
 	case 4: // Medium_High
-		return 1e-5
-	case 5: // High
-		return 1e-4
-	case 6: // Unknown (variable)
 		return 1e-6
+	case 5: // High
+		return 1e-5
+	case 6: // Unknown (variable)
+		return 1e-8
 	case 7: // Streambed (alluvium/unconsolidated/fluvial/floodplain)
 		return 1e-5
 	case 8: // Wetland_Sediments (organics)
-		return 1e-5
+		return 1e-6
 	default:
 		log.Fatalf("ksatFromID: no value assigned to SurfGeo ID %d", sgid)
 		return 0.
@@ -165,7 +165,7 @@ func syFromID(sgid int) float64 {
 	case 8: // Wetland_Sediments (organics)
 		return .5 // .45
 	default:
-		log.Fatalf("ksatFromID: no value assigned to SurfGeo ID %d", sgid)
+		log.Fatalf("syFromID: no value assigned to SurfGeo ID %d", sgid)
 		return 0.
 	}
 }

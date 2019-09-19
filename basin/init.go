@@ -13,7 +13,7 @@ import (
 const (
 	secperday = 86400.
 	minslope  = 0.001
-	strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"	
+	strmkm2   = 1. // total drainage area [km²] required to deem a cell a "stream cell"
 )
 
 func (b *subdomain) buildSfrac(fcasc float64) map[int]float64 {
@@ -158,10 +158,26 @@ func (b *subdomain) toDefaultSample(m, fcasc float64) sample {
 	go buildTopmodel()
 	wg.Wait()
 
+	p0 := b.buildSfrac(fcasc)
+
+	finalAdjustments := func() {
+		defer wg.Done()
+		// set streams to 100% cascade
+		for _, g := range gw {
+			for c := range g.Qs {
+				p0[c] = 1.
+			}
+		}
+	}
+
+	wg.Add(1)
+	go finalAdjustments()
+	wg.Wait()
+
 	return sample{
 		ws:   ws,
 		gw:   gw,
-		p0:   b.buildSfrac(fcasc),
+		p0:   p0,
 		swsr: swsr,
 		celr: celr,
 		// p0: b.buildC0(ns, ts), // ,

@@ -100,28 +100,28 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 		if _, ok := mmio.FileExists(l.Fhdem + ".TEM.gob"); ok {
 			var err error
 			t, err = tem.Load(l.Fhdem + ".TEM.gob")
-			if err!=nil{
+			if err != nil {
 				log.Fatalf(" Loader.load.readtopo error: %v", err)
 			}
 		} else {
-		if err := t.New(l.Fhdem); err != nil {
-			log.Fatalf(" Loader.load.readtopo tem.New() error: %v", err)
-		}
-		if err := t.Save(l.Fhdem + ".TEM.gob"); err !=nil {
-			log.Fatalf(" Loader.load.readtopo tem.Save() error: %v", err)
-		}
+			if err := t.New(l.Fhdem); err != nil {
+				log.Fatalf(" Loader.load.readtopo tem.New() error: %v", err)
+			}
+			if err := t.Save(l.Fhdem + ".TEM.gob"); err != nil {
+				log.Fatalf(" Loader.load.readtopo tem.Save() error: %v", err)
+			}
 		}
 		tt.Lap("topo loaded")
 
 		if _, ok := mmio.FileExists(l.Fhdem + ".ContributingCellMap.gob"); ok {
 			var err error
 			ucnt, err = mmio.LoadGOB(l.Fhdem + ".ContributingCellMap.gob")
-			if err!=nil{
+			if err != nil {
 				log.Fatalf(" Loader.load.readtopo error: %v", err)
 			}
 		} else {
 			ucnt = t.ContributingCellMap()
-			if err := mmio.SaveGOB(l.Fhdem + ".ContributingCellMap.gob",ucnt); err!=nil{
+			if err := mmio.SaveGOB(l.Fhdem+".ContributingCellMap.gob", ucnt); err != nil {
 				log.Fatalf(" topo.ContributingCellMap error: %v", err)
 			}
 		}
@@ -130,28 +130,50 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	readLU := func() {
 		tt := mmio.NewTimer()
 		defer wg.Done()
-		fmt.Printf(" loading: %s\n", l.Flu)
-		var g grid.Indx
-		g.LoadGDef(gd)
-		g.NewShort(l.Flu, false)
-		ulu := g.UniqueValues()
-		lu = *lusg.LoadLandUse(ulu)
-		ilu = g.Values()
-		// g.ToASC(l.Dir+"lu.asc", false)
-		tt.Lap("LU loaded")
+		if _, ok := mmio.FileExists(l.Flu); ok {
+			fmt.Printf(" loading: %s\n", l.Flu)
+			var g grid.Indx
+			g.LoadGDef(gd)
+			g.NewShort(l.Flu, false)
+			ulu := g.UniqueValues()
+			lu = *lusg.LoadLandUse(ulu)
+			ilu = g.Values()
+			tt.Lap("LU loaded")
+		} else {
+			if len(l.Flu) > 0 {
+				log.Fatalf(" file not found: %s\n", l.Flu)
+			}
+			lu = *lusg.LoadLandUse([]int{-1})
+			ilu = make(map[int]int, gd.Nactives())
+			for _, c := range gd.Actives() {
+				ilu[c] = -1
+			}
+			tt.Lap("(uniform) LU loaded")
+		}
 	}
 	readSG := func() {
 		tt := mmio.NewTimer()
 		defer wg.Done()
-		fmt.Printf(" loading: %s\n", l.Fsg)
-		var g grid.Indx
-		g.LoadGDef(gd)
-		g.NewShort(l.Fsg, false)
-		usg := g.UniqueValues()
-		sg = *lusg.LoadSurfGeo(usg)
-		isg = g.Values()
-		// g.ToASC(l.Dir+"sg.asc", false)
-		tt.Lap("SG loaded")
+		if _, ok := mmio.FileExists(l.Fsg); ok {
+			fmt.Printf(" loading: %s\n", l.Fsg)
+			var g grid.Indx
+			g.LoadGDef(gd)
+			g.NewShort(l.Fsg, false)
+			usg := g.UniqueValues()
+			sg = *lusg.LoadSurfGeo(usg)
+			isg = g.Values()
+			tt.Lap("SG loaded")
+		} else {
+			if len(l.Fsg) > 0 {
+				log.Fatalf(" file not found: %s\n", l.Fsg)
+			}
+			sg = *lusg.LoadSurfGeo([]int{-1})
+			isg = make(map[int]int, gd.Nactives())
+			for _, c := range gd.Actives() {
+				isg[c] = -1
+			}
+			tt.Lap("(uniform) SG loaded")
+		}
 	}
 	readSWS := func() {
 		tt := mmio.NewTimer()
@@ -180,7 +202,11 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 			log.Fatalf(" Loader.load error: unrecognized .met type\n")
 		}
 		if cid0 >= 0 {
-			nc = t.UpCnt(cid0) // recount number of cells
+			if _, ok := t.TEC[cid0]; ok {
+				nc = t.UpCnt(cid0) // recount number of cells
+			} else {
+				cid0 = -1
+			}
 		}
 	}
 

@@ -3,6 +3,7 @@ package basin
 import (
 	"fmt"
 	"log"
+
 	"github.com/maseology/mmio"
 )
 
@@ -27,7 +28,7 @@ import (
 // }
 
 // RunDefault runs simulation with default parameters
-func RunDefault(metfp string, topm, fcasc, Qs, freeboard float64, print bool) float64 {
+func RunDefault(metfp string, topm, fcasc, Qo, freeboard float64, print bool, prntdir string) float64 {
 	tt := mmio.NewTimer()
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
@@ -45,7 +46,7 @@ func RunDefault(metfp string, topm, fcasc, Qs, freeboard float64, print bool) fl
 	if print {
 		tt.Lap("sub-domain load complete")
 		fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
-		fmt.Printf(" building sample HRUs and TOPMODEL\n")		
+		fmt.Printf(" building sample HRUs and TOPMODEL\n")
 	}
 	smpl := b.toDefaultSample(topm, fcasc)
 	// for _, c := range b.cids {
@@ -55,15 +56,19 @@ func RunDefault(metfp string, topm, fcasc, Qs, freeboard float64, print bool) fl
 	// }
 
 	if print {
-		tt.Lap("sample build complete")		
-		dir := "S:/ormgp_rdrr/check/" //"E:/ormgp_rdrr/check/" //
-		masterDomain.gd.SaveAs(dir + "masterDomain.gdef")
-		b.print(dir)
-		smpl.print(dir)
-		tt.Lap("sample map printing")	
+		tt.Lap("sample build complete")
+		if len(prntdir) > 0 {
+			mmio.MakeDir(prntdir)
+			masterDomain.gd.SaveAs(prntdir + "masterDomain.gdef")
+			b.print(prntdir)
+			smpl.print(prntdir)
+			tt.Lap("sample map printing")
+		}
+		mmio.FileRename("hyd.png", "hydx.png", true)
 		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))
 		fmt.Printf("\n running model..\n\n")
 	}
 
-	return b.evalCascWB(&smpl, Qs, freeboard, print)
+	// return b.evalCascWB(&smpl, Qo, freeboard, print)
+	return b.evalTest(&smpl, Qo, topm, print)
 }
