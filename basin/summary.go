@@ -114,3 +114,12 @@ func sumMonthly(dt, o, s []interface{}, ts, ca float64) {
 	}
 	mmio.WriteCSV("monthlysum.csv", "date,obs,sim", dti, osi, ssi)
 }
+
+func sumWriteReals(outdir string, xr map[int]int, gy, ga, gr, gg, gl []float64) {
+
+	// mmio.WriteRMAP("precipitation.real", gy, false)
+	// mmio.WriteRMAP("aet.rmap", ga, false)
+	// mmio.WriteRMAP("runoff.rmap", gr, false)
+	// mmio.WriteRMAP("gwe.rmap", gg, false)
+	// mmio.WriteRMAP("mobile.rmap", gl, false)
+}

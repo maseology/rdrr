@@ -35,7 +35,7 @@ func dehash(b *subdomain, p *sample) (xr map[int]int, strm map[int]float64, frc 
 		sid := b.rtr.sws[c] // groundwatershed id
 		drel[i] = p.gw[sid].D[c]
 		ws[i] = *p.ws[c]
-		p0[i] = 1. //p.p0[c]
+		p0[i] = p.p0[c]
 		ds[i] = b.ds[c]
 		xr[c] = i
 		if v, ok := p.gw[sid].Qs[c]; ok {
@@ -66,9 +66,12 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 	h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor
 	obs, sim, bf := make([]float64, nstep), make([]float64, nstep), make([]float64, nstep)
 	yss, ass, rss, gss, bss := 0., 0., 0., 0., 0.
+	// distributed monitors [mm/yr]
+	gy, ga, gr, gg, gl := make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid)
 	defer func() {
 		mmio.ObsSim("hyd.png", obs, sim, bf, nil)
 		of = report(obs, sim, yss, ass, rss, gss, b.fncid, nstep, print)
+		sumWriteReals("", xr, gy, ga, gr, gg, gl)
 	}()
 
 	dm := func() (dm float64) {
@@ -119,6 +122,8 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 
 			ys += y
 			as += a
+			gy[i] += y
+			ga[i] += a
 			if v, ok := strm[i]; ok {
 				hb := v * math.Exp((Ds-dm-drel[i])/m)
 				bs += hb
@@ -130,6 +135,9 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 				ws[xr[ds[i]]].AddToStorage(r)
 			}
 			gs += g
+			gr[i] += r
+			gg[i] += g
+			gl[i] += s1
 		}
 		yss += ys
 		ass += as
