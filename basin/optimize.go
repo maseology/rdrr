@@ -65,30 +65,30 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	ver := b.evalCascWB
+	ver := b.evalTest
 
-	par4 := func(u []float64) (m, fcasc, Qo, freeboard float64) {
+	par4 := func(u []float64) (m, fcasc, Qo, soildepth float64) {
 		m = mmaths.LogLinearTransform(0.01, 10., u[0])
 		fcasc = mmaths.LogLinearTransform(0.001, 10., u[1])
 		Qo = mmaths.LinearTransform(0., 1., u[2])
-		freeboard = 0. // mmaths.LinearTransform(-1., 1., u[3])
+		soildepth = .1 // mmaths.LinearTransform(-1., 1., u[3])
 		return
 	}
 	gen := func(u []float64) float64 {
-		m, fcasc, Qo, freeboard := par4(u)
-		smpl := b.toDefaultSample(m, fcasc)
+		m, fcasc, Qo, soildepth := par4(u)
+		smpl := b.toDefaultSample(m, fcasc, soildepth)
 		// Qo *= b.frc.h.IntervalSec() / 1000. / 365.24 / 86400. // [mm/yr] to [m/ts]
-		return ver(&smpl, Qo, freeboard, false)
+		return ver(&smpl, Qo, m, false)
 	}
 
 	fmt.Println(" optimizing..")
 	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), ndim, rng, gen, true)
 	// uFinal, _ := glbopt.SurrogateRBF(500, ndim, rng, gen)
 
-	m, fcasc, Qo, freeboard := par4(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tQo:\t%v\n\tfrebrd:\t%v\n\n", m, fcasc, Qo, freeboard)
-	final := b.toDefaultSample(m, fcasc)
-	return ver(&final, Qo, freeboard, true), []float64{m, fcasc, Qo, freeboard}
+	m, fcasc, Qo, soildepth := par4(uFinal)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tQo:\t%v\n\tsoildepth:\t%v\n\n", m, fcasc, Qo, soildepth)
+	final := b.toDefaultSample(m, fcasc, soildepth)
+	return ver(&final, Qo, m, true), []float64{m, fcasc, Qo, soildepth}
 }
 
 // OptimizeDefault1 solves a default-parameter model to a given basin outlet
@@ -113,17 +113,17 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	ver := b.evalCascWB
 
 	const (
-		TMQm  = 0.004191296639278929
-		fcasc = 0.2336020076838129
-		// freeboard = 0.
+		TMQm      = 0.004191296639278929
+		fcasc     = 0.2336020076838129
+		soildepth = .1
 	)
 
-	smpl1 := b.toDefaultSample(TMQm, fcasc)
+	smpl1 := b.toDefaultSample(TMQm, fcasc, soildepth)
 	par1 := func(u []float64) float64 {
 		// m := mmaths.LogLinearTransform(0.001, 1., u[0])
 		// fcasc := mmaths.LogLinearTransform(0.1, 10., u[0])
-		freeboard := mmaths.LinearTransform(-1., 1., u[0])
-		return freeboard
+		soildepth := mmaths.LinearTransform(-1., 1., u[0])
+		return soildepth
 	}
 	gen := func(u []float64) float64 {
 		smpl := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)

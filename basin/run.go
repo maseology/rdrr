@@ -28,7 +28,7 @@ import (
 // }
 
 // RunDefault runs simulation with default parameters
-func RunDefault(metfp string, topm, fcasc, Qo, freeboard float64, print bool, prntdir string) float64 {
+func RunDefault(mdldir, metfp, prntdir string, topm, fcasc, Qo, soildepth float64, print bool) float64 {
 	tt := mmio.NewTimer()
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
@@ -42,13 +42,14 @@ func RunDefault(metfp string, topm, fcasc, Qo, freeboard float64, print bool, pr
 	} else {
 		b = masterDomain.newSubDomain(loadForcing(metfp, print)) // gauge outlet cell id found in .met file
 	}
+	b.mdldir = mdldir
 
 	if print {
 		tt.Lap("sub-domain load complete")
 		fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 		fmt.Printf(" building sample HRUs and TOPMODEL\n")
 	}
-	smpl := b.toDefaultSample(topm, fcasc)
+	smpl := b.toDefaultSample(topm, fcasc, soildepth)
 	// for _, c := range b.cids {
 	// 	if smpl.ws[c] == nil {
 	// 		log.Fatalln(" basin.RunDefault() error: nil hru")

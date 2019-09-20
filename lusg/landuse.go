@@ -1,7 +1,13 @@
 package lusg
 
-import (
-	"log"
+import "log"
+
+const (
+	defaultDepSto    = 0.001  // [m]
+	defaultIntSto    = 0.0005 // [m]
+	defaultSoilDepth = 0.1    // [m]
+	defaultPorosity  = 0.2    // [-]
+	defaultFc        = 0.3    // [-]
 )
 
 // LandUseColl holds a collection of LandUse.
@@ -36,16 +42,15 @@ func (l *LandUse) GetDefaultsSOLRIS() (rzsto, surfsto, fimp, ifct float64) {
 	return defaultsFromSOLRIS(l.ID)
 }
 
+// GetSOLRIS1 returns default SOLRIS landuse properties, but with soildepth specified
+// from a given LandUse struct. (rootzone/drainable storage, surface storage, fimp, interception factor)
+func (l *LandUse) GetSOLRIS1(soildepth float64) (rzsto, surfsto, fimp, ifct float64) {
+	return buildFromSOLRIS(soildepth, defaultPorosity, defaultFc, defaultIntSto, defaultDepSto, l.ID)
+}
+
 // defaultsFromSOLRIS returns landuse properties from a given default
 // SOLRIS ID. (rootzone/drainable storage, surface storage, fimp)
 func defaultsFromSOLRIS(id int) (rzsto, surfsto, fimp, ifct float64) {
-	const (
-		defaultDepSto    = 0.001  // [m]
-		defaultIntSto    = 0.0005 // [m]
-		defaultSoilDepth = 0.1    // [m]
-		defaultPorosity  = 0.2    // [-]
-		defaultFc        = 0.3    // [-]
-	)
 	return buildFromSOLRIS(defaultSoilDepth, defaultPorosity, defaultFc, defaultIntSto, defaultDepSto, id)
 }
 

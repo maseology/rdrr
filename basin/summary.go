@@ -115,11 +115,19 @@ func sumMonthly(dt, o, s []interface{}, ts, ca float64) {
 	mmio.WriteCSV("monthlysum.csv", "date,obs,sim", dti, osi, ssi)
 }
 
-func sumWriteReals(outdir string, xr map[int]int, gy, ga, gr, gg, gl []float64) {
-
-	// mmio.WriteRMAP("precipitation.real", gy, false)
-	// mmio.WriteRMAP("aet.rmap", ga, false)
-	// mmio.WriteRMAP("runoff.rmap", gr, false)
-	// mmio.WriteRMAP("gwe.rmap", gg, false)
-	// mmio.WriteRMAP("mobile.rmap", gl, false)
+func sumWriteRMaps(outdir string, xr map[int]int, gy, ga, gr, gg, gd, gl []float64, fnstep float64) {
+	mgy, mga, mgr, mgg, mgl := make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr))
+	f := 365.24 * 1000. / fnstep
+	for c, i := range xr {
+		mgy[c] = gy[i] * f
+		mga[c] = ga[i] * f
+		mgr[c] = gr[i] * f
+		mgg[c] = (gg[i] - gd[i]) * f
+		mgl[c] = gl[i] * f
+	}
+	mmio.WriteRMAP(outdir+"precipitation.rmap", mgy, false)
+	mmio.WriteRMAP(outdir+"aet.rmap", mga, false)
+	mmio.WriteRMAP(outdir+"olf.rmap", mgr, false)
+	mmio.WriteRMAP(outdir+"gwe.rmap", mgg, false)
+	mmio.WriteRMAP(outdir+"storage.rmap", mgl, false)
 }

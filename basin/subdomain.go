@@ -19,6 +19,7 @@ type subdomain struct {
 	cids                    []int       // cell IDs (topologically ordered)
 	contarea, fncid, fnstrm float64     // contributing area [m²], (float) number of cells
 	ncid, nstrm, cid0       int         // number of cells, number of stream cells, outlet cell ID
+	mdldir                  string      // model directory
 }
 
 func (b *subdomain) print(dir string) error {

@@ -36,7 +36,7 @@ func (b *subdomain) buildSfrac(fcasc float64) map[int]float64 {
 	// return fc
 }
 
-func (b *subdomain) toDefaultSample(m, fcasc float64) sample {
+func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.h.IntervalSec() // [s/ts]
@@ -70,7 +70,7 @@ func (b *subdomain) toDefaultSample(m, fcasc float64) sample {
 			}
 
 			var h hru.HRU
-			drnsto, srfsto, fimp, _ := lu.GetDefaultsSOLRIS()
+			drnsto, srfsto, fimp, _ := lu.GetSOLRIS1(soildepth) //lu.GetDefaultsSOLRIS()
 			h.Initialize(drnsto, srfsto, fimp, sg.Ksat, ts)
 			ws[cid] = &h
 			for _, upcid := range b.strc.t.UpIDs(cid) {

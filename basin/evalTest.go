@@ -45,7 +45,7 @@ func dehash(b *subdomain, p *sample) (xr map[int]int, strm map[int]float64, frc 
 	return
 }
 
-func report(o, s []float64, ytot, atot, rtot, gtot, fncid float64, nstep int, print bool) (of float64) {
+func report(o, s []float64, ytot, atot, rtot, gtot, btot, fncid float64, nstep int, print bool) (of float64) {
 	rmse := objfunc.RMSE(o[365:], s[365:])
 	of = rmse
 	if print {
@@ -54,7 +54,7 @@ func report(o, s []float64, ytot, atot, rtot, gtot, fncid float64, nstep int, pr
 		nse := objfunc.NSE(o, s)
 		bias := objfunc.Bias(o, s)
 		ff := 365.24 * 1000. / float64(nstep) / fncid
-		fmt.Printf("  waterbudget [mm/yr]: pre: %.0f  aet: %.0f  rch: %.0f  ro: %.0f  dif: %.1f\n", ytot*ff, atot*ff, gtot*ff, rtot*ff, (ytot-(atot+gtot+rtot))*ff)
+		fmt.Printf("  waterbudget [mm/yr]: pre: %.0f  aet: %.0f  rch: %.0f  gwd: %.0f  olf: %.0f  dif: %.1f\n", ytot*ff, atot*ff, gtot*ff, btot*ff, rtot*ff, (ytot+btot-(atot+gtot+rtot))*ff)
 		fmt.Printf("  KGE: %.3f  NSE: %.3f  RMSE: %.3f  mon-wR²: NA  Bias: %.3f\n", kge, nse, rmse, bias)
 	}
 	return
@@ -67,11 +67,11 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 	obs, sim, bf := make([]float64, nstep), make([]float64, nstep), make([]float64, nstep)
 	yss, ass, rss, gss, bss := 0., 0., 0., 0., 0.
 	// distributed monitors [mm/yr]
-	gy, ga, gr, gg, gl := make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid)
+	gy, ga, gr, gg, gd, gl := make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid)
 	defer func() {
 		mmio.ObsSim("hyd.png", obs, sim, bf, nil)
-		of = report(obs, sim, yss, ass, rss, gss, b.fncid, nstep, print)
-		sumWriteReals("", xr, gy, ga, gr, gg, gl)
+		of = report(obs, sim, yss, ass, rss, gss, bss, b.fncid, nstep, print)
+		sumWriteRMaps(b.mdldir, xr, gy, ga, gr, gg, gd, gl, float64(nstep))
 	}()
 
 	dm := func() (dm float64) {
@@ -128,6 +128,7 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 				hb := v * math.Exp((Ds-dm-drel[i])/m)
 				bs += hb
 				r += hb
+				gd[i] += hb
 			}
 			if ds[i] == -1 { // outlet cell
 				rs += r

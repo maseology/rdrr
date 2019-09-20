@@ -83,22 +83,22 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
-	ndim := 3 // defaulting freeboard=0.
+	ndim := 4 // defaulting freeboard=0.
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
 	ver := b.evalTest
 
-	par4 := func(u []float64) (m, fcasc, Qs, freeboard float64) {
+	par4 := func(u []float64) (m, fcasc, Qs, soildepth float64) {
 		m = mmaths.LogLinearTransform(0.02, .5, u[0]) // mmaths.LinearTransform(0.02, 0.06, u[0])
 		fcasc = mmaths.LogLinearTransform(0.001, 10., u[1])
 		Qs = mmaths.LinearTransform(-.4, 1., u[2]) // mmaths.LogLinearTransform(.001, .1, u[2])
-		freeboard = 0.                             // mmaths.LinearTransform(-1., 1., u[3])
+		soildepth = mmaths.LinearTransform(0., 1., u[4])
 		return
 	}
 	gen := func(u []float64) float64 {
-		m, fcasc, Qs, _ := par4(u)
-		smpl := b.toDefaultSample(m, fcasc)
+		m, fcasc, Qs, soildepth := par4(u)
+		smpl := b.toDefaultSample(m, fcasc, soildepth)
 		return ver(&smpl, Qs, m, false)
 	}
 
