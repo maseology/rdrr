@@ -135,11 +135,11 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 	if err != nil {
 		log.Fatalf(" Definition.SaveAs: %v", err)
 	}
-	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,fcasc,Qo", nsmpl))
+	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,fcasc,Qo,soildepth", nsmpl))
 	for i, dd := range d {
 		nse := 1. - math.Pow(f[dd], 2.)/v // converting to nash-sutcliffe
-		m, fcasc, Qo, _ := par4(u[dd])
-		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f", i+1, nse, m, fcasc, Qo))
+		m, fcasc, Qo, soildepth := par4(u[dd])
+		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f", i+1, nse, m, fcasc, Qo, soildepth))
 	}
 	// str := fmt.Sprintf("rank(of %d),eval", nsmpl)
 	// for j := 0; j < ndim; j++ {
