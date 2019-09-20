@@ -60,7 +60,7 @@ func report(o, s []float64, ytot, atot, rtot, gtot, btot, fncid float64, nstep i
 	return
 }
 
-// evalTest 6: with topology, topmodel gwr and gw feedback (only 1 gw reservoir)
+// evalTest 7: with topology, topmodel gwr and gw feedback (re-worked for SWS-based modelling)
 func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) {
 	xr, strm, frc, ws, drel, p0, ds, nstep, intvl := dehash(b, p)
 	h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor
@@ -72,7 +72,7 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 		of = report(obs, sim, yss, ass, rss, gss, bss, b.fncid, nstep, print)
 		if print {
 			mmio.ObsSim("hyd.png", obs, sim, bf, nil)
-			sumWriteRMaps(b.mdldir, xr, gy, ga, gr, gg, gd, gl, float64(nstep))
+			sumWriteRMaps(b.mdldir, xr, ds, gy, ga, gr, gg, gd, gl, float64(nstep))
 		}
 	}()
 
@@ -164,6 +164,111 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 	}
 	return
 }
+
+// // evalTest 6: with topology, topmodel gwr and gw feedback (only 1 gw reservoir)
+// func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) {
+// 	xr, strm, frc, ws, drel, p0, ds, nstep, intvl := dehash(b, p)
+// 	h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor
+// 	obs, sim, bf := make([]float64, nstep), make([]float64, nstep), make([]float64, nstep)
+// 	yss, ass, rss, gss, bss := 0., 0., 0., 0., 0.
+// 	// distributed monitors [mm/yr]
+// 	gy, ga, gr, gg, gd, gl := make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid)
+// 	defer func() {
+// 		of = report(obs, sim, yss, ass, rss, gss, bss, b.fncid, nstep, print)
+// 		if print {
+// 			mmio.ObsSim("hyd.png", obs, sim, bf, nil)
+// 			sumWriteRMaps(b.mdldir, xr, ds, gy, ga, gr, gg, gd, gl, float64(nstep))
+// 		}
+// 	}()
+
+// 	dm := func() (dm float64) {
+// 		q0t, q0, n := 0., b.frc.Q0, 0
+// 		dm = 0. //-m * math.Log(q0/Qs)
+// 		for {
+// 			for c, v := range strm {
+// 				q0t += v * math.Exp((Ds-dm-drel[xr[c]])/m)
+// 			}
+// 			q0t /= b.fncid
+// 			if q0t <= q0 {
+// 				break
+// 			}
+// 			dm += .1
+// 			q0t = 0.
+// 			n++
+// 			if n > steadyiter {
+// 				fmt.Println("steady reached max iterations")
+// 				break
+// 			}
+// 		}
+// 		return
+// 	}()
+
+// 	for k := 0; k < nstep; k++ {
+// 		v := frc[k]
+// 		obs[k] = v[2] * h2cms // met.UnitDischarge
+
+// 		ys, as, rs, gs, s0s, s1s, bs, dm0 := 0., 0., 0., 0., 0., 0., 0., dm
+// 		for i := range b.cids {
+// 			s0s += ws[i].Storage()
+// 		}
+// 		for i := range b.cids {
+// 			y := v[0]  // v[met.AtmosphericYield]   // precipitation/atmospheric yield (rainfall + snowmelt)
+// 			ep := v[1] // v[met.AtmosphericDemand] // evaporative demand
+
+// 			s0 := ws[i].Storage()
+// 			a, r, g := ws[i].UpdateWT(y, ep, dm+drel[i])
+// 			ws[i].AddToStorage(r * (1. - p0[i]))
+// 			r *= p0[i]
+// 			s1 := ws[i].Storage()
+// 			s1s += s1
+
+// 			hruwbal := y + s0 - (a + r + g + s1)
+// 			if math.Abs(hruwbal) > nearzero {
+// 				fmt.Printf("|hruwbal| = %e\n", hruwbal)
+// 			}
+
+// 			ys += y
+// 			as += a
+// 			gy[i] += y
+// 			ga[i] += a
+// 			if v, ok := strm[i]; ok {
+// 				hb := v * math.Exp((Ds-dm-drel[i])/m)
+// 				bs += hb
+// 				r += hb
+// 				gd[i] += hb
+// 			}
+// 			if ds[i] == -1 { // outlet cell
+// 				rs += r
+// 			} else {
+// 				ws[xr[ds[i]]].AddToStorage(r)
+// 			}
+// 			gs += g
+// 			gr[i] += r
+// 			gg[i] += g
+// 			gl[i] += s1
+// 		}
+// 		yss += ys
+// 		ass += as
+// 		rss += rs
+// 		gss += gs
+// 		bss += bs
+// 		sim[k] = rs / b.fncid * h2cms
+// 		bf[k] = bs / b.fnstrm / b.fncid * h2cms
+// 		dm += (bs - gs) / b.fncid
+
+// 		hruwbal := ys + bs + s0s - (as + rs + gs + s1s)
+// 		if math.Abs(hruwbal) > nearzero {
+// 			fmt.Printf("(sum)|hruwbal| = %e\n", hruwbal)
+// 		}
+
+// 		basinwbal := ys + (dm-dm0)*b.fncid + s0s - (as + rs + s1s)
+// 		// basinwbal := (dm - dm0) + (gs-bs)/b.fncid // gwbal
+// 		if math.Abs(basinwbal) > nearzero {
+// 			fmt.Printf("|basinwbal| = %e\n", basinwbal)
+// 		}
+// 	}
+// 	return
+// }
 
 // // evalTest 5: with topology, topmodel gwr and gw feedback (only 1 gw reservoir)
 // func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) {

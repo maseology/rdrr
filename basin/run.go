@@ -28,7 +28,7 @@ import (
 // }
 
 // RunDefault runs simulation with default parameters
-func RunDefault(mdldir, metfp, prntdir string, topm, fcasc, Qo, soildepth float64, print bool) float64 {
+func RunDefault(mdldir, metfp, chkdir string, topm, fcasc, Qo, soildepth float64, print bool) float64 {
 	tt := mmio.NewTimer()
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
@@ -58,11 +58,11 @@ func RunDefault(mdldir, metfp, prntdir string, topm, fcasc, Qo, soildepth float6
 
 	if print {
 		tt.Lap("sample build complete")
-		if len(prntdir) > 0 {
-			mmio.MakeDir(prntdir)
-			masterDomain.gd.SaveAs(prntdir + "masterDomain.gdef")
-			b.print(prntdir)
-			smpl.print(prntdir)
+		if len(chkdir) > 0 {
+			mmio.MakeDir(chkdir)
+			masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
+			b.print(chkdir)
+			smpl.print(chkdir)
 			tt.Lap("sample map printing")
 		}
 		mmio.FileRename("hyd.png", "hydx.png", true)

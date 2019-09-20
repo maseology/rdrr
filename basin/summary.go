@@ -115,19 +115,35 @@ func sumMonthly(dt, o, s []interface{}, ts, ca float64) {
 	mmio.WriteCSV("monthlysum.csv", "date,obs,sim", dti, osi, ssi)
 }
 
-func sumWriteRMaps(outdir string, xr map[int]int, gy, ga, gr, gg, gd, gl []float64, fnstep float64) {
-	mgy, mga, mgr, mgg, mgl := make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr))
+func sumWriteRMaps(outdir string, xr map[int]int, ds []int, gy, ga, gr, gg, gd, gl []float64, fnstep float64) {
+	mgy, mga, mgolf, mgg, mgl := make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr)), make(map[int]float64, len(xr))
+	mron, mroff := make(map[int]float64, len(xr)), make(map[int]float64, len(xr))
 	f := 365.24 * 1000. / fnstep
 	for c, i := range xr {
 		mgy[c] = gy[i] * f
 		mga[c] = ga[i] * f
-		mgr[c] = gr[i] * f
+		mgolf[c] = gr[i] * f
 		mgg[c] = (gg[i] - gd[i]) * f
 		mgl[c] = gl[i] * f
+		if ds[i] > -1 {
+			mron[ds[i]] += gr[i] * f
+		}
 	}
+	for c := range xr {
+		mroff[c] = mgolf[c] - mron[c]
+		if mgg[c] < 0. {
+			mroff[c] += mgg[c] // exclude runoff from groundwater discharge
+		}
+		if mroff[c] < 0. {
+			mroff[c] = 0. // exclude negative runoff (caused by greater infiltrability)
+		}
+	}
+	// NOTE: wbal = y + ron - (a + g + olf)
 	mmio.WriteRMAP(outdir+"precipitation.rmap", mgy, false)
 	mmio.WriteRMAP(outdir+"aet.rmap", mga, false)
-	mmio.WriteRMAP(outdir+"olf.rmap", mgr, false)
+	mmio.WriteRMAP(outdir+"ro.rmap", mgolf, false)
+	mmio.WriteRMAP(outdir+"ron.rmap", mron, false)
+	mmio.WriteRMAP(outdir+"ro_gen.rmap", mroff, false)
 	mmio.WriteRMAP(outdir+"gwe.rmap", mgg, false)
 	mmio.WriteRMAP(outdir+"storage.rmap", mgl, false)
 }
