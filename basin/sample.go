@@ -93,7 +93,7 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 		m = mmaths.LogLinearTransform(0.02, .5, u[0]) // mmaths.LinearTransform(0.02, 0.06, u[0])
 		fcasc = mmaths.LogLinearTransform(0.001, 10., u[1])
 		Qs = mmaths.LinearTransform(-.4, 1., u[2]) // mmaths.LogLinearTransform(.001, .1, u[2])
-		soildepth = mmaths.LinearTransform(0., 1., u[4])
+		soildepth = mmaths.LinearTransform(0., 1., u[3])
 		return
 	}
 	gen := func(u []float64) float64 {

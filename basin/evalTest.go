@@ -69,9 +69,11 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 	// distributed monitors [mm/yr]
 	gy, ga, gr, gg, gd, gl := make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid)
 	defer func() {
-		mmio.ObsSim("hyd.png", obs, sim, bf, nil)
 		of = report(obs, sim, yss, ass, rss, gss, bss, b.fncid, nstep, print)
-		sumWriteRMaps(b.mdldir, xr, gy, ga, gr, gg, gd, gl, float64(nstep))
+		if print {
+			mmio.ObsSim("hyd.png", obs, sim, bf, nil)
+			sumWriteRMaps(b.mdldir, xr, gy, ga, gr, gg, gd, gl, float64(nstep))
+		}
 	}()
 
 	dm := func() (dm float64) {
@@ -156,7 +158,6 @@ func (b *subdomain) evalTest(p *sample, Ds, m float64, print bool) (of float64) 
 
 		basinwbal := ys + (dm-dm0)*b.fncid + s0s - (as + rs + s1s)
 		// basinwbal := (dm - dm0) + (gs-bs)/b.fncid // gwbal
-		// basinwbal := (dm - dm0) + gs/b.fncid - bs/b.fnstrm
 		if math.Abs(basinwbal) > nearzero {
 			fmt.Printf("|basinwbal| = %e\n", basinwbal)
 		}
