@@ -46,7 +46,7 @@ func RunDefault(mdldir, metfp, chkdir string, topm, fcasc, Qo, soildepth float64
 
 	if print {
 		tt.Lap("sub-domain load complete")
-		fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
+		fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
 		fmt.Printf(" building sample HRUs and TOPMODEL\n")
 	}
 	smpl := b.toDefaultSample(topm, fcasc, soildepth)

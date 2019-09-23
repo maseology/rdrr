@@ -3,15 +3,12 @@ package basin
 import (
 	"fmt"
 	"log"
-	"math"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/im7mortal/UTM"
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/goHydro/met"
-	"github.com/maseology/goHydro/solirrad"
 	"github.com/maseology/goHydro/tem"
 	"github.com/maseology/mmio"
 	"github.com/maseology/rdrr/lusg"
@@ -71,13 +68,15 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	// import forcings
 	var frc *FORC
 	readmet := func() {
-		tt := mmio.NewTimer()
 		defer wg.Done()
 		if len(l.Fmet) > 0 {
+			tt := mmio.NewTimer()
 			fmt.Printf(" loading: %s\n", l.Fmet)
+			frc, _ = loadForcing(l.Fmet, true)
+			tt.Lap("met loaded")
+		} else {
+			frc = nil
 		}
-		frc, _ = loadForcing(l.Fmet, true)
-		tt.Lap("met loaded")
 	}
 
 	// import structural data and mapping arrays
@@ -215,7 +214,22 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 		tt := mmio.NewTimer()
 		defer wg.Done()
 		fmt.Printf(" building potential solar irradiation field\n")
-		sif = loadSolIrradFrac(frc, &t, gd, nc, cid0, buildEp)
+		siffp := l.Fhdem
+		if cid0 >= 0 {
+			siffp += fmt.Sprintf(".%d", cid0)
+		}
+		if _, ok := mmio.FileExists(siffp + ".sif.gob"); ok {
+			var err error
+			sif, err = sifLoad(siffp + ".sif.gob")
+			if err != nil {
+				log.Fatalf(" Loader.load.buildSolIrradFrac error: %v", err)
+			}
+		} else {
+			sif = loadSolIrradFrac(frc, &t, gd, nc, cid0, buildEp)
+			if err := sifSave(siffp+".sif.gob", sif); err != nil {
+				log.Fatalf(" Loader.load.buildSolIrradFrac sif save error: %v", err)
+			}
+		}
 		tt.Lap("SolIrrad loaded")
 	}
 
@@ -322,76 +336,4 @@ func loadSWS(gd *grid.Definition, fp string) (sws, dsws map[int]int) {
 		}
 	}
 	return
-}
-
-// loadSolIrradFrac builds slope-aspect corrections for every cell
-func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, buildEp bool) map[int][366]float64 {
-	var utmzone int
-	if frc != nil {
-		switch frc.h.ESPG {
-		case 26917: // UTM zone 17N
-			utmzone = 17
-		default:
-			log.Fatalf(" buildSolIrradFrac error, unknown ESPG code specified %d", frc.h.ESPG)
-		}
-	} else {
-		utmzone = 17 // UTM zone 17N (by default)
-	}
-
-	type kv struct {
-		k int
-		v [366]float64
-	}
-	var wg1 sync.WaitGroup
-	ch := make(chan kv, nc)
-	psi := func(tec tem.TEC, cid int) {
-		defer wg1.Done()
-		latitude, _, err := UTM.ToLatLon(gd.Coord[cid].X, gd.Coord[cid].Y, utmzone, "", true)
-		if err != nil {
-			log.Fatalf(" buildSolIrradFrac error: %v -- (x,y)=(%f, %f); cid: %d\n", err, gd.Coord[cid].X, gd.Coord[cid].Y, cid)
-		}
-		si := solirrad.New(latitude, math.Tan(tec.S), math.Pi/2.-tec.A)
-		if buildEp {
-			// returns Sine-curve potential evaporation
-			ep := si.PSIfactor()
-			for j := 0; j < 366; j++ {
-				ep[j] *= sinEp(j)
-			}
-			ch <- kv{k: cid, v: ep}
-		} else {
-			ch <- kv{k: cid, v: si.PSIfactor()}
-		}
-	}
-
-	if cid0 >= 0 {
-		var recurs func(int)
-		recurs = func(cid int) {
-			if tec, ok := t.TEC[cid]; ok {
-				wg1.Add(1)
-				go psi(tec, cid)
-				for _, upcid := range t.UpIDs(cid) {
-					recurs(upcid)
-				}
-			} else {
-				log.Fatalf(" buildSolIrradFrac (recurse) error, no TEC assigned to cell ID %d", cid)
-			}
-		}
-		recurs(cid0)
-	} else {
-		for _, cid := range gd.Actives() {
-			if tec, ok := t.TEC[cid]; ok {
-				wg1.Add(1)
-				go psi(tec, cid)
-			} else {
-				log.Fatalf(" buildSolIrradFrac error, no TEC assigned to cell ID %d", cid)
-			}
-		}
-	}
-	wg1.Wait()
-	close(ch)
-	f := make(map[int][366]float64, nc)
-	for kv := range ch {
-		f[kv.k] = kv.v
-	}
-	return f
 }
