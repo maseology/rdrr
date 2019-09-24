@@ -1,10 +1,12 @@
 package basin
 
 import (
-	"encoding/gob"
+	"bytes"
+	"encoding/binary"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
-	"os"
 	"sync"
 
 	"github.com/im7mortal/UTM"
@@ -87,31 +89,66 @@ func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, 
 
 // sifSave sif to gob
 func sifSave(fp string, sif map[int][366]float64) error {
-	f, err := os.Create(fp)
-	defer f.Close()
-	if err != nil {
-		return err
+	buf := new(bytes.Buffer)
+	for k, v := range sif {
+		if err := binary.Write(buf, binary.LittleEndian, int32(k)); err != nil {
+			log.Fatalln("sifSave failed:", err)
+		}
+		for i := 0; i < 366; i++ {
+			if err := binary.Write(buf, binary.LittleEndian, v[i]); err != nil {
+				log.Fatalln("sifSave failed:", err)
+			}
+		}
 	}
-	enc := gob.NewEncoder(f)
-	err = enc.Encode(sif)
-	if err != nil {
-		return err
+	if err := ioutil.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+		return fmt.Errorf(" sifSave failed: %v", err)
 	}
 	return nil
+	// f, err := os.Create(fp)
+	// defer f.Close()
+	// if err != nil {
+	// 	return err
+	// }
+	// enc := gob.NewEncoder(f)
+	// err = enc.Encode(sif)
+	// if err != nil {
+	// 	return err
+	// }
+	// return nil
 }
 
 // sifLoad sif gob
 func sifLoad(fp string) (map[int][366]float64, error) {
-	var sif map[int][366]float64
-	f, err := os.Open(fp)
-	defer f.Close()
+	var err error
+	b, err := ioutil.ReadFile(fp)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sifLoad: ioutil.ReadFile failed: %v", err)
 	}
-	enc := gob.NewDecoder(f)
-	err = enc.Decode(&sif)
-	if err != nil {
-		return nil, err
+	buf := bytes.NewReader(b)
+	n := len(b) / (4 + 366*8)
+	m := make(map[int][366]float64, n)
+	type v struct {
+		i int32
+		a [366]float64
 	}
-	return sif, nil
+	vs := make([]v, 2*n)
+	if err := binary.Read(buf, binary.LittleEndian, vs); err != nil {
+		return nil, fmt.Errorf("sifLoad: binary.Read failed: %v", err)
+	}
+	for _, v := range vs {
+		m[int(v.i)] = v.a
+	}
+	return m, nil
+	// var sif map[int][366]float64
+	// f, err := os.Open(fp)
+	// defer f.Close()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// enc := gob.NewDecoder(f)
+	// err = enc.Decode(&sif)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return sif, nil
 }

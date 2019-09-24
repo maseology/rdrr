@@ -213,23 +213,24 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	buildSolIrradFrac := func() {
 		tt := mmio.NewTimer()
 		defer wg.Done()
-		fmt.Printf(" building potential solar irradiation field\n")
-		siffp := l.Fhdem
-		if cid0 >= 0 {
-			siffp += fmt.Sprintf(".%d", cid0)
-		}
-		if _, ok := mmio.FileExists(siffp + ".sif.gob"); ok {
-			var err error
-			sif, err = sifLoad(siffp + ".sif.gob")
-			if err != nil {
-				log.Fatalf(" Loader.load.buildSolIrradFrac error: %v", err)
-			}
-		} else {
-			sif = loadSolIrradFrac(frc, &t, gd, nc, cid0, buildEp)
-			if err := sifSave(siffp+".sif.gob", sif); err != nil {
-				log.Fatalf(" Loader.load.buildSolIrradFrac sif save error: %v", err)
-			}
-		}
+		fmt.Printf(" building potential solar irradiation field..\n")
+		// siffp := l.Fhdem
+		// if cid0 >= 0 {
+		// 	siffp += fmt.Sprintf(".%d", cid0)
+		// }
+		// if _, ok := mmio.FileExists(siffp + ".sif.bin"); ok {
+		// 	var err error
+		// 	sif, err = sifLoad(siffp + ".sif.bin")
+		// 	if err != nil {
+		// 		log.Fatalf(" Loader.load.buildSolIrradFrac error: %v", err)
+		// 	}
+		// } else {
+		sif = loadSolIrradFrac(frc, &t, gd, nc, cid0, buildEp)
+		// 	tt.Lap("PSI built, saving to bin")
+		// 	if err := sifSave(siffp+".sif.bin", sif); err != nil {
+		// 		log.Fatalf(" Loader.load.buildSolIrradFrac sif save error: %v", err)
+		// 	}
+		// }
 		tt.Lap("SolIrrad loaded")
 	}
 
