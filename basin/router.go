@@ -62,7 +62,7 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 			sws[cid] = outlet
 		}
 		sids = []int{outlet}
-		// swscidxr = map[int][]int{outlet: cids}
+		swscidxr = map[int][]int{outlet: cids}
 	}
 
 	cnt := make(map[int]int, len(sids))
