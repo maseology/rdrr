@@ -31,8 +31,9 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 			res.report()
 		} else {
 			transfers := make(map[int][]itran, len(b.rtr.swscidxr))
+			nrnds := len(b.swsord)
 			for i, k := range b.swsord {
-				fmt.Printf("--> round %d\n", i+1)
+				fmt.Printf("--> round %d (of %d): %d sws\n", i+1, nrnds, len(k))
 				chstrans := make(chan stran, len(k))
 				for _, sid := range k {
 					wg.Add(1)
