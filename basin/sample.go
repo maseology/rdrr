@@ -16,24 +16,20 @@ import (
 	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
-const (
-	twoThirds  = 2. / 3.
-	fiveThirds = 5. / 3.
-)
-
 type sample struct {
-	ws                 hru.WtrShd        // hru watershed
-	gw                 map[int]*gwru.TMQ // topmodel
-	swsr, celr, p0, p1 map[int]float64
+	ws     hru.WtrShd        // hru watershed
+	gw     map[int]*gwru.TMQ // topmodel
+	p0, p1 map[int]float64
+	// swsr, celr, p0, p1 map[int]float64
 }
 
 func (s *sample) copy() sample {
 	return sample{
-		ws:   hru.CopyWtrShd(s.ws),
-		swsr: mmio.CopyMapif(s.swsr),
-		celr: mmio.CopyMapif(s.celr),
-		p0:   mmio.CopyMapif(s.p0),
-		p1:   mmio.CopyMapif(s.p1),
+		ws: hru.CopyWtrShd(s.ws),
+		// swsr: mmio.CopyMapif(s.swsr),
+		// celr: mmio.CopyMapif(s.celr),
+		p0: mmio.CopyMapif(s.p0),
+		p1: mmio.CopyMapif(s.p1),
 		gw: func(origTMQ map[int]*gwru.TMQ) map[int]*gwru.TMQ {
 			newTMQ := make(map[int]*gwru.TMQ, len(origTMQ))
 			for k, v := range origTMQ {
@@ -87,7 +83,7 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	ver := b.evalTest
+	ver := b.eval
 
 	par4 := func(u []float64) (m, fcasc, Qs, soildepth float64) {
 		m = mmaths.LogLinearTransform(0.001, .5, u[0]) // mmaths.LinearTransform(0.02, 0.06, u[0])

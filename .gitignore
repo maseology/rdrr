@@ -13,6 +13,7 @@
 
 # others
 *.bak
+*.old
 *.rar
 /bak
 /doc/latex

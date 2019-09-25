@@ -7,15 +7,14 @@ import (
 	"github.com/maseology/mmio"
 )
 
-func computeMonthly(dt []interface{}, o, s []float64, ts, ca float64) ([]float64, []float64) {
+func computeMonthly(dt []time.Time, o, s []float64, ts, ca float64) ([]float64, []float64) {
 	tso, tss := make(mmio.TimeSeries, len(dt)), make(mmio.TimeSeries, len(dt))
 	for i, d := range dt {
 		if math.IsNaN(o[i]) || math.IsNaN(s[i]) {
 			continue
 		}
-		dt1 := d.(time.Time)
-		tso[dt1] = o[i]
-		tss[dt1] = s[i]
+		tso[d] = o[i]
+		tss[d] = s[i]
 	}
 	os, _ := mmio.MonthlySumCount(tso)
 	ss, _ := mmio.MonthlySumCount(tss)
@@ -41,15 +40,6 @@ func computeMonthly(dt []interface{}, o, s []float64, ts, ca float64) ([]float64
 func sumHydrograph(dt, o, s, b []interface{}) {
 	// C:/Users/mason/OneDrive/R/dygraph/obssim_csv_viewer.R
 	mmio.WriteCSV("hydrograph.csv", "date,obs,sim,bf", dt, o, s, b)
-	// mmio.ObsSim("hydrograph.png", o[730:], s[730:])
-	// xs, ys := make([]float64, len(s)), make(map[string][]float64, 3)
-	// for i := range s {
-	// 	xs[i] = float64(i)
-	// }
-	// ys["obs"] = mmio.InterfaceToFloat(o)
-	// ys["sim"] = mmio.InterfaceToFloat(s)
-	// ys["bf"] = mmio.InterfaceToFloat(b)
-	// mmio.Line("hydrograph.png", xs, ys)
 }
 
 func sumHydrographWB(dt, s, d, a, g, x, k []interface{}) {

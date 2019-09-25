@@ -3,7 +3,9 @@ package basin
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/maseology/goHydro/met"
 	mmio "github.com/maseology/mmio"
 )
 
@@ -16,7 +18,7 @@ type subdomain struct {
 	rtr                     *RTR        // subwatershed topology and mapping
 	ds                      map[int]int // downslope cell ID
 	swsord                  [][]int     // sws IDs (topologically ordered, concurrent safe)
-	cids                    []int       // cell IDs (topologically ordered)
+	cids, strms             []int       // cell IDs (topologically ordered); stream cell IDs
 	contarea, fncid, fnstrm float64     // contributing area [m²], (float) number of cells
 	ncid, nstrm, cid0       int         // number of cells, number of stream cells, outlet cell ID
 	mdldir                  string      // model directory
@@ -139,11 +141,34 @@ func (d *domain) noSubDomain(frc *FORC) subdomain {
 func (b *subdomain) buildStreams(strmkm2 float64) {
 	strmcthresh := int(strmkm2 * 1000. * 1000. / b.strc.w / b.strc.w) // "stream cell" threshold
 	nstrm := 0
+	b.strms = make([]int, 0)
 	for _, c := range b.cids {
 		if b.strc.u[c] > strmcthresh {
+			b.strms = append(b.strms, c)
 			nstrm++
 		}
 	}
 	b.nstrm = nstrm
 	b.fnstrm = float64(nstrm)
+}
+
+func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int) {
+	ns, dtb, dte, intvl := b.frc.trimFrc(-1)
+	dt, y, ep, obs, nstep = make([]time.Time, ns), make([][]float64, ns), make([][]float64, ns), make([]float64, ns), ns
+	h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor for subdomain outlet cell
+	k := 0
+	if b.frc.h.Nloc() == 1 {
+		for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
+			dt[k] = d
+			v := b.frc.c[d]
+			// f := b.strc.f[c][d.YearDay()-1] // adjust for slope-aspect
+			y[k] = []float64{v[met.AtmosphericYield]}   // precipitation/atmospheric yield (rainfall + snowmelt)
+			ep[k] = []float64{v[met.AtmosphericDemand]} // evaporative demand
+			obs[k] = v[met.UnitDischarge] * h2cms
+			k++
+		}
+	} else {
+		log.Fatalf("subdomain.getForcings todo: forcings with multiple locations")
+	}
+	return
 }

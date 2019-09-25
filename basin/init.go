@@ -10,12 +10,6 @@ import (
 	"github.com/maseology/rdrr/lusg"
 )
 
-const (
-	secperday = 86400.
-	minslope  = 0.001
-	strmkm2   = 1. // total drainage area [km²] required to deem a cell a "stream cell"
-)
-
 func (b *subdomain) buildSfrac(fcasc float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
@@ -45,7 +39,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 	}
 	ws := make(hru.WtrShd, b.ncid)
 	var gw map[int]*gwru.TMQ
-	var swsr, celr map[int]float64
+	// var swsr, celr map[int]float64
 
 	assignHRUs := func() {
 		// defer fmt.Println("  assignHRUs complete")
@@ -88,15 +82,15 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 			log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
 		}
 
-		swscidxr := make(map[int][]int, len(b.rtr.sws)) // id'd by outlet cell (typically a stream cell)
-		for k, v := range b.rtr.sws {
-			if _, ok := swscidxr[v]; !ok {
-				swscidxr[v] = []int{k}
-			} else {
-				swscidxr[v] = append(swscidxr[v], k)
-			}
-		}
-		nsws := len(swscidxr)
+		// swscidxr := make(map[int][]int, len(b.rtr.sws)) // id'd by outlet cell (typically a stream cell)
+		// for k, v := range b.rtr.sws {
+		// 	if _, ok := swscidxr[v]; !ok {
+		// 		swscidxr[v] = []int{k}
+		// 	} else {
+		// 		swscidxr[v] = append(swscidxr[v], k)
+		// 	}
+		// }
+		nsws := len(b.rtr.swscidxr)
 
 		type kv struct {
 			k int
@@ -107,7 +101,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 		getgw := func(sid int) {
 			defer wg1.Done()
 			ksat := make(map[int]float64)
-			for _, c := range swscidxr[sid] {
+			for _, c := range b.rtr.swscidxr[sid] {
 				if gg, ok := b.mpr.isg[c]; ok {
 					if sg, ok := b.mpr.sg[gg]; ok {
 						if sg.Ksat <= 0. {
@@ -121,13 +115,12 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 					log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", c)
 				}
 			}
-
 			var gwt gwru.TMQ
-			gwt.New(ksat, b.strc.u, b.strc.t, b.strc.w, m, b.frc.Q0, strmkm2)
+			gwt.New(ksat, b.strms, b.strc.t, b.strc.w, m)
 			ch <- kv{k: sid, v: gwt}
 		}
 
-		for k := range swscidxr {
+		for k := range b.rtr.swscidxr {
 			if b.cid0 >= 0 {
 				eval := make(map[int]bool)
 				for _, c := range b.strc.t.UpIDs(b.cid0) {
@@ -143,12 +136,13 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 		}
 		wg1.Wait()
 		close(ch)
-		gw, swsr, celr = make(map[int]*gwru.TMQ, nsws), make(map[int]float64, nsws), make(map[int]float64, nsws)
+		// gw, swsr, celr = make(map[int]*gwru.TMQ, nsws), make(map[int]float64, nsws), make(map[int]float64, nsws)
+		gw = make(map[int]*gwru.TMQ, nsws)
 		for kv := range ch {
 			k, gwt := kv.k, kv.v
 			gw[k] = &gwt
-			swsr[k] = gwt.Ca / b.contarea // groundwatershed area to catchment area
-			celr[k] = gwt.Ca / b.strc.a   // groundwatershed area to cell area
+			// swsr[k] = gwt.Ca / b.contarea // groundwatershed area to catchment area
+			// celr[k] = gwt.Ca / b.strc.a   // groundwatershed area to cell area
 		}
 		return
 	}
@@ -175,11 +169,11 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 	wg.Wait()
 
 	return sample{
-		ws:   ws,
-		gw:   gw,
-		p0:   p0,
-		swsr: swsr,
-		celr: celr,
+		ws: ws,
+		gw: gw,
+		p0: p0,
+		// swsr: swsr,
+		// celr: celr,
 		// p0: b.buildC0(ns, ts), // ,
 		// p1: b.buildC2(ns, ts),
 	}

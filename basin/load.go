@@ -17,51 +17,6 @@ import (
 // Loader holds the required input filepaths
 type Loader struct{ Dir, Fmet, Fgd, Fhdem, Fsws, Flu, Fsg string }
 
-// // LoaderDefault returns a default Loader
-// func LoaderDefault(rootdir string, outlet int) *Loader {
-// 	// lout := Loader{
-// 	// 	metfp:  rootdir + "02EC018.met",
-// 	// 	indir:  rootdir,
-// 	// 	gdfn:   "ORMGP_50_hydrocorrect.uhdem.gdef",
-// 	// 	temfn:  "ORMGP_50_hydrocorrect.uhdem",
-// 	// 	lufn:   "ORMGP_50_hydrocorrect_SOLRISv2_ID.grd",
-// 	// 	sgfn:   "ORMGP_50_hydrocorrect_PorousMedia_ID.grd",
-// 	// 	outlet: -1, // <0: from .met index, 0: no outlet, >0: outlet cell ID
-// 	// }
-// 	rtcoarse := rootdir + "coarse/"
-// 	lout := Loader{
-// 		Fmet:  rootdir + "02EC018.met",
-// 		Dir:   rtcoarse,
-// 		Fhdem: rtcoarse + "ORMGP_500_hydrocorrect.uhdem",
-// 		Fgd:   rtcoarse + "ORMGP_500_hydrocorrect.uhdem.gdef",
-// 		Flu:   rtcoarse + "ORMGP_500_hydrocorrect_SOLRISv2_ID.grd",
-// 		Fsg:   rtcoarse + "ORMGP_500_hydrocorrect_PorousMedia_ID.grd",
-// 		// Outlet: outlet, //127669, // 128667, // <0: from .met index, 0: no outlet, >0: outlet cell ID
-// 	}
-// 	lout.check()
-// 	return &lout
-// }
-
-// func (l *Loader) check() {
-// 	v := reflect.ValueOf(*l)
-// 	for i := 0; i < v.NumField(); i++ {
-// 		if v.Field(i).Type() == reflect.TypeOf("") {
-// 			st1 := v.Field(i).String()
-// 			if st1 != l.Dir {
-// 				if _, ok := mmio.FileExists(l.Dir + st1); !ok {
-// 					if _, ok := mmio.FileExists(st1); !ok {
-// 						log.Panicf("Loader.check() File does not exist:\n  %s", v.Field(i).String())
-// 					}
-// 				}
-// 			} else {
-// 				if ok := mmio.DirExists(st1); !ok {
-// 					log.Panicf("Loader.check() Directory %s does not exist.\n", v.Field(i).String())
-// 				}
-// 			}
-// 		}
-// 	}
-// }
-
 func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 	var wg sync.WaitGroup
 
@@ -214,23 +169,23 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 		tt := mmio.NewTimer()
 		defer wg.Done()
 		fmt.Printf(" building potential solar irradiation field..\n")
-		// siffp := l.Fhdem
-		// if cid0 >= 0 {
-		// 	siffp += fmt.Sprintf(".%d", cid0)
-		// }
-		// if _, ok := mmio.FileExists(siffp + ".sif.bin"); ok {
-		// 	var err error
-		// 	sif, err = sifLoad(siffp + ".sif.bin")
-		// 	if err != nil {
-		// 		log.Fatalf(" Loader.load.buildSolIrradFrac error: %v", err)
-		// 	}
-		// } else {
-		sif = loadSolIrradFrac(frc, &t, gd, nc, cid0, buildEp)
-		// 	tt.Lap("PSI built, saving to bin")
-		// 	if err := sifSave(siffp+".sif.bin", sif); err != nil {
-		// 		log.Fatalf(" Loader.load.buildSolIrradFrac sif save error: %v", err)
-		// 	}
-		// }
+		siffp := l.Fhdem
+		if cid0 >= 0 {
+			siffp += fmt.Sprintf(".%d", cid0)
+		}
+		if _, ok := mmio.FileExists(siffp + ".sif.gob"); ok {
+			var err error
+			sif, err = sifLoad(siffp + ".sif.gob")
+			if err != nil {
+				log.Fatalf(" Loader.load.buildSolIrradFrac error: %v", err)
+			}
+		} else {
+			sif = loadSolIrradFrac(frc, &t, gd, nc, cid0, buildEp)
+			tt.Lap("PSI built, saving to gob")
+			if err := sifSave(siffp+".sif.gob", sif); err != nil {
+				log.Fatalf(" Loader.load.buildSolIrradFrac sif save error: %v", err)
+			}
+		}
 		tt.Lap("SolIrrad loaded")
 	}
 
@@ -313,16 +268,11 @@ func loadSWS(gd *grid.Definition, fp string) (sws, dsws map[int]int) {
 		if err != nil {
 			log.Fatalf(" Loader.readSWS.loadSWS error with ReadBinaryIMAP: %v\n\n", err)
 		}
-		// var g grid.Indx
-		// g.LoadGDef(gd)
-		// g.NewIMAP(sws)
-		// g.ToASC(l.Dir+"sws.asc", false)
 	case ".indx":
 		var g grid.Indx
 		g.LoadGDef(gd)
 		g.New(fp, false)
 		sws = g.Values()
-		// g.ToASC(l.Dir+"sws.asc", false)
 	default:
 		log.Fatalf(" Loader.readSWS: unrecognized file type: %s\n", fp)
 	}

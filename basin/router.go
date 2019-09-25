@@ -9,16 +9,19 @@ import (
 
 // RTR holds topological info for subwatershed routing
 type RTR struct {
+	swscidxr  map[int][]int
 	sws, dsws map[int]int // cross reference of cid to sub-watershed ID; map upsws{downsws}
 }
 
 func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 	var sids []int // slice of subwatershed IDs, safely ordered downslope
+	var swscidxr map[int][]int
 	sws, dsws := make(map[int]int, len(cids)), make(map[int]int, len(r.dsws))
 	if outlet < 0 {
 		log.Fatalf(" RTR.subset error: outlet cell needs to be provided")
 	}
 	if len(r.sws) > 0 {
+		sct := make(map[int][]int, len(sids))
 		osws := r.sws[outlet]
 		for _, cid := range cids {
 			if i, ok := r.sws[cid]; ok {
@@ -41,6 +44,17 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 					dsws[sws[cid]] = -1
 				}
 			}
+			if _, ok := sct[sws[cid]]; !ok {
+				sct[sws[cid]] = []int{cid}
+			} else {
+				sct[sws[cid]] = append(sct[sws[cid]], cid)
+			}
+		}
+		swscidxr = make(map[int][]int, len(sids))
+		for k, v := range sct {
+			a := make([]int, len(v))
+			copy(a, v)
+			swscidxr[k] = a
 		}
 		sids = mmaths.OrderFromToTree(dsws, -1)
 	} else { // entire model domain is one subwatershed to outlet
@@ -48,6 +62,7 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 			sws[cid] = outlet
 		}
 		sids = []int{outlet}
+		// swscidxr = map[int][]int{outlet: cids}
 	}
 
 	cnt := make(map[int]int, len(sids))
@@ -77,8 +92,9 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 	}
 
 	return &RTR{
-		sws:  sws,
-		dsws: r.dsws,
+		swscidxr: swscidxr,
+		sws:      sws,
+		dsws:     r.dsws,
 	}, ord, sids
 }
 

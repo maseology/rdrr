@@ -65,7 +65,7 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	ver := b.evalTest
+	ver := b.eval
 
 	par4 := func(u []float64) (m, fcasc, Qo, soildepth float64) {
 		m = mmaths.LogLinearTransform(0.01, 10., u[0])
@@ -110,7 +110,7 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
-	ver := b.evalCascWB
+	ver := b.eval
 
 	const (
 		TMQm      = 0.004191296639278929
