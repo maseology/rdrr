@@ -64,19 +64,19 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	ncid := len(cids)
 	fncid := float64(ncid)
 
-	for _, c := range cids {
-		if p, ok := d.strc.t.TEC[c]; ok {
-			if p.S <= 0. {
-				fmt.Printf(" domain.newSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.S)
-				t := d.strc.t.TEC[c]
-				t.S = 0.0001
-				t.A = 0.
-				d.strc.t.TEC[c] = t
-			}
-		} else {
-			log.Fatalf(" domain.newSubDomain error: no topographic info available for cell %d", c)
-		}
-	}
+	// cktopo := make(map[int]bool, len(cids))
+	// for _, i := range cids {
+	// 	if _, ok := cktopo[i]; ok {
+	// 		log.Fatalf(" domain.newSubDomain error: cell %d occured more than once, possible cycle", i)
+	// 	}
+	// 	if _, ok := ds[i]; !ok {
+	// 		log.Fatalf(" domain.newSubDomain error: cell %d not given dowslope id", i)
+	// 	}
+	// 	if _, ok := cktopo[ds[i]]; ok {
+	// 		log.Fatalf(" domain.newSubDomain error: cell %d out of topological order", i)
+	// 	}
+	// 	cktopo[i] = true
+	// }
 
 	b := subdomain{
 		frc:      frc,

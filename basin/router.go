@@ -50,7 +50,7 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 				sct[sws[cid]] = append(sct[sws[cid]], cid)
 			}
 		}
-		swscidxr = make(map[int][]int, len(sids))
+		swscidxr = make(map[int][]int, len(sct))
 		for k, v := range sct {
 			a := make([]int, len(v))
 			copy(a, v)
@@ -94,7 +94,7 @@ func (r *RTR) subset(cids []int, outlet int) (*RTR, [][]int, []int) {
 	return &RTR{
 		swscidxr: swscidxr,
 		sws:      sws,
-		dsws:     r.dsws,
+		dsws:     dsws,
 	}, ord, sids
 }
 

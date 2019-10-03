@@ -17,9 +17,9 @@ import (
 )
 
 type sample struct {
-	ws     hru.WtrShd        // hru watershed
-	gw     map[int]*gwru.TMQ // topmodel
-	p0, p1 map[int]float64
+	ws hru.WtrShd        // hru watershed
+	gw map[int]*gwru.TMQ // topmodel
+	p0 map[int]float64
 	// swsr, celr, p0, p1 map[int]float64
 }
 
@@ -29,7 +29,7 @@ func (s *sample) copy() sample {
 		// swsr: mmio.CopyMapif(s.swsr),
 		// celr: mmio.CopyMapif(s.celr),
 		p0: mmio.CopyMapif(s.p0),
-		p1: mmio.CopyMapif(s.p1),
+		// p1: mmio.CopyMapif(s.p1),
 		gw: func(origTMQ map[int]*gwru.TMQ) map[int]*gwru.TMQ {
 			newTMQ := make(map[int]*gwru.TMQ, len(origTMQ))
 			for k, v := range origTMQ {

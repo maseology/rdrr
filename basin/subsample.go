@@ -20,12 +20,12 @@ type subsample struct {
 	nstep          int
 }
 
-func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int) subsample {
+func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) subsample {
 	var pp subsample
 	if sid < 0 {
 		pp.cids, pp.fncid = b.cids, b.fncid
 		pp.dehash(b, p, b.ncid, b.nstrm)
-		pp.initialize(b.frc.Q0, Ds, m)
+		pp.initialize(b.frc.Q0, Ds, m, print)
 		return pp
 	}
 	if _, ok := b.rtr.swscidxr[sid]; !ok {
@@ -36,12 +36,23 @@ func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int) subsample {
 	}
 	pp.cids, pp.fncid = b.rtr.swscidxr[sid], float64(len(b.rtr.swscidxr[sid]))
 	pp.dehash(b, p, len(b.rtr.swscidxr[sid]), len(p.gw[sid].Qs))
-	for _, c := range pp.cids {
-		if b.rtr.sws[c] != sid {
-			log.Fatalf("subsample.newSubsample error: subwatershed id %d outside of subsample.", sid)
-		}
-	}
-	pp.initialize(b.frc.Q0, Ds, m)
+
+	// cktopo := make(map[int]bool, len(pp.cids))
+	// for _, i := range pp.cids {
+	// 	if _, ok := cktopo[i]; ok {
+	// 		log.Fatalf(" subsample.newSubsample error: cell %d occured more than once, possible cycle", i)
+	// 	}
+	// 	if _, ok := b.ds[i]; !ok {
+	// 		log.Fatalf(" subsample.newSubsample error: cell %d not given dowslope id", i)
+	// 	}
+	// 	if _, ok := cktopo[b.ds[i]]; ok {
+	// 		log.Fatalf(" subsample.newSubsample error: cell %d out of topological order", i)
+	// 	}
+	// 	cktopo[i] = true
+	// }
+
+	pp.initialize(b.frc.Q0, Ds, m, print)
+	// fmt.Printf(" **** sid: %d;  Dm0: %f;  s0: %f\n", sid, pp.dm, pp.s0s)
 	pp.ds[pp.xr[sid]] = -1 // new outlet
 	return pp
 }
@@ -65,23 +76,52 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 	return
 }
 
-func (pp *subsample) initialize(q0, Ds, m float64) {
+// func (pp *subsample) initialize(q0, Ds, m float64) {
+// 	smpl := func(u float64) float64 {
+// 		return mmaths.LinearTransform(-5., 5., u)
+// 	}
+// 	opt := func(u []float64) float64 {
+// 		q0t, dm := 0., smpl(u[0])
+// 		for c, v := range pp.strm {
+// 			q0t += v * math.Exp((Ds-dm-pp.drel[pp.xr[c]])/m)
+// 		}
+// 		// for i := range pp.cids {
+// 		// 	if dm < pp.drel[i] {
+// 		// 		q0t -= dm + pp.drel[i]
+// 		// 	}
+// 		// }
+// 		q0t /= pp.fncid
+// 		return math.Abs(q0t-q0) / q0
+// 	}
+// 	u, _ := glbopt.Fibonacci(opt)
+// 	pp.dm = smpl(u)
+
+// 	pp.s0s = 0.
+// 	for i := range pp.cids {
+// 		pp.s0s += pp.ws[i].Storage()
+// 	}
+// }
+
+func (pp *subsample) initialize(q0, Ds, m float64, print bool) {
 	pp.dm = func() (dm float64) {
 		q0t, n := 0., 0
 		dm = 0. //-m * math.Log(q0/Qs)
 		for {
-			for c, v := range pp.strm {
-				q0t += v * math.Exp((Ds-dm-pp.drel[pp.xr[c]])/m)
+			for i, v := range pp.strm {
+				q0t += v * math.Exp((Ds-dm-pp.drel[i])/m)
 			}
 			q0t /= pp.fncid
 			if q0t <= q0 {
+				if print && dm <= 0. {
+					fmt.Println("subsample.initialize: steady reached without iterations")
+				}
 				break
 			}
 			dm += .1
 			q0t = 0.
 			n++
 			if n > steadyiter {
-				fmt.Println("steady reached max iterations")
+				fmt.Println("subsample.initialize: steady reached max iterations")
 				break
 			}
 		}

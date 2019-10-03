@@ -1,6 +1,7 @@
 package basin
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"sync"
@@ -39,13 +40,11 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 	}
 	ws := make(hru.WtrShd, b.ncid)
 	var gw map[int]*gwru.TMQ
-	// var swsr, celr map[int]float64
 
 	assignHRUs := func() {
-		// defer fmt.Println("  assignHRUs complete")
+		defer fmt.Println("  assignHRUs complete")
 		defer wg.Done()
-		var recurs func(int)
-		recurs = func(cid int) {
+		build := func(cid int) {
 			var ll, gg int
 			var ok bool
 			if ll, ok = b.mpr.ilu[cid]; !ok {
@@ -67,35 +66,36 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 			drnsto, srfsto, fimp, _ := lu.GetSOLRIS1(soildepth) //lu.GetDefaultsSOLRIS()
 			h.Initialize(drnsto, srfsto, fimp, sg.Ksat, ts)
 			ws[cid] = &h
-			for _, upcid := range b.strc.t.UpIDs(cid) {
-				recurs(upcid)
+		}
+
+		if b.cid0 >= 0 {
+			var recurs func(int)
+			recurs = func(cid int) {
+				build(cid)
+				for _, upcid := range b.strc.t.UpIDs(cid) {
+					recurs(upcid)
+				}
+			}
+			recurs(b.cid0)
+		} else {
+			for _, c := range b.cids {
+				build(c)
 			}
 		}
-		recurs(b.cid0)
-		// printHRUprops(ws)
 	}
 
 	buildTopmodel := func() {
-		// defer fmt.Println("  buildTopmodel complete")
+		defer fmt.Println("  buildTopmodel complete")
 		defer wg.Done()
 		if b.frc.Q0 <= 0. {
 			log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
 		}
 
-		// swscidxr := make(map[int][]int, len(b.rtr.sws)) // id'd by outlet cell (typically a stream cell)
-		// for k, v := range b.rtr.sws {
-		// 	if _, ok := swscidxr[v]; !ok {
-		// 		swscidxr[v] = []int{k}
-		// 	} else {
-		// 		swscidxr[v] = append(swscidxr[v], k)
-		// 	}
-		// }
-		nsws := len(b.rtr.swscidxr)
-
 		type kv struct {
 			k int
 			v gwru.TMQ
 		}
+		nsws := len(b.rtr.swscidxr)
 		var wg1 sync.WaitGroup
 		ch := make(chan kv, nsws)
 		getgw := func(sid int) {
@@ -120,29 +120,36 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 			ch <- kv{k: sid, v: gwt}
 		}
 
-		for k := range b.rtr.swscidxr {
-			if b.cid0 >= 0 {
+		if b.cid0 >= 0 {
+			uids := b.strc.t.UpIDs(b.cid0)
+			for k := range b.rtr.swscidxr {
 				eval := make(map[int]bool)
-				for _, c := range b.strc.t.UpIDs(b.cid0) {
+				for _, c := range uids {
 					if _, ok := eval[b.rtr.sws[c]]; !ok {
 						eval[b.rtr.sws[c]] = true
 						wg1.Add(1)
 						go getgw(k)
 					}
 				}
+			}
+		} else {
+			if len(b.rtr.swscidxr) == 1 {
+				wg1.Add(1)
+				go getgw(-1)
 			} else {
-				log.Fatalf(" toDefaultSample.buildTopmodel: TODO")
+				for k := range b.rtr.swscidxr {
+					wg1.Add(1)
+					go getgw(k)
+				}
 			}
 		}
+
 		wg1.Wait()
 		close(ch)
-		// gw, swsr, celr = make(map[int]*gwru.TMQ, nsws), make(map[int]float64, nsws), make(map[int]float64, nsws)
 		gw = make(map[int]*gwru.TMQ, nsws)
 		for kv := range ch {
 			k, gwt := kv.k, kv.v
 			gw[k] = &gwt
-			// swsr[k] = gwt.Ca / b.contarea // groundwatershed area to catchment area
-			// celr[k] = gwt.Ca / b.strc.a   // groundwatershed area to cell area
 		}
 		return
 	}
@@ -172,9 +179,5 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 		ws: ws,
 		gw: gw,
 		p0: p0,
-		// swsr: swsr,
-		// celr: celr,
-		// p0: b.buildC0(ns, ts), // ,
-		// p1: b.buildC2(ns, ts),
 	}
 }

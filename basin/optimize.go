@@ -133,10 +133,10 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	fmt.Println(" optimizing..")
 	uFinal, _ := glbopt.Fibonacci(gen)
 
-	freeboard := par1([]float64{uFinal})
-	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tfrebrd:\t%v\n\n", TMQm, fcasc, freeboard)
+	sldpth := par1([]float64{uFinal})
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tsoildepth:\t%v\n\n", TMQm, fcasc, sldpth)
 	final := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
-	return ver(&final, 1., freeboard, true), []float64{TMQm, fcasc, freeboard}
+	return ver(&final, 1., sldpth, true), []float64{TMQm, fcasc, sldpth}
 
 	// p0, p1, p2 := par3(uFinal)
 	// fmt.Printf("\nfinal parameters:\n\tQo:\t%v\n\tTMQm:\t%v\n\tfcasc:\t%v\n\n", p0, p1, p2)
