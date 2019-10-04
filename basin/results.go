@@ -13,18 +13,20 @@ type resulter interface {
 	getTotals(sim, bf []float64, ytot, atot, rtot, gtot, btot float64)
 }
 
-type outflow struct{ sim []float64 }
+type outflow struct {
+	sim []float64
+}
 
 func (o *outflow) report(dummy bool) []float64                                { return o.sim }
 func (o *outflow) getTotals(sim, dummy []float64, d0, d1, d2, d3, d4 float64) { o.sim = sim }
 
 type results struct {
 	dt                             []time.Time
+	mon                            []monitor
 	obs, sim, bf                   []float64
 	ytot, atot, rtot, gtot, btot   float64
 	h2cms, fncid, fnstrm, contarea float64
 	nstep, intvl, ncid, nstrm      int
-	// gy, ga, gr, gg, gd, gl        []float64
 }
 
 func newResults(b *subdomain, intvl int64, nstep int) results {
@@ -40,6 +42,7 @@ func (r *results) getTotals(sim, bf []float64, ytot, atot, rtot, gtot, btot floa
 	r.sim, r.bf = sim, bf
 	r.ytot, r.atot, r.rtot, r.gtot, r.btot = ytot, atot, rtot, gtot, btot
 }
+
 func (r *results) report(print bool) []float64 {
 	for k := 0; k < r.nstep; k++ {
 		r.sim[k] *= r.h2cms / r.fncid

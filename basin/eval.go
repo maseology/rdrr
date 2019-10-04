@@ -29,7 +29,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 			var res resulter = &rs
 			pp := newSubsample(b, p, Ds, m, -1, print)
 			pp.y, pp.ep, pp.nstep = y, ep, nstep
-			pp.eval(Ds, m, res)
+			pp.eval(Ds, m, res, b.obs[-1])
 			of = res.report(print)[0]
 		} else {
 			log.Fatalf("TODO (subdomain.eval): unordered set of subwatersheds.")
@@ -45,7 +45,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 			chstrans := make(chan stran, len(k))
 			for _, sid := range k {
 				wg.Add(1)
-				go func(sid int, t []itran) { //////////////////////////////////////////////////////////////////////// GO
+				go func(sid int, t []itran) {
 					defer wg.Done()
 					pp := newSubsample(b, p, Ds, m, sid, print)
 					pp.y, pp.ep, pp.nstep = y, ep, nstep
@@ -65,7 +65,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 						if print {
 							fmt.Printf(" printing SWS %d\n\n", sid)
 						}
-						pp.eval(Ds, m, res)
+						pp.eval(Ds, m, res, b.obs[sid])
 						of = res.report(print)[0]
 						// outflw = rs.sim
 					} else {
@@ -73,7 +73,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 						if print {
 							fmt.Printf(" running SWS %d\n", sid)
 						}
-						pp.eval(Ds, m, res)
+						pp.eval(Ds, m, res, b.obs[sid])
 						dsid := -1
 						if d, ok := b.rtr.dsws[sid]; ok {
 							if _, ok := transfers[d]; !ok {
@@ -96,13 +96,26 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 	return
 }
 
-func (p *subsample) eval(Ds, m float64, res resulter) {
+func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
+	obs := make(map[int]monitor, len(monid))
 	sim, bf := make([]float64, p.nstep), make([]float64, p.nstep)
 	yss, ass, rss, gss, bss := 0., 0., 0., 0., 0.
-	// // distributed monitors [mm/yr]
-	// gy, ga, gr, gg, gd, gl := make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid), make([]float64, b.ncid)
+	// distributed monitors [mm/yr]
+	ncid := len(p.cids)
+	gy, ga, gr, gg, gd, gl := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
 
-	defer func() { res.getTotals(sim, bf, yss, ass, rss, gss, bss) }()
+	defer func() {
+		res.getTotals(sim, bf, yss, ass, rss, gss, bss)
+		for _, v := range obs {
+			v.print()
+		}
+		g := gmonitor{gy, ga, gr, gg, gd, gl}
+		go g.print(p.xr, float64(p.nstep))
+	}()
+
+	for _, c := range monid {
+		obs[p.xr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
+	}
 
 	dm, s0s := p.dm, p.s0s
 	for k := 0; k < p.nstep; k++ {
@@ -131,30 +144,27 @@ func (p *subsample) eval(Ds, m float64, res resulter) {
 
 			ys += y
 			as += a
-			// gy[i] += y
-			// ga[i] += a
+			gy[i] += y
+			ga[i] += a
 			hb := 0.
 			if v, ok := p.strm[i]; ok {
 				hb = v * math.Exp((Ds-dm-drel)/m)
 				bs += hb
 				r += hb
-				// gd[i] += hb
+				gd[i] += hb
+			}
+			if _, ok := obs[i]; ok {
+				obs[i].v[k] = r
 			}
 			if p.ds[i] == -1 { // outlet cell
-				// if rs != 0. {
-				// 	print("asdf")
-				// }
-				// if r > 100. {
-				// 	print("asdf")
-				// }
 				rs += r
 			} else {
 				p.ws[p.xr[p.ds[i]]].AddToStorage(r)
 			}
 			gs += g
-			// gr[i] += r
-			// gg[i] += g
-			// gl[i] += s1
+			gr[i] += r
+			gg[i] += g
+			gl[i] += s1
 		}
 		yss += ys
 		ass += as

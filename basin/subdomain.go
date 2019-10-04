@@ -12,16 +12,17 @@ import (
 // subdomain carries all non-parameter data for a particular region (eg a catchment).
 // Forcing variables are collected and held to be run independently for each sample.
 type subdomain struct {
-	frc                     *FORC       // forcing data
-	strc                    *STRC       // structural data
-	mpr                     *MAPR       // land use/surficial geology mapping
-	rtr                     *RTR        // subwatershed topology and mapping
-	ds                      map[int]int // downslope cell ID
-	swsord                  [][]int     // sws IDs (topologically ordered, concurrent safe)
-	cids, strms             []int       // cell IDs (topologically ordered); stream cell IDs
-	contarea, fncid, fnstrm float64     // contributing area [m²], (float) number of cells
-	ncid, nstrm, cid0       int         // number of cells, number of stream cells, outlet cell ID
-	mdldir                  string      // model directory
+	frc                     *FORC         // forcing data
+	strc                    *STRC         // structural data
+	mpr                     *MAPR         // land use/surficial geology mapping
+	rtr                     *RTR          // subwatershed topology and mapping
+	obs                     map[int][]int // sws{[]obs-cid}
+	ds                      map[int]int   // downslope cell ID
+	swsord                  [][]int       // sws IDs (topologically ordered, concurrent safe)
+	cids, strms             []int         // cell IDs (topologically ordered); stream cell IDs
+	contarea, fncid, fnstrm float64       // contributing area [m²], (float) number of cells
+	ncid, nstrm, cid0       int           // number of cells, number of stream cells, outlet cell ID
+	mdldir                  string        // model directory
 }
 
 func (b *subdomain) print(dir string) error {
@@ -65,6 +66,20 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	ncid := len(cids)
 	fncid := float64(ncid)
 
+	for _, c := range cids {
+		if p, ok := d.strc.t.TEC[c]; ok {
+			if p.S <= 0. {
+				fmt.Printf(" domain.newSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.S)
+				t := d.strc.t.TEC[c]
+				t.S = 0.0001
+				t.A = 0.
+				d.strc.t.TEC[c] = t
+			}
+		} else {
+			log.Fatalf(" domain.newSubDomain error: no topographic info available for cell %d", c)
+		}
+	}
+
 	// cktopo := make(map[int]bool, len(cids))
 	// for _, i := range cids {
 	// 	if _, ok := cktopo[i]; ok {
@@ -88,6 +103,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		strms:    strms,
 		swsord:   swsord,
 		ds:       ds,
+		obs:      buildObs(d, newRTR),
 		ncid:     ncid,
 		fncid:    fncid,
 		nstrm:    len(strms),
@@ -135,6 +151,7 @@ func (d *domain) noSubDomain(frc *FORC) subdomain {
 		strms:    strms,
 		swsord:   swsord,
 		ds:       ds,
+		obs:      buildObs(d, newRTR),
 		ncid:     ncid,
 		fncid:    fncid,
 		nstrm:    len(strms),
@@ -155,6 +172,20 @@ func buildStreams(strc *STRC, cids []int) []int {
 		}
 	}
 	return strms
+}
+
+func buildObs(d *domain, r *RTR) map[int][]int {
+	obs := make(map[int][]int, len(d.obs))
+	for _, o := range d.obs {
+		if s, ok := r.sws[o]; ok {
+			if _, ok := obs[s]; ok {
+				obs[s] = append(obs[s], o)
+			} else {
+				obs[s] = []int{o}
+			}
+		}
+	}
+	return obs
 }
 
 // func (b *subdomain) buildStreams(strmkm2 float64) {

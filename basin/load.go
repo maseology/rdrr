@@ -15,9 +15,9 @@ import (
 )
 
 // Loader holds the required input filepaths
-type Loader struct{ Dir, Fmet, Fgd, Fhdem, Fsws, Flu, Fsg string }
+type Loader struct{ Dir, Fmet, Fgd, Fhdem, Fsws, Flu, Fsg, Fobs string }
 
-func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
+func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, []int) {
 	var wg sync.WaitGroup
 
 	// import forcings
@@ -189,8 +189,23 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 		tt.Lap("SolIrrad loaded")
 	}
 
-	wg.Add(1)
+	var obs []int
+	collectObs := func() {
+		tt := mmio.NewTimer()
+		defer wg.Done()
+		if len(l.Fobs) > 0 {
+			var err error
+			obs, err = mmio.ReadInts(l.Fobs)
+			if err != nil {
+				log.Fatalf(" Loader.load.collectObs error: %v", err)
+			}
+			tt.Lap("collectObs complete")
+		}
+	}
+
+	wg.Add(2)
 	go buildSolIrradFrac()
+	go collectObs()
 	wg.Wait()
 
 	mdl := STRC{
@@ -211,7 +226,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition) {
 		dsws: dsws,
 	}
 
-	return frc, mdl, mpr, rtr, gd
+	return frc, mdl, mpr, rtr, gd, obs
 }
 
 // LoadForcing (re-)loads forcing data

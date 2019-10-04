@@ -17,6 +17,7 @@ type domain struct {
 	mpr  *MAPR            // land use/surficial geology mapping for parameter assignment
 	rtr  *RTR             // subwatershed topology
 	gd   *grid.Definition // grid definition
+	obs  []int            // observation cell IDs
 }
 
 // LoadMasterDomain loads all data from which sub-domain scale models can be derived
@@ -32,18 +33,19 @@ func LoadUniformMasterDomain(ldr *Loader, buildEP bool) {
 }
 
 func newDomain(ldr *Loader, buildEP bool) domain {
-	frc, strc, mpr, rtr, gd := ldr.load(buildEP)
+	frc, strc, mpr, rtr, gd, obs := ldr.load(buildEP)
 	return domain{
 		frc:  frc,
 		strc: &strc,
 		mpr:  &mpr,
 		rtr:  &rtr,
 		gd:   gd,
+		obs:  obs,
 	}
 }
 
 func newUniformDomain(ldr *Loader, buildEP bool) domain {
-	frc, strc, mpr, rtr, gd := ldr.load(buildEP)
+	frc, strc, mpr, rtr, gd, obs := ldr.load(buildEP)
 	for i := range mpr.ilu {
 		mpr.ilu[i] = -9999
 		mpr.isg[i] = -9999
@@ -54,6 +56,7 @@ func newUniformDomain(ldr *Loader, buildEP bool) domain {
 		mpr:  &mpr,
 		rtr:  &rtr,
 		gd:   gd,
+		obs:  obs,
 	}
 }
 
