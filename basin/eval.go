@@ -45,7 +45,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 			chstrans := make(chan stran, len(k))
 			for _, sid := range k {
 				wg.Add(1)
-				func(sid int, t []itran) { //////////////////////////////////////////////////////////////////////// GO
+				go func(sid int, t []itran) { //////////////////////////////////////////////////////////////////////// GO
 					defer wg.Done()
 					pp := newSubsample(b, p, Ds, m, sid, print)
 					pp.y, pp.ep, pp.nstep = y, ep, nstep

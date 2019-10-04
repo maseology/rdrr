@@ -59,7 +59,8 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
 	cids, ds := d.strc.t.DownslopeContributingAreaIDs(outlet)
-	newRTR, swsord, _ := d.rtr.subset(cids, outlet)
+	strms := buildStreams(d.strc, cids)
+	newRTR, swsord, _ := d.rtr.subset(cids, strms, outlet)
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)
@@ -84,14 +85,17 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		mpr:      d.mpr,
 		rtr:      newRTR,
 		cids:     cids,
+		strms:    strms,
 		swsord:   swsord,
 		ds:       ds,
 		ncid:     ncid,
 		fncid:    fncid,
+		nstrm:    len(strms),
+		fnstrm:   float64(len(strms)),
 		contarea: d.strc.a * fncid, // basin contributing area [m²]
 		cid0:     outlet,
 	}
-	b.buildStreams(strmkm2)
+	// b.buildStreams(strmkm2)
 	return b
 }
 
@@ -102,7 +106,8 @@ func (d *domain) noSubDomain(frc *FORC) subdomain {
 	cids, ds := d.strc.t.DownslopeContributingAreaIDs(-1)
 	cid0 := cids[len(cids)-1] // assumes only one outlet
 	ds[cid0] = -1
-	newRTR, swsord, _ := d.rtr.subset(cids, cids[len(cids)-1]) // assumes only one outlet
+	strms := buildStreams(d.strc, cids)
+	newRTR, swsord, _ := d.rtr.subset(cids, strms, cids[len(cids)-1]) // assumes only one outlet
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)
@@ -127,30 +132,44 @@ func (d *domain) noSubDomain(frc *FORC) subdomain {
 		mpr:      d.mpr,
 		rtr:      newRTR,
 		cids:     cids,
+		strms:    strms,
 		swsord:   swsord,
 		ds:       ds,
 		ncid:     ncid,
 		fncid:    fncid,
+		nstrm:    len(strms),
+		fnstrm:   float64(len(strms)),
 		contarea: d.strc.a * fncid, // basin contributing area [m²]
 		cid0:     cid0,
 	}
-	b.buildStreams(strmkm2)
+	// b.buildStreams(strmkm2)
 	return b
 }
 
-func (b *subdomain) buildStreams(strmkm2 float64) {
-	strmcthresh := int(strmkm2 * 1000. * 1000. / b.strc.w / b.strc.w) // "stream cell" threshold
-	nstrm := 0
-	b.strms = make([]int, 0)
-	for _, c := range b.cids {
-		if b.strc.u[c] > strmcthresh {
-			b.strms = append(b.strms, c)
-			nstrm++
+func buildStreams(strc *STRC, cids []int) []int {
+	strmcthresh := int(strmkm2 * 1000. * 1000. / strc.w / strc.w) // "stream cell" threshold
+	strms := []int{}
+	for _, c := range cids {
+		if strc.u[c] > strmcthresh {
+			strms = append(strms, c)
 		}
 	}
-	b.nstrm = nstrm
-	b.fnstrm = float64(nstrm)
+	return strms
 }
+
+// func (b *subdomain) buildStreams(strmkm2 float64) {
+// 	strmcthresh := int(strmkm2 * 1000. * 1000. / b.strc.w / b.strc.w) // "stream cell" threshold
+// 	nstrm := 0
+// 	b.strms = make([]int, 0)
+// 	for _, c := range b.cids {
+// 		if b.strc.u[c] > strmcthresh {
+// 			b.strms = append(b.strms, c)
+// 			nstrm++
+// 		}
+// 	}
+// 	b.nstrm = nstrm
+// 	b.fnstrm = float64(nstrm)
+// }
 
 func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int) {
 	ns, dtb, dte, intvl := b.frc.trimFrc(-1)

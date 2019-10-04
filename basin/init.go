@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"runtime"
 	"sync"
 
 	"github.com/maseology/goHydro/gwru"
@@ -96,10 +97,10 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 			v gwru.TMQ
 		}
 		nsws := len(b.rtr.swscidxr)
-		var wg1 sync.WaitGroup
-		ch := make(chan kv, nsws)
+		// var wg1 sync.WaitGroup
+		ch := make(chan kv, runtime.NumCPU()/2)
 		getgw := func(sid int) {
-			defer wg1.Done()
+			// defer wg1.Done()
 			ksat := make(map[int]float64)
 			for _, c := range b.rtr.swscidxr[sid] {
 				if gg, ok := b.mpr.isg[c]; ok {
@@ -116,7 +117,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 				}
 			}
 			var gwt gwru.TMQ
-			gwt.New(ksat, b.strms, b.strc.t, b.strc.w, m)
+			gwt.New(ksat, b.rtr.swsstrmxr[sid], b.strc.t, b.strc.w, m)
 			ch <- kv{k: sid, v: gwt}
 		}
 
@@ -127,32 +128,109 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 				for _, c := range uids {
 					if _, ok := eval[b.rtr.sws[c]]; !ok {
 						eval[b.rtr.sws[c]] = true
-						wg1.Add(1)
+						// wg1.Add(1)
 						go getgw(k)
 					}
 				}
 			}
 		} else {
 			if len(b.rtr.swscidxr) == 1 {
-				wg1.Add(1)
+				// wg1.Add(1)
 				go getgw(-1)
 			} else {
 				for k := range b.rtr.swscidxr {
-					wg1.Add(1)
+					// wg1.Add(1)
 					go getgw(k)
 				}
 			}
 		}
 
-		wg1.Wait()
-		close(ch)
+		// wg1.Wait()
+		// close(ch)
+		// gw = make(map[int]*gwru.TMQ, nsws)
+		// for kv := range ch {
+		// 	k, gwt := kv.k, kv.v
+		// 	gw[k] = &gwt
+		// }
 		gw = make(map[int]*gwru.TMQ, nsws)
-		for kv := range ch {
+		for i := 0; i < nsws; i++ {
+			kv := <-ch
 			k, gwt := kv.k, kv.v
 			gw[k] = &gwt
 		}
+		close(ch)
 		return
 	}
+
+	// buildTopmodel := func() {
+	// 	defer fmt.Println("  buildTopmodel complete")
+	// 	defer wg.Done()
+	// 	if b.frc.Q0 <= 0. {
+	// 		log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
+	// 	}
+
+	// 	type kv struct {
+	// 		k int
+	// 		v gwru.TMQ
+	// 	}
+	// 	nsws := len(b.rtr.swscidxr)
+	// 	var wg1 sync.WaitGroup
+	// 	ch := make(chan kv, nsws)
+	// 	getgw := func(sid int) {
+	// 		defer wg1.Done()
+	// 		ksat := make(map[int]float64)
+	// 		for _, c := range b.rtr.swscidxr[sid] {
+	// 			if gg, ok := b.mpr.isg[c]; ok {
+	// 				if sg, ok := b.mpr.sg[gg]; ok {
+	// 					if sg.Ksat <= 0. {
+	// 						log.Fatalf(" toDefaultSample.buildTopmodel error: cell %d has an assigned ksat = %v\n", c, sg.Ksat)
+	// 					}
+	// 					ksat[c] = sg.Ksat * ts // [m/ts]
+	// 				} else {
+	// 					log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
+	// 				}
+	// 			} else {
+	// 				log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", c)
+	// 			}
+	// 		}
+	// 		var gwt gwru.TMQ
+	// 		gwt.New(ksat, b.strms, b.strc.t, b.strc.w, m)
+	// 		ch <- kv{k: sid, v: gwt}
+	// 	}
+
+	// 	if b.cid0 >= 0 {
+	// 		uids := b.strc.t.UpIDs(b.cid0)
+	// 		for k := range b.rtr.swscidxr {
+	// 			eval := make(map[int]bool)
+	// 			for _, c := range uids {
+	// 				if _, ok := eval[b.rtr.sws[c]]; !ok {
+	// 					eval[b.rtr.sws[c]] = true
+	// 					wg1.Add(1)
+	// 					go getgw(k)
+	// 				}
+	// 			}
+	// 		}
+	// 	} else {
+	// 		if len(b.rtr.swscidxr) == 1 {
+	// 			wg1.Add(1)
+	// 			go getgw(-1)
+	// 		} else {
+	// 			for k := range b.rtr.swscidxr {
+	// 				wg1.Add(1)
+	// 				go getgw(k)
+	// 			}
+	// 		}
+	// 	}
+
+	// 	wg1.Wait()
+	// 	close(ch)
+	// 	gw = make(map[int]*gwru.TMQ, nsws)
+	// 	for kv := range ch {
+	// 		k, gwt := kv.k, kv.v
+	// 		gw[k] = &gwt
+	// 	}
+	// 	return
+	// }
 
 	wg.Add(2)
 	go assignHRUs()
