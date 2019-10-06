@@ -43,6 +43,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
 	var ilu, isg, sws, dsws, ucnt map[int]int
+	var swscidxr map[int][]int
 
 	wg.Add(1)
 	go readmet()
@@ -133,7 +134,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		tt := mmio.NewTimer()
 		defer wg.Done()
 		fmt.Printf(" loading: %s\n", l.Fsws)
-		sws, dsws = loadSWS(gd, l.Fsws)
+		sws, dsws, swscidxr = loadSWS(gd, l.Fsws)
 		tt.Lap("SWS loaded")
 	}
 
@@ -181,9 +182,11 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 			}
 		} else {
 			sif = loadSolIrradFrac(frc, &t, gd, nc, cid0, buildEp)
-			tt.Lap("PSI built, saving to gob")
-			if err := sifSave(siffp+".sif.gob", sif); err != nil {
-				log.Fatalf(" Loader.load.buildSolIrradFrac sif save error: %v", err)
+			if cid0 >= 0 {
+				tt.Lap("PSI built, saving to gob")
+				if err := sifSave(siffp+".sif.gob", sif); err != nil {
+					log.Fatalf(" Loader.load.buildSolIrradFrac sif save error: %v", err)
+				}
 			}
 		}
 		tt.Lap("SolIrrad loaded")
@@ -222,8 +225,9 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		isg: isg,
 	}
 	rtr := RTR{
-		sws:  sws,
-		dsws: dsws,
+		sws:      sws,
+		dsws:     dsws,
+		swscidxr: swscidxr,
 	}
 
 	return frc, mdl, mpr, rtr, gd, obs
@@ -275,7 +279,7 @@ func masterForcing() (*FORC, int) {
 }
 
 // loadSWS loads subwatershed info
-func loadSWS(gd *grid.Definition, fp string) (sws, dsws map[int]int) {
+func loadSWS(gd *grid.Definition, fp string) (sws, dsws map[int]int, swscidxr map[int][]int) {
 	switch filepath.Ext(fp) {
 	case ".imap":
 		var err error
@@ -291,6 +295,22 @@ func loadSWS(gd *grid.Definition, fp string) (sws, dsws map[int]int) {
 	default:
 		log.Fatalf(" Loader.readSWS: unrecognized file type: %s\n", fp)
 	}
+	// collect sws ids
+	sct := make(map[int][]int, len(sws))
+	for c, s := range sws {
+		if _, ok := sct[s]; ok {
+			sct[s] = append(sct[s], c)
+		} else {
+			sct[s] = []int{c}
+		}
+	}
+	swscidxr = make(map[int][]int, len(sct))
+	for k, v := range sct {
+		a := make([]int, len(v))
+		copy(a, v)
+		swscidxr[k] = a
+	}
+	// collect topology
 	if _, ok := mmio.FileExists(mmio.RemoveExtension(fp) + ".topo"); ok {
 		d, err := mmio.ReadCSV(mmio.RemoveExtension(fp) + ".topo")
 		if err != nil {

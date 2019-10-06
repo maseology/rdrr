@@ -22,24 +22,31 @@ func (r *RTR) subset(cids, strms []int, outlet int) (*RTR, [][]int, []int) {
 		log.Fatalf(" RTR.subset error: outlet cell needs to be provided")
 	}
 	if len(r.sws) > 0 {
-		sct := make(map[int][]int, len(sids))
+		if _, ok := r.sws[outlet]; !ok {
+			log.Fatalf(" RTR.subset error: outlet cell not belonging to a sws")
+		}
+		sct := make(map[int][]int, len(r.swscidxr))
 		osws := r.sws[outlet]
 		for _, cid := range cids {
-			if i, ok := r.sws[cid]; ok {
-				if i == osws {
+			if s, ok := r.sws[cid]; ok {
+				if s == osws {
 					sws[cid] = outlet // crops sws to outlet
 				} else {
-					sws[cid] = i
+					sws[cid] = s
 				}
 			} else {
-				sws[cid] = cid // main channel outlet cells
+				sws[cid] = cid // sacrificial main channel outlet cells
 			}
 			if _, ok := dsws[sws[cid]]; !ok { // temporarily collect sws's
 				if sws[cid] != outlet {
 					if r.dsws[sws[cid]] == osws {
 						dsws[sws[cid]] = outlet
 					} else {
-						dsws[sws[cid]] = r.dsws[sws[cid]]
+						if _, ok := r.dsws[sws[cid]]; ok {
+							dsws[sws[cid]] = r.dsws[sws[cid]]
+						} else {
+							dsws[sws[cid]] = -1
+						}
 					}
 				} else {
 					dsws[sws[cid]] = -1
@@ -57,7 +64,7 @@ func (r *RTR) subset(cids, strms []int, outlet int) (*RTR, [][]int, []int) {
 			copy(a, v)
 			swscidxr[k] = a
 		}
-		sst := make(map[int][]int, len(sids))
+		sst := make(map[int][]int, len(r.swsstrmxr))
 		for _, c := range strms {
 			if s, ok := sws[c]; ok {
 				if _, ok := sst[s]; !ok {

@@ -10,7 +10,6 @@ import (
 	"github.com/maseology/goHydro/gwru"
 	"github.com/maseology/goHydro/hru"
 	"github.com/maseology/goHydro/met"
-	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
 	"github.com/maseology/montecarlo"
 	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
@@ -26,10 +25,7 @@ type sample struct {
 func (s *sample) copy() sample {
 	return sample{
 		ws: hru.CopyWtrShd(s.ws),
-		// swsr: mmio.CopyMapif(s.swsr),
-		// celr: mmio.CopyMapif(s.celr),
 		p0: mmio.CopyMapif(s.p0),
-		// p1: mmio.CopyMapif(s.p1),
 		gw: func(origTMQ map[int]*gwru.TMQ) map[int]*gwru.TMQ {
 			newTMQ := make(map[int]*gwru.TMQ, len(origTMQ))
 			for k, v := range origTMQ {
@@ -79,27 +75,18 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
-	ndim := 4 // defaulting freeboard=0.
-
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
 	ver := b.eval
 
-	par4 := func(u []float64) (m, fcasc, Qs, soildepth float64) {
-		m = mmaths.LogLinearTransform(0.001, .5, u[0]) // mmaths.LinearTransform(0.02, 0.06, u[0])
-		fcasc = mmaths.LogLinearTransform(0.001, 10., u[1])
-		Qs = mmaths.LinearTransform(-.4, 2., u[2]) // mmaths.LogLinearTransform(.001, .1, u[2])
-		soildepth = mmaths.LinearTransform(0., 1., u[3])
-		return
-	}
 	gen := func(u []float64) float64 {
 		m, fcasc, Qs, soildepth := par4(u)
 		smpl := b.toDefaultSample(m, fcasc, soildepth)
 		return ver(&smpl, Qs, m, false)
 	}
 
-	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, ndim)
-	u, f, d := montecarlo.RankedUnBiased(gen, ndim, nsmpl)
+	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
+	u, f, d := montecarlo.RankedUnBiased(gen, nSmplDim, nsmpl)
 
 	v := func() float64 {
 		nstep, dtb, dte, intvl := b.frc.trimFrc(-1)
@@ -137,17 +124,4 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 		m, fcasc, Qo, soildepth := par4(u[dd])
 		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f", i+1, nse, m, fcasc, Qo, soildepth))
 	}
-	// str := fmt.Sprintf("rank(of %d),eval", nsmpl)
-	// for j := 0; j < ndim; j++ {
-	// 	str = str + fmt.Sprintf(",p%03d", j+1)
-	// }
-	// t.WriteLine(fmt.Sprintf("rank(of %d),eval", nsmpl))
-	// for i, dd := range d {
-	// 	nse := 1. - math.Pow(f[dd], 2.)/v // converting to nash-sutcliffe
-	// 	str := fmt.Sprintf("%d,%f", i+1, nse)
-	// 	for j := 0; j < ndim; j++ {
-	// 		str = str + fmt.Sprintf(",%f", u[dd][j])
-	// 	}
-	// 	t.WriteLine(str)
-	// }
 }

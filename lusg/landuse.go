@@ -94,7 +94,7 @@ func buildFromSOLRIS(soildepth, porosity, fc, intsto, depsto float64, id int) (r
 		ifct = 1.
 	case 170: // Open water (can include streams)
 		rzsto = 0.
-		surfsto = 0.
+		surfsto = 1.
 	case 11, 21, 41, 204, 205, -9999, -1: // bare (no vegetation)
 	// do nothing
 	default:

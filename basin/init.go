@@ -1,7 +1,6 @@
 package basin
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"runtime"
@@ -43,7 +42,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 	var gw map[int]*gwru.TMQ
 
 	assignHRUs := func() {
-		defer fmt.Println("  assignHRUs complete")
+		// defer fmt.Println("  assignHRUs complete")
 		defer wg.Done()
 		build := func(cid int) {
 			var ll, gg int
@@ -86,7 +85,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 	}
 
 	buildTopmodel := func() {
-		defer fmt.Println("  buildTopmodel complete")
+		// defer fmt.Println("  buildTopmodel complete")
 		defer wg.Done()
 		if b.frc.Q0 <= 0. {
 			log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
@@ -122,17 +121,30 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 		}
 
 		if b.cid0 >= 0 {
-			uids := b.strc.t.UpIDs(b.cid0)
-			for k := range b.rtr.swscidxr {
-				eval := make(map[int]bool)
-				for _, c := range uids {
-					if _, ok := eval[b.rtr.sws[c]]; !ok {
-						eval[b.rtr.sws[c]] = true
-						// wg1.Add(1)
-						go getgw(k)
-					}
-				}
+			for s := range b.rtr.swscidxr {
+				go getgw(s)
 			}
+			// uids, cc := b.strc.t.UpIDs(b.cid0), 0
+			// mm := make(map[int]int, 300)
+			// for k := range b.rtr.swscidxr {
+			// 	eval := make(map[int]bool)
+			// 	for _, c := range uids {
+			// 		if _, ok := eval[b.rtr.sws[c]]; !ok {
+			// 			eval[b.rtr.sws[c]] = true
+			// 			// wg1.Add(1)
+			// 			go getgw(k)
+			// 			if _, ok := mm[k]; ok {
+			// 				mm[k]++
+			// 			} else {
+			// 				mm[k] = 1
+			// 			}
+			// 			cc++
+			// 		}
+			// 	}
+			// }
+			// if cc != nsws {
+			// 	fmt.Println("what?")
+			// }
 		} else {
 			if len(b.rtr.swscidxr) == 1 {
 				// wg1.Add(1)

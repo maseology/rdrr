@@ -20,6 +20,10 @@ type stran struct {
 
 // eval evaluates a subdomain
 func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
+	if print {
+		tt := mmio.NewTimer()
+		defer tt.Lap("evaluation completed in")	
+	}
 	var wg sync.WaitGroup
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
 	if len(b.swsord) == 1 {
@@ -36,11 +40,13 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 		}
 	} else {
 		// var outflw []float64
+		tt := mmio.NewTimer()
 		transfers := make(map[int][]itran, len(b.rtr.swscidxr))
 		nrnds := len(b.swsord)
 		for i, k := range b.swsord {
 			if print {
-				fmt.Printf("--> round %d (of %d): %d sws\n", i+1, nrnds, len(k))
+				// fmt.Printf("--> round %d (of %d): %d sws\n", i+1, nrnds, len(k))
+				tt.Print(fmt.Sprintf("--> round %d (of %d): %d sws", i+1, nrnds, len(k)))
 			}
 			chstrans := make(chan stran, len(k))
 			for _, sid := range k {
@@ -106,11 +112,11 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 
 	defer func() {
 		res.getTotals(sim, bf, yss, ass, rss, gss, bss)
-		for _, v := range obs {
-			v.print()
-		}
-		g := gmonitor{gy, ga, gr, gg, gd, gl}
-		go g.print(p.xr, float64(p.nstep))
+		// for _, v := range obs {
+		// 	go v.print()
+		// }
+		// g := gmonitor{gy, ga, gr, gg, gd, gl}
+		// go g.print(p.xr, p.ds, float64(p.nstep))
 	}()
 
 	for _, c := range monid {
