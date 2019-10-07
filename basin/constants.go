@@ -1,7 +1,7 @@
 package basin
 
 const (
-	nearzero   = 1e-3
+	nearzero   = 1e-8
 	steadyiter = 500
 	secperday  = 86400.
 	minslope   = 0.001

@@ -3,12 +3,9 @@ package basin
 import (
 	"fmt"
 	"log"
-	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/maseology/goHydro/grid"
-	"github.com/maseology/goHydro/met"
 	"github.com/maseology/goHydro/tem"
 	"github.com/maseology/mmio"
 	"github.com/maseology/rdrr/lusg"
@@ -231,95 +228,4 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 	}
 
 	return frc, mdl, mpr, rtr, gd, obs
-}
-
-// LoadForcing (re-)loads forcing data
-func loadForcing(fp string, print bool) (*FORC, int) {
-	// import forcings
-	if _, ok := mmio.FileExists(fp); !ok {
-		return nil, -1
-	}
-	m, d, err := met.ReadMET(fp, print)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// checks
-	dtb, dte, intvl := m.BeginEndInterval() // start date, end date, time step interval [s]
-	for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
-		v := d[dt]
-		// y := v[met.AtmosphericYield]     // precipitation/atmospheric yield (rainfall + snowmelt)
-		ep := v[met.AtmosphericDemand] // evaporative demand
-		if ep < 0. {
-			d[dt][met.AtmosphericDemand] = 0.
-		}
-	}
-
-	if m.Nloc() != 1 && m.LocationCode() <= 0 {
-		log.Fatalf(" basin.loadForcing error: unrecognized .met type\n")
-	}
-	outlet := int(m.Locations[0][0].(int32))
-
-	return &FORC{
-		c:   d,                        // met.Coll
-		h:   *m,                       // met.Header
-		nam: mmio.FileName(fp, false), // station name
-	}, outlet
-}
-
-// masterForcing returns forcing data from mastreDomain
-func masterForcing() (*FORC, int) {
-	if masterDomain.frc == nil {
-		log.Fatalf(" basin.masterForcing error: masterDomain.frc == nil\n")
-	}
-	if masterDomain.frc.h.Nloc() != 1 && masterDomain.frc.h.LocationCode() <= 0 {
-		log.Fatalf(" basin.masterForcing error: invalid *FORC type in masterDomain\n")
-	}
-	return masterDomain.frc, int(masterDomain.frc.h.Locations[0][0].(int32))
-}
-
-// loadSWS loads subwatershed info
-func loadSWS(gd *grid.Definition, fp string) (sws, dsws map[int]int, swscidxr map[int][]int) {
-	switch filepath.Ext(fp) {
-	case ".imap":
-		var err error
-		sws, err = mmio.ReadBinaryIMAP(fp)
-		if err != nil {
-			log.Fatalf(" Loader.readSWS.loadSWS error with ReadBinaryIMAP: %v\n\n", err)
-		}
-	case ".indx":
-		var g grid.Indx
-		g.LoadGDef(gd)
-		g.New(fp, false)
-		sws = g.Values()
-	default:
-		log.Fatalf(" Loader.readSWS: unrecognized file type: %s\n", fp)
-	}
-	// collect sws ids
-	sct := make(map[int][]int, len(sws))
-	for c, s := range sws {
-		if _, ok := sct[s]; ok {
-			sct[s] = append(sct[s], c)
-		} else {
-			sct[s] = []int{c}
-		}
-	}
-	swscidxr = make(map[int][]int, len(sct))
-	for k, v := range sct {
-		a := make([]int, len(v))
-		copy(a, v)
-		swscidxr[k] = a
-	}
-	// collect topology
-	if _, ok := mmio.FileExists(mmio.RemoveExtension(fp) + ".topo"); ok {
-		d, err := mmio.ReadCSV(mmio.RemoveExtension(fp) + ".topo")
-		if err != nil {
-			log.Fatalf(" Loader.readSWS: error reading %s: %v\n", mmio.RemoveExtension(fp)+".topo", err)
-		}
-		dsws = make(map[int]int, len(d)) // note: swsids not contained within dsws drain to farfield
-		for _, ln := range d {
-			dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
-		}
-	}
-	return
 }

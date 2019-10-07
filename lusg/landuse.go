@@ -55,7 +55,7 @@ func defaultsFromSOLRIS(id int) (rzsto, surfsto, fimp, ifct float64) {
 }
 
 // buildFromSOLRIS returns landuse properties from a given
-// SOLRIS ID. (rootzone/drainable storage, surface storage, fimp)
+// SOLRIS ID. (rootzone/drainable storage, surface storage, fimp, interception factor)
 func buildFromSOLRIS(soildepth, porosity, fc, intsto, depsto float64, id int) (rzsto, surfsto, fimp, ifct float64) {
 	rzsto, surfsto, fimp, ifct = soildepth*porosity*(1.-fc), soildepth*porosity*fc, 0., 0.
 	switch id {
@@ -93,8 +93,8 @@ func buildFromSOLRIS(soildepth, porosity, fc, intsto, depsto float64, id int) (r
 		surfsto += intsto
 		ifct = 1.
 	case 170: // Open water (can include streams)
-		rzsto = 0.
-		surfsto = 1.
+		rzsto = 1.
+		surfsto = 0.
 	case 11, 21, 41, 204, 205, -9999, -1: // bare (no vegetation)
 	// do nothing
 	default:
