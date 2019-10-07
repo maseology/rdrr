@@ -22,7 +22,7 @@ type stran struct {
 func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 	if print {
 		tt := mmio.NewTimer()
-		defer tt.Lap("evaluation completed in")	
+		defer tt.Lap("evaluation completed in")
 	}
 	var wg sync.WaitGroup
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
@@ -112,11 +112,11 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 
 	defer func() {
 		res.getTotals(sim, bf, yss, ass, rss, gss, bss)
-		// for _, v := range obs {
-		// 	go v.print()
-		// }
-		// g := gmonitor{gy, ga, gr, gg, gd, gl}
-		// go g.print(p.xr, p.ds, float64(p.nstep))
+		for _, v := range obs {
+			go v.print()
+		}
+		g := gmonitor{gy, ga, gr, gg, gd, gl}
+		go g.print(p.xr, p.ds, float64(p.nstep))
 	}()
 
 	for _, c := range monid {

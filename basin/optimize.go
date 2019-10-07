@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"runtime"
 	"time"
 
 	"github.com/maseology/glbopt"
@@ -73,11 +72,11 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	}
 
 	fmt.Println(" optimizing..")
-	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nSmplDim, rng, gen, true)
-	// uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
+	// uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nSmplDim, rng, gen, true)
+	uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
 
 	m, fcasc, Qo, soildepth := par4(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tQo:\t%v\n\tsoildepth:\t%v\n\n", m, fcasc, Qo, soildepth)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\tfcasc:\t\t%v\n\tQo:\t\t%v\n\tsoildepth:\t%v\n\n", m, fcasc, Qo, soildepth)
 	final := b.toDefaultSample(m, fcasc, soildepth)
 	return ver(&final, Qo, m, true), []float64{m, fcasc, Qo, soildepth}
 }
