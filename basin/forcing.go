@@ -13,9 +13,12 @@ import (
 type FORC struct {
 	c   met.Coll
 	h   met.Header
+	t   []temporal
 	Q0  float64
 	nam string
 }
+
+type temporal struct{ doy, mt int }
 
 func (f *FORC) subset(cids []int) {
 	if f.h.Nloc() == 1 {

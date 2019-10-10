@@ -11,22 +11,22 @@ import (
 	"github.com/maseology/rdrr/lusg"
 )
 
-func (b *subdomain) buildSfrac(fcasc float64) map[int]float64 {
+func (b *subdomain) buildSfrac(smax float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
 		s := b.strc.t.TEC[c].S
 		if s <= minslope {
 			fc[c] = 0.
-		} else if s >= fcasc {
+		} else if s >= smax {
 			fc[c] = 1.
 		} else {
-			fc[c] = math.Log(minslope/s) / math.Log(minslope/fcasc) // see: fuzzy_slope.xlsx
+			fc[c] = math.Log(minslope/s) / math.Log(minslope/smax) // see: fuzzy_slope.xlsx
 		}
 	}
 	return fc
 }
 
-func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
+func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.h.IntervalSec() // [s/ts]
@@ -59,7 +59,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 
 			var h hru.HRU
 			drnsto, srfsto, fimp, _ := lu.GetSOLRIS1(soildepth) //lu.GetDefaultsSOLRIS()
-			h.Initialize(drnsto, srfsto, fimp, sg.Ksat, ts)
+			h.Initialize(drnsto, srfsto, fimp, sg.Ksat*kfact*ts)
 			ws[cid] = &h
 		}
 
@@ -75,6 +75,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 		} else {
 			for _, c := range b.cids {
 				build(c)
+
 			}
 		}
 	}
@@ -102,7 +103,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 						if sg.Ksat <= 0. {
 							log.Fatalf(" toDefaultSample.buildTopmodel error: cell %d has an assigned ksat = %v\n", c, sg.Ksat)
 						}
-						ksat[c] = sg.Ksat * ts // [m/ts]
+						ksat[c] = sg.Ksat * kfact * ts // [m/ts]
 					} else {
 						log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
 					}
@@ -146,7 +147,7 @@ func (b *subdomain) toDefaultSample(m, fcasc, soildepth float64) sample {
 	go buildTopmodel()
 	wg.Wait()
 
-	p0 := b.buildSfrac(fcasc)
+	p0 := b.buildSfrac(smax)
 
 	finalAdjustments := func() {
 		defer wg.Done()

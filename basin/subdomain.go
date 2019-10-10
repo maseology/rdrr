@@ -97,7 +97,6 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	b := subdomain{
 		frc:      frc,
 		strc:     d.strc,
-		mpr:      d.mpr,
 		rtr:      newRTR,
 		cids:     cids,
 		strms:    strms,

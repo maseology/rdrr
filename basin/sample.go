@@ -80,9 +80,9 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 	ver := b.eval
 
 	gen := func(u []float64) float64 {
-		m, fcasc, Qs, soildepth := par4(u)
-		smpl := b.toDefaultSample(m, fcasc, soildepth)
-		return ver(&smpl, Qs, m, false)
+		m, smax, dinc, soildepth, kfact := par5(u)
+		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
+		return ver(&smpl, dinc, m, false)
 	}
 
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
@@ -118,10 +118,10 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 	if err != nil {
 		log.Fatalf(" Definition.SaveAs: %v", err)
 	}
-	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,fcasc,Qo,soildepth", nsmpl))
+	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,smax,dinc,soildepth,kfact", nsmpl))
 	for i, dd := range d {
 		nse := 1. - math.Pow(f[dd], 2.)/v // converting to nash-sutcliffe
-		m, fcasc, Qo, soildepth := par4(u[dd])
-		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f", i+1, nse, m, fcasc, Qo, soildepth))
+		m, smax, dinc, soildepth, kfact := par5(u[dd])
+		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f,%f", i+1, nse, m, smax, dinc, soildepth, kfact))
 	}
 }

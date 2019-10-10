@@ -65,20 +65,20 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	ver := b.eval
 
 	gen := func(u []float64) float64 {
-		m, fcasc, Qo, soildepth := par4(u)
-		smpl := b.toDefaultSample(m, fcasc, soildepth)
+		m, smax, dinc, soildepth, kfact := par5(u)
+		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
 		// Qo *= b.frc.h.IntervalSec() / 1000. / 365.24 / 86400. // [mm/yr] to [m/ts]
-		return ver(&smpl, Qo, m, false)
+		return ver(&smpl, dinc, m, false)
 	}
 
 	fmt.Println(" optimizing..")
 	// uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nSmplDim, rng, gen, true)
 	uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
 
-	m, fcasc, Qo, soildepth := par4(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\tfcasc:\t\t%v\n\tQo:\t\t%v\n\tsoildepth:\t%v\n\n", m, fcasc, Qo, soildepth)
-	final := b.toDefaultSample(m, fcasc, soildepth)
-	return ver(&final, Qo, m, true), []float64{m, fcasc, Qo, soildepth}
+	m, smax, dinc, soildepth, kfact := par5(uFinal)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\tsmax:\t\t%v\n\tdinc:\t\t%v\n\tsoildepth:\t%v\n\tkfact:\t\t%v\n\n", m, smax, dinc, soildepth, kfact)
+	final := b.toDefaultSample(m, smax, soildepth, kfact)
+	return ver(&final, dinc, m, true), []float64{m, smax, dinc, soildepth, kfact}
 }
 
 // OptimizeDefault1 solves a default-parameter model to a given basin outlet
@@ -104,14 +104,16 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 
 	const (
 		TMQm      = 0.004191296639278929
-		fcasc     = 0.2336020076838129
+		smax      = 0.2336020076838129
+		dinc      = 1.
 		soildepth = .1
+		kfact     = 1.
 	)
 
-	smpl1 := b.toDefaultSample(TMQm, fcasc, soildepth)
+	smpl1 := b.toDefaultSample(TMQm, smax, soildepth, kfact)
 	par1 := func(u []float64) float64 {
 		// m := mmaths.LogLinearTransform(0.001, 1., u[0])
-		// fcasc := mmaths.LogLinearTransform(0.1, 10., u[0])
+		// smax := mmaths.LogLinearTransform(0.1, 10., u[0])
 		soildepth := mmaths.LinearTransform(-1., 1., u[0])
 		return soildepth
 	}
@@ -124,7 +126,7 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	uFinal, _ := glbopt.Fibonacci(gen)
 
 	sldpth := par1([]float64{uFinal})
-	fmt.Printf("\nfinal parameters:\n\tTMQm:\t%v\n\tfcasc:\t%v\n\tsoildepth:\t%v\n\n", TMQm, fcasc, sldpth)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\tsmax:\t\t%v\n\tdinc:\t\t%v\n\tsoildepth:\t%v\n\tkfact:\t\t%v\n\n", TMQm, smax, dinc, sldpth, kfact)
 	final := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
-	return ver(&final, 1., sldpth, true), []float64{TMQm, fcasc, sldpth}
+	return ver(&final, dinc, sldpth, true), []float64{TMQm, smax, sldpth, kfact}
 }

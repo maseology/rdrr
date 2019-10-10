@@ -7,24 +7,24 @@ import (
 
 const (
 	hx = 0.01
-	fe = .75
+	fe = 1.
 )
 
 func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
-	sim, bf, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
+	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 	// yss, ass, rss, gss, bss := 0., 0., 0., 0., 0.
 	// distributed monitors [mm/yr]
-	gy, ga, gr, gg, gb := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
+	// gy, ga, gr, gg, gb := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
 
 	defer func() {
-		res.getTotals(sim, bf, hsto, gsto)
-		for _, v := range obs {
-			go v.print()
-		}
-		g := gmonitor{gy, ga, gr, gg, gb}
-		go g.print(p.ws, p.in, p.xr, p.ds, float64(p.nstep))
+		res.getTotals(sim, hsto, gsto)
+		// for _, v := range obs {
+		// 	go v.print()
+		// }
+		// g := gmonitor{gy, ga, gr, gg, gb}
+		// go g.print(p.ws, p.in, p.xr, p.ds, float64(p.nstep))
 	}()
 
 	for _, c := range monid {
@@ -33,6 +33,7 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 
 	dm, s0s := p.dm, p.s0s
 	for k := 0; k < p.nstep; k++ {
+		// doy := p.t[k].doy // day of year
 		ys, ins, as, rs, gs, s1s, bs, dm0 := 0., 0., 0., 0., 0., 0., 0., dm
 		for i, v := range p.in {
 			p.ws[i].AddToStorage(v[k]) // inflow from up sws
@@ -41,7 +42,7 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 		for i := 0; i < ncid; i++ {
 			s0 := p.ws[i].Storage()
 			y := p.y[k][0]
-			ep := p.ep[k][0] * fe
+			ep := p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
 			drel := p.drel[i]
 			p0 := p.p0[i]
 			a, r, g := p.ws[i].UpdateWT(y, ep, dm+drel)
@@ -64,14 +65,14 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 
 			ys += y
 			as += a
-			gy[i] += y
-			ga[i] += a
+			// gy[i] += y
+			// ga[i] += a
 			hb := 0.
 			if v, ok := p.strm[i]; ok {
 				hb = v * math.Exp((Ds-dm-drel)/m)
 				bs += hb
 				r += hb
-				gb[i] += hb
+				// gb[i] += hb
 			}
 			if _, ok := obs[i]; ok {
 				obs[i].v[k] = r
@@ -82,8 +83,8 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 				p.ws[p.xr[p.ds[i]]].AddToStorage(r)
 			}
 			gs += g
-			gr[i] += r
-			gg[i] += g
+			// gr[i] += r
+			// gg[i] += g
 		}
 		// yss += ys
 		// ass += as
@@ -92,7 +93,7 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 		// bss += bs
 		dm += (bs - gs) / p.fncid
 		sim[k] = rs
-		bf[k] = bs
+		// bf[k] = bs
 		hsto[k] = s1s / p.fncid
 		gsto[k] = bs / p.fncid // dm
 

@@ -8,7 +8,7 @@ import (
 )
 
 // RunDefault runs simulation with default parameters
-func RunDefault(mdldir, metfp, chkdir string, topm, fcasc, Qo, soildepth float64, print bool) float64 {
+func RunDefault(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact float64, print bool) float64 {
 	tt := mmio.NewTimer()
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
@@ -29,7 +29,7 @@ func RunDefault(mdldir, metfp, chkdir string, topm, fcasc, Qo, soildepth float64
 		fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
 		fmt.Printf(" building sample HRUs and TOPMODEL\n")
 	}
-	smpl := b.toDefaultSample(topm, fcasc, soildepth)
+	smpl := b.toDefaultSample(topm, smax, soildepth, kfact)
 
 	if print {
 		tt.Lap("sample build complete")
@@ -45,11 +45,11 @@ func RunDefault(mdldir, metfp, chkdir string, topm, fcasc, Qo, soildepth float64
 		fmt.Printf("\n running model..\n\n")
 	}
 
-	return b.eval(&smpl, Qo, topm, print)
+	return b.eval(&smpl, dinc, topm, print)
 }
 
 // RunMaster runs simulation of the entire masterdomain with default parameters
-func RunMaster(mdldir, metfp, chkdir string, topm, fcasc, Qo, soildepth float64, print bool) float64 {
+func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact float64, print bool) float64 {
 	tt := mmio.NewTimer()
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunMaster error: masterDomain is empty\n")
@@ -80,7 +80,7 @@ func RunMaster(mdldir, metfp, chkdir string, topm, fcasc, Qo, soildepth float64,
 		fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
 		fmt.Printf(" building sample HRUs and TOPMODEL\n")
 	}
-	smpl := b.toDefaultSample(topm, fcasc, soildepth)
+	smpl := b.toDefaultSample(topm, smax, soildepth, kfact)
 
 	if print {
 		tt.Lap("sample build complete")
@@ -96,5 +96,5 @@ func RunMaster(mdldir, metfp, chkdir string, topm, fcasc, Qo, soildepth float64,
 		fmt.Printf("\n running model..\n\n")
 	}
 
-	return b.eval(&smpl, Qo, topm, print)
+	return b.eval(&smpl, dinc, topm, print)
 }

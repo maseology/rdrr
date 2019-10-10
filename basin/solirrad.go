@@ -14,7 +14,7 @@ import (
 )
 
 // loadSolIrradFrac builds slope-aspect corrections for every cell
-func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, buildEp bool) map[int][366]float64 {
+func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, EnableSineET bool) map[int][366]float64 {
 	var utmzone int
 	if frc != nil {
 		switch frc.h.ESPG {
@@ -40,7 +40,7 @@ func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, 
 			log.Fatalf(" buildSolIrradFrac error: %v -- (x,y)=(%f, %f); cid: %d\n", err, gd.Coord[cid].X, gd.Coord[cid].Y, cid)
 		}
 		si := solirrad.New(latitude, math.Tan(tec.S), math.Pi/2.-tec.A)
-		if buildEp {
+		if EnableSineET {
 			// returns Sine-curve potential evaporation
 			ep := si.PSIfactor()
 			for j := 0; j < 366; j++ {

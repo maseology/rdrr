@@ -21,6 +21,7 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 
 	// checks
 	dtb, dte, intvl := m.BeginEndInterval() // start date, end date, time step interval [s]
+	temp, i := make([]temporal, m.Nstep()), 0
 	for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
 		v := d[dt]
 		// y := v[met.AtmosphericYield]     // precipitation/atmospheric yield (rainfall + snowmelt)
@@ -28,6 +29,8 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 		if ep < 0. {
 			d[dt][met.AtmosphericDemand] = 0.
 		}
+		temp[i] = temporal{doy: dt.YearDay() - 1, mt: int(dt.Month())}
+		i++
 	}
 
 	if m.Nloc() != 1 && m.LocationCode() <= 0 {
@@ -36,8 +39,9 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 	outlet := int(m.Locations[0][0].(int32))
 
 	return &FORC{
-		c:   d,                        // met.Coll
-		h:   *m,                       // met.Header
+		c:   d,  // met.Coll
+		h:   *m, // met.Header
+		t:   temp,
 		nam: mmio.FileName(fp, false), // station name
 	}, outlet
 }
