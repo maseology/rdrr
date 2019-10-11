@@ -78,12 +78,12 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 	if print {
 		tt.Lap("domain load complete")
 		fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
-		fmt.Printf(" building sample HRUs and TOPMODEL\n")
+		fmt.Printf(" building sample HRUs and TOPMODEL.. ")
 	}
 	smpl := b.toDefaultSample(topm, smax, soildepth, kfact)
 
 	if print {
-		tt.Lap("sample build complete")
+		tt.Lap("complete")
 		if len(chkdir) > 0 {
 			mmio.MakeDir(chkdir)
 			masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")

@@ -16,15 +16,15 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 	// yss, ass, rss, gss, bss := 0., 0., 0., 0., 0.
 	// distributed monitors [mm/yr]
-	// gy, ga, gr, gg, gb := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
+	gy, ga, gr, gg, gb := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
 
 	defer func() {
 		res.getTotals(sim, hsto, gsto)
-		// for _, v := range obs {
-		// 	go v.print()
-		// }
-		// g := gmonitor{gy, ga, gr, gg, gb}
-		// go g.print(p.ws, p.in, p.xr, p.ds, float64(p.nstep))
+		for _, v := range obs {
+			go v.print()
+		}
+		g := gmonitor{gy, ga, gr, gg, gb}
+		go g.print(p.ws, p.in, p.xr, p.ds, float64(p.nstep))
 	}()
 
 	for _, c := range monid {
@@ -65,14 +65,14 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 
 			ys += y
 			as += a
-			// gy[i] += y
-			// ga[i] += a
+			gy[i] += y
+			ga[i] += a
 			hb := 0.
 			if v, ok := p.strm[i]; ok {
 				hb = v * math.Exp((Ds-dm-drel)/m)
 				bs += hb
 				r += hb
-				// gb[i] += hb
+				gb[i] += hb
 			}
 			if _, ok := obs[i]; ok {
 				obs[i].v[k] = r
@@ -83,8 +83,8 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 				p.ws[p.xr[p.ds[i]]].AddToStorage(r)
 			}
 			gs += g
-			// gr[i] += r
-			// gg[i] += g
+			gr[i] += r
+			gg[i] += g
 		}
 		// yss += ys
 		// ass += as
