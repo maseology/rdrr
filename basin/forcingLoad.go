@@ -21,16 +21,20 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 
 	// checks
 	dtb, dte, intvl := m.BeginEndInterval() // start date, end date, time step interval [s]
-	temp, i := make([]temporal, m.Nstep()), 0
+	temp, k := make([]temporal, m.Nstep()), 0
+	x := m.WBDCxr()
 	for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
-		v := d[dt]
-		// y := v[met.AtmosphericYield]     // precipitation/atmospheric yield (rainfall + snowmelt)
-		ep := v[met.AtmosphericDemand] // evaporative demand
-		if ep < 0. {
-			d[dt][met.AtmosphericDemand] = 0.
+		if d.T[k] != dt {
+			log.Fatalf("loadForcing error: date mis-match: %v vs %v", d.T[k], dt)
 		}
-		temp[i] = temporal{doy: dt.YearDay() - 1, mt: int(dt.Month())}
-		i++
+		v := d.D[k][0] // [date ID][cell ID][type ID]
+		// y := v[x["AtmosphericYield"]]     // precipitation/atmospheric yield (rainfall + snowmelt)
+		ep := v[x["AtmosphericDemand"]] // evaporative demand
+		if ep < 0. {
+			d.D[k][0][x["AtmosphericDemand"]] = 0.
+		}
+		temp[k] = temporal{doy: dt.YearDay() - 1, mt: int(dt.Month())}
+		k++
 	}
 
 	if m.Nloc() != 1 && m.LocationCode() <= 0 {
@@ -39,7 +43,7 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 	outlet := int(m.Locations[0][0].(int32))
 
 	return &FORC{
-		c:   d,  // met.Coll
+		c:   *d, // met.Coll
 		h:   *m, // met.Header
 		t:   temp,
 		nam: mmio.FileName(fp, false), // station name

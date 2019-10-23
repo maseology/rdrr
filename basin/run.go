@@ -38,7 +38,7 @@ func RunDefault(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact
 			masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
 			b.print(chkdir)
 			smpl.print(chkdir)
-			tt.Lap("sample map printing")
+			tt.Lap("sample maps printed")
 		}
 		mmio.FileRename("hyd.png", "hydx.png", true)
 		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))
@@ -89,7 +89,7 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 			masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
 			b.print(chkdir)
 			smpl.print(chkdir)
-			tt.Lap("sample map printing")
+			tt.Lap("sample maps printed")
 		}
 		mmio.FileRename("hyd.png", "hydx.png", true)
 		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))

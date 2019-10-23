@@ -64,7 +64,7 @@ func sumPlotSto(fp string, h, d []float64) {
 	}
 	ys["sto"] = h
 	ys["def"] = d
-	mmio.Line(fp, xs, ys)
+	mmio.Line(fp, xs, ys, 48.)
 }
 
 // func sumPlotHydrographWB(fp string, s, d, k, x, a, g []interface{}) {

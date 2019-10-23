@@ -35,19 +35,23 @@ func (f *FORC) subset(cids []int) {
 
 // approximating "baseflow when basin is fully saturated" (TOPMODEL) as median discharge
 func (f *FORC) medQ() float64 {
-	a, i := make([]float64, len(f.c)), 0
-	for _, m := range f.c {
-		v, ok := m[met.UnitDischarge]
-		if ok && !math.IsNaN(v) {
-			a[i] = v
-			i++
+	x := f.h.WBDCxr()
+	if _, ok := x["UnitDischarge"]; ok {
+		a, i := make([]float64, len(f.c.T)), 0
+		for _, m := range f.c.D {
+			v := m[0][x["UnitDischarge"]]
+			if !math.IsNaN(v) {
+				a[i] = v
+				i++
+			}
 		}
+		if i == 0 {
+			log.Fatalln("FORC.medQ: forcing collection does contain met.UnitDischarge")
+			return 0.
+		}
+		return mmaths.SliceMedian(a)
 	}
-	if i == 0 {
-		log.Fatalln("FORC.medQ: forcing collection does contain met.UnitDischarge")
-		return 0.
-	}
-	return mmaths.SliceMedian(a)
+	return math.NaN()
 }
 
 func (f *FORC) trimFrc(nYrs int) (nstep int, dtb, dte time.Time, intvl int64) {

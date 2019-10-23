@@ -7,9 +7,9 @@ import (
 
 // MAPR holds mappings of landuse and surficial geology
 type MAPR struct {
-	lu       lusg.LandUseColl
-	sg       lusg.SurfGeoColl
-	ilu, isg map[int]int // cross reference of cid to lu/sg id
+	lu            lusg.LandUseColl
+	sg            lusg.SurfGeoColl
+	ilu, isg, ilk map[int]int // cross reference of cid to lu/sg/lake id
 }
 
 func (m *MAPR) print(dir string) error {

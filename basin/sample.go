@@ -9,7 +9,6 @@ import (
 
 	"github.com/maseology/goHydro/gwru"
 	"github.com/maseology/goHydro/hru"
-	"github.com/maseology/goHydro/met"
 	"github.com/maseology/mmio"
 	"github.com/maseology/montecarlo"
 	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
@@ -89,28 +88,30 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 	u, f, d := montecarlo.RankedUnBiased(gen, nSmplDim, nsmpl)
 
 	v := func() float64 {
-		nstep, dtb, dte, intvl := b.frc.trimFrc(-1)
-		h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor
-		o, i := make([]float64, nstep), 0
-		for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
-			v := b.frc.c[d]
-			o[i] = v[met.UnitDischarge] * h2cms
-			i++
-		}
-		m, n, c := 0., 0., 0.
-		for i := range o {
-			if !math.IsNaN(o[i]) {
-				m += o[i]
-				c++
+		h2cms := b.contarea / b.frc.h.IntervalSec() // [m/ts] to [m³/s] conversion factor
+		o, i, x := make([]float64, b.frc.h.Nstep()), 0, b.frc.h.WBDCxr()
+		if xj, ok := x["UnitDischarge"]; ok {
+			for k := range b.frc.c.T {
+				o[i] = b.frc.c.D[k][0][xj] * h2cms
+				i++
 			}
-		}
-		m /= c // mean
-		for i := range o {
-			if !math.IsNaN(o[i]) {
-				n += math.Pow(o[i]-m, 2.)
+			m, n, c := 0., 0., 0.
+			for i := range o {
+				if !math.IsNaN(o[i]) {
+					m += o[i]
+					c++
+				}
 			}
+			m /= c // mean
+			for i := range o {
+				if !math.IsNaN(o[i]) {
+					n += math.Pow(o[i]-m, 2.)
+				}
+			}
+			return n / c // population variance
 		}
-		return n / c // population variance
+		fmt.Println(" SampleDefault error, no UnitDischarge available")
+		return math.NaN()
 	}()
 
 	t, err := mmio.NewTXTwriter(outdir + "sample.csv")

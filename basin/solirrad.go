@@ -14,7 +14,7 @@ import (
 )
 
 // loadSolIrradFrac builds slope-aspect corrections for every cell
-func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, EnableSineET bool) map[int][366]float64 {
+func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, EnableSineET bool) map[int][]float64 {
 	var utmzone int
 	if frc != nil {
 		switch frc.h.ESPG {
@@ -29,7 +29,7 @@ func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, 
 
 	type kv struct {
 		k int
-		v [366]float64
+		v []float64
 	}
 	var wg1 sync.WaitGroup
 	ch := make(chan kv, nc)
@@ -39,17 +39,18 @@ func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, 
 		if err != nil {
 			log.Fatalf(" buildSolIrradFrac error: %v -- (x,y)=(%f, %f); cid: %d\n", err, gd.Coord[cid].X, gd.Coord[cid].Y, cid)
 		}
-		si := solirrad.New(latitude, math.Tan(tec.S), math.Pi/2.-tec.A)
+		si := solirrad.New(latitude, math.Tan(tec.G), math.Pi/2.-tec.A)
+		f := make([]float64, 366)
+		for i, v := range si.PSIfactor() {
+			f[i] = v * sinEp(i)
+		}
 		if EnableSineET {
 			// returns Sine-curve potential evaporation
-			ep := si.PSIfactor()
-			for j := 0; j < 366; j++ {
-				ep[j] *= sinEp(j)
+			for i := range f {
+				f[i] *= sinEp(i)
 			}
-			ch <- kv{k: cid, v: ep}
-		} else {
-			ch <- kv{k: cid, v: si.PSIfactor()}
 		}
+		ch <- kv{k: cid, v: f}
 	}
 
 	if cid0 >= 0 {
@@ -67,7 +68,7 @@ func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, 
 		}
 		recurs(cid0)
 	} else {
-		for _, cid := range gd.Actives() {
+		for _, cid := range gd.Sactives {
 			if tec, ok := t.TEC[cid]; ok {
 				wg1.Add(1)
 				go psi(tec, cid)
@@ -78,7 +79,7 @@ func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, 
 	}
 	wg1.Wait()
 	close(ch)
-	f := make(map[int][366]float64, nc)
+	f := make(map[int][]float64, nc)
 	for kv := range ch {
 		f[kv.k] = kv.v
 	}
@@ -86,7 +87,7 @@ func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, 
 }
 
 // sifSave sif to gob
-func sifSave(fp string, sif map[int][366]float64) error {
+func sifSave(fp string, sif map[int][]float64) error {
 	f, err := os.Create(fp)
 	defer f.Close()
 	if err != nil {
@@ -116,8 +117,8 @@ func sifSave(fp string, sif map[int][366]float64) error {
 }
 
 // sifLoad sif gob
-func sifLoad(fp string) (map[int][366]float64, error) {
-	var sif map[int][366]float64
+func sifLoad(fp string) (map[int][]float64, error) {
+	var sif map[int][]float64
 	f, err := os.Open(fp)
 	defer f.Close()
 	if err != nil {

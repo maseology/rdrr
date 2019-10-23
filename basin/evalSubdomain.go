@@ -19,9 +19,10 @@ type stran struct {
 
 // eval evaluates a subdomain
 func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
+	ver := evalWB
 	if print {
 		tt := mmio.NewTimer()
-		defer tt.Lap("evaluation completed in")
+		defer tt.Lap("\nevaluation completed in")
 	}
 	var wg sync.WaitGroup
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
@@ -32,7 +33,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 			var res resulter = &rs
 			pp := newSubsample(b, p, Ds, m, -1, print)
 			pp.y, pp.ep, pp.nstep = y, ep, nstep
-			pp.eval(Ds, m, res, b.obs[-1])
+			ver(&pp, Ds, m, res, b.obs[-1])
 			of = res.report(print)[0]
 		} else {
 			log.Fatalf("TODO (subdomain.eval): unordered set of subwatersheds.")
@@ -70,7 +71,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 						if print {
 							fmt.Printf(" printing SWS %d\n\n", sid)
 						}
-						pp.eval(Ds, m, res, b.obs[sid])
+						ver(&pp, Ds, m, res, b.obs[sid])
 						of = res.report(print)[0]
 						// outflw = rs.sim
 					} else {
@@ -78,7 +79,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 						if print {
 							fmt.Printf(" running SWS %d\n", sid)
 						}
-						pp.eval(Ds, m, res, b.obs[sid])
+						ver(&pp, Ds, m, res, b.obs[sid])
 						dsid := -1
 						if d, ok := b.rtr.dsws[sid]; ok {
 							if _, ok := transfers[d]; !ok {

@@ -14,7 +14,7 @@ import (
 func (b *subdomain) buildSfrac(smax float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
-		s := b.strc.t.TEC[c].S
+		s := b.strc.t.TEC[c].G
 		if s <= minslope {
 			fc[c] = 0.
 		} else if s >= smax {
@@ -92,10 +92,8 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 			v gwru.TMQ
 		}
 		nsws := len(b.rtr.swscidxr)
-		// var wg1 sync.WaitGroup
 		ch := make(chan kv, runtime.NumCPU()/2)
 		getgw := func(sid int) {
-			// defer wg1.Done()
 			ksat := make(map[int]float64)
 			for _, c := range b.rtr.swscidxr[sid] {
 				if gg, ok := b.mpr.isg[c]; ok {
@@ -112,7 +110,7 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 				}
 			}
 			var gwt gwru.TMQ
-			gwt.New(ksat, b.rtr.swsstrmxr[sid], b.strc.t, b.strc.w, m)
+			gwt.New(ksat, b.rtr.uca[sid], b.rtr.swsstrmxr[sid], b.strc.t, b.strc.w, m)
 			ch <- kv{k: sid, v: gwt}
 		}
 
@@ -122,11 +120,9 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 			}
 		} else {
 			if len(b.rtr.swscidxr) == 1 {
-				// wg1.Add(1)
 				go getgw(-1)
 			} else {
 				for k := range b.rtr.swscidxr {
-					// wg1.Add(1)
 					go getgw(k)
 				}
 			}
@@ -151,11 +147,24 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 
 	finalAdjustments := func() {
 		defer wg.Done()
-		// set streams to 100% cascade
 		for _, g := range gw {
 			for c := range g.Qs {
-				p0[c] = 1.
+				p0[c] = 1. // set streams to 100% cascade
 			}
+			minD := math.MaxFloat64
+			for _, v := range g.D {
+				if v < minD {
+					minD = v
+				}
+			}
+			for c := range g.D {
+				if _, ok := b.mpr.ilk[c]; ok {
+					g.D[c] = minD // pressume lakes relative deficits to be equivalent to the SWS min
+				}
+			}
+		}
+		for c := range b.mpr.ilk {
+			p0[c] = 1. // set open water to 100% cascade
 		}
 	}
 

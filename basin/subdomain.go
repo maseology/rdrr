@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/maseology/goHydro/met"
 	mmio "github.com/maseology/mmio"
 )
 
@@ -61,17 +60,17 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	}
 	cids, ds := d.strc.t.DownslopeContributingAreaIDs(outlet)
 	strms := buildStreams(d.strc, cids)
-	newRTR, swsord, _ := d.rtr.subset(cids, strms, outlet)
+	newRTR, swsord, _ := d.rtr.subset(d.strc.t, cids, strms, outlet)
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)
 
 	for _, c := range cids {
 		if p, ok := d.strc.t.TEC[c]; ok {
-			if p.S <= 0. {
-				fmt.Printf(" domain.newSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.S)
+			if p.G <= 0. {
+				fmt.Printf(" domain.newSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.G)
 				t := d.strc.t.TEC[c]
-				t.S = 0.0001
+				t.G = 0.0001
 				t.A = 0.
 				d.strc.t.TEC[c] = t
 			}
@@ -97,6 +96,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	b := subdomain{
 		frc:      frc,
 		strc:     d.strc,
+		mpr:      d.mpr,
 		rtr:      newRTR,
 		cids:     cids,
 		strms:    strms,
@@ -122,17 +122,17 @@ func (d *domain) noSubDomain(frc *FORC) subdomain {
 	cid0 := cids[len(cids)-1] // assumes only one outlet
 	ds[cid0] = -1
 	strms := buildStreams(d.strc, cids)
-	newRTR, swsord, _ := d.rtr.subset(cids, strms, cids[len(cids)-1]) // assumes only one outlet
+	newRTR, swsord, _ := d.rtr.subset(d.strc.t, cids, strms, cids[len(cids)-1]) // assumes only one outlet
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)
 
 	for _, c := range cids {
 		if p, ok := d.strc.t.TEC[c]; ok {
-			if p.S <= 0. {
-				fmt.Printf(" domain.noSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.S)
+			if p.G <= 0. {
+				fmt.Printf(" domain.noSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.G)
 				t := d.strc.t.TEC[c]
-				t.S = 0.0001
+				t.G = 0.0001
 				t.A = 0.
 				d.strc.t.TEC[c] = t
 			}
@@ -202,19 +202,18 @@ func buildObs(d *domain, r *RTR) map[int][]int {
 // }
 
 func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int) {
-	ns, dtb, dte, intvl := b.frc.trimFrc(-1)
-	dt, y, ep, obs, nstep = make([]time.Time, ns), make([][]float64, ns), make([][]float64, ns), make([]float64, ns), ns
+	ns, nloc, x := b.frc.h.Nstep(), b.frc.h.Nloc(), b.frc.h.WBDCxr()
+	dt, y, ep, obs, intvl, nstep = make([]time.Time, ns), make([][]float64, nloc), make([][]float64, nloc), make([]float64, ns), int64(b.frc.h.IntervalSec()), ns
 	h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor for subdomain outlet cell
-	k := 0
-	if b.frc.h.Nloc() == 1 {
-		for d := dtb; !d.After(dte); d = d.Add(time.Second * time.Duration(intvl)) {
-			dt[k] = d
-			v := b.frc.c[d]
+	if nloc == 1 {
+		y[0], ep[0] = make([]float64, ns), make([]float64, ns)
+		for k, dt1 := range b.frc.c.T {
+			dt[k] = dt1
+			v := b.frc.c.D[k][0]
 			// f := b.strc.f[c][d.YearDay()-1] // adjust for slope-aspect
-			y[k] = []float64{v[met.AtmosphericYield]}   // precipitation/atmospheric yield (rainfall + snowmelt)
-			ep[k] = []float64{v[met.AtmosphericDemand]} // evaporative demand
-			obs[k] = v[met.UnitDischarge] * h2cms
-			k++
+			y[0][k] = v[x["AtmosphericYield"]]   // precipitation/atmospheric yield (rainfall + snowmelt)
+			ep[0][k] = v[x["AtmosphericDemand"]] // evaporative demand
+			obs[k] = v[x["UnitDischarge"]] * h2cms
 		}
 	} else {
 		log.Fatalf("subdomain.getForcings todo: forcings with multiple locations")

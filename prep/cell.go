@@ -11,9 +11,10 @@ type Cell struct {
 	SP snowpack.CCF
 }
 
-func newCell(LatitudeDeg, SlopeRad, AspectCwnRad float64) Cell {
+// NewCell creates a new cell struct
+func NewCell(LatitudeDeg, SlopeRad, AspectCwnRad float64) Cell {
 	return Cell{
-		SI: solirrad.New(LatitudeDeg, SlopeRad, AspectCwnRad, .5),
+		SI: solirrad.New(LatitudeDeg, SlopeRad, AspectCwnRad),
 		SP: snowpack.NewDefaultCCF(),
 	}
 }

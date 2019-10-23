@@ -1,8 +1,11 @@
 package basin
 
 import (
+	"fmt"
 	"log"
+	"sync"
 
+	"github.com/maseology/goHydro/tem"
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
 )
@@ -10,10 +13,11 @@ import (
 // RTR holds topological info for subwatershed routing
 type RTR struct {
 	swscidxr, swsstrmxr map[int][]int
-	sws, dsws           map[int]int // cross reference of cid to sub-watershed ID; map upsws{downsws}
+	sws, dsws           map[int]int         // cross reference of cid to sub-watershed ID; map upsws{downsws}
+	uca                 map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
 }
 
-func (r *RTR) subset(cids, strms []int, outlet int) (*RTR, [][]int, []int) {
+func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]int, []int) {
 	var sids []int // slice of subwatershed IDs, safely ordered downslope
 	var swscidxr map[int][]int
 	var swsstrmxr map[int][]int
@@ -89,8 +93,15 @@ func (r *RTR) subset(cids, strms []int, outlet int) (*RTR, [][]int, []int) {
 		swscidxr = map[int][]int{outlet: cids}
 	}
 
-	cnt := make(map[int]int, len(sids))
-	for _, s := range sids {
+	var wg sync.WaitGroup
+	var ord [][]int
+	getOrd := func() {
+		defer wg.Done()
+		// compute sws topology
+		fmt.Println(" building sws topology..")
+		// ord = mmaths.OrderedForest(dsws, -1)
+
+		cnt := make(map[int]int, len(sids))
 		incr := func(i, v int) {
 			if _, ok := cnt[i]; !ok {
 				cnt[i] = v + 1
@@ -100,26 +111,77 @@ func (r *RTR) subset(cids, strms []int, outlet int) (*RTR, [][]int, []int) {
 				}
 			}
 		}
-		incr(s, 0)
-		if v, ok := dsws[s]; ok {
-			if v >= 0 { // outlet =-1
-				incr(v, cnt[s])
+		for _, s := range sids {
+			incr(s, 0)
+			if v, ok := dsws[s]; ok {
+				if v >= 0 { // outlet =-1
+					incr(v, cnt[s])
+				}
 			}
 		}
+		mord, lord := mmio.InvertMap(cnt)
+		ord = make([][]int, len(lord)) // concurrent-safe ordering of subwatersheds
+		for i, k := range lord {
+			cpy := make([]int, len(mord[k]))
+			copy(cpy, mord[k])
+			ord[i] = cpy
+		}
 	}
-	mord, lord := mmio.InvertMap(cnt)
-	ord := make([][]int, len(lord)) // concurrent-safe ordering of subwatersheds
-	for i, k := range lord {
-		cpy := make([]int, len(mord[k]))
-		copy(cpy, mord[k])
-		ord[i] = cpy
+
+	var uca map[int]map[int]int
+	getUCA := func() {
+		defer wg.Done()
+		// compute unit contributing areas
+		fmt.Println(" building uca..")
+		type col struct {
+			s int
+			u map[int]int
+		}
+		ch := make(chan col, len(swscidxr))
+		for s, cids := range swscidxr {
+			go func(s int, cids []int) {
+				m := make(map[int]int, len(cids))
+				for _, c := range cids {
+					m[c] = 1
+					for _, u := range topo.UpIDs(c) {
+						if sws[u] == s { // to be kept within sws
+							m[c] += topo.UnitContributingArea(u)
+						}
+					}
+				}
+				ch <- col{s, m}
+			}(s, cids)
+		}
+		// for s, cids := range swscidxr {
+		// 	uca[s] = make(map[int]int, len(cids))
+		// 	for _, c := range cids {
+		// 		uca[s][c] = 1
+		// 		for _, u := range topo.UpIDs(c) {
+		// 			if sws[u] == s { // to be kept within sws
+		// 				uca[s][c] += topo.UnitContributingArea(u)
+		// 			}
+		// 		}
+		// 	}
+		// }
+		uca = make(map[int]map[int]int, len(swscidxr))
+		for i := 0; i < len(swscidxr); i++ {
+			c := <-ch
+			uca[c.s] = c.u
+		}
+		close(ch)
 	}
+
+	wg.Add(2)
+	go getOrd()
+	go getUCA()
+	wg.Wait()
 
 	return &RTR{
 		swscidxr:  swscidxr,
 		swsstrmxr: swsstrmxr,
 		sws:       sws,
 		dsws:      dsws,
+		uca:       uca,
 	}, ord, sids
 }
 

@@ -10,7 +10,58 @@ const (
 	fe = 1.
 )
 
-func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
+func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
+	ncid := int(p.fncid)
+	obs := make(map[int]monitor, len(monid))
+	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
+
+	defer func() { res.getTotals(sim, hsto, gsto) }()
+
+	for _, c := range monid {
+		obs[p.xr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
+	}
+
+	dm := p.dm
+	for k := 0; k < p.nstep; k++ {
+		rs, gs, s1s, bs := 0., 0., 0., 0.
+		for i, v := range p.in {
+			p.ws[i].AddToStorage(v[k]) // inflow from up sws
+		}
+		for i := 0; i < ncid; i++ {
+			_, r, g := p.ws[i].UpdateWT(p.y[0][k], p.ep[0][k], dm+p.drel[i])
+			x := r * (1. - p.p0[i])
+			if x > hx {
+				x = hx
+			}
+			p.ws[i].AddToStorage(x)
+			r -= x
+			s1s += p.ws[i].Storage()
+
+			hb := 0.
+			if v, ok := p.strm[i]; ok {
+				hb = v * math.Exp((Ds-dm-p.drel[i])/m)
+				bs += hb
+				r += hb
+			}
+			if _, ok := obs[i]; ok {
+				obs[i].v[k] = r
+			}
+			if p.ds[i] == -1 { // outlet cell
+				rs += r
+			} else {
+				p.ws[p.xr[p.ds[i]]].AddToStorage(r)
+			}
+			gs += g
+		}
+		dm += (bs - gs) / p.fncid
+		sim[k] = rs
+		hsto[k] = s1s / p.fncid
+		gsto[k] = bs / p.fncid
+	}
+	return
+}
+
+func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -41,8 +92,8 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 		}
 		for i := 0; i < ncid; i++ {
 			s0 := p.ws[i].Storage()
-			y := p.y[k][0]
-			ep := p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
+			y := p.y[0][k]
+			ep := p.ep[0][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
 			drel := p.drel[i]
 			p0 := p.p0[i]
 			a, r, g := p.ws[i].UpdateWT(y, ep, dm+drel)
@@ -52,8 +103,6 @@ func (p *subsample) eval(Ds, m float64, res resulter, monid []int) {
 			}
 			p.ws[i].AddToStorage(x)
 			r -= x
-			// p.ws[i].AddToStorage(r * (1. - p0))
-			// r *= p0
 			s1 := p.ws[i].Storage()
 			s1s += s1
 
