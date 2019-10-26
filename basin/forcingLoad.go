@@ -1,12 +1,30 @@
 package basin
 
 import (
+	"encoding/gob"
+	"fmt"
 	"log"
+	"os"
+	"sync"
 	"time"
 
 	"github.com/maseology/goHydro/met"
 	"github.com/maseology/mmio"
 )
+
+// masterForcing returns forcing data from mastreDomain
+func masterForcing() (*FORC, int) {
+	if masterDomain.frc == nil {
+		log.Fatalf(" basin.masterForcing error: masterDomain.frc == nil\n")
+	}
+	// if masterDomain.frc.h.Nloc() != 1 && masterDomain.frc.h.LocationCode() <= 0 {
+	// 	log.Fatalf(" basin.masterForcing error: invalid *FORC type in masterDomain\n")
+	// }
+	if masterDomain.frc.h.LocationCode() == 0 {
+		return masterDomain.frc, -1
+	}
+	return masterDomain.frc, int(masterDomain.frc.h.Locations[0][0].(int32))
+}
 
 // LoadForcing (re-)loads forcing data
 func loadForcing(fp string, print bool) (*FORC, int) {
@@ -50,13 +68,115 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 	}, outlet
 }
 
-// masterForcing returns forcing data from mastreDomain
-func masterForcing() (*FORC, int) {
-	if masterDomain.frc == nil {
-		log.Fatalf(" basin.masterForcing error: masterDomain.frc == nil\n")
+func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
+	// import forcings
+	loadGOB := func(fp string) ([][]float64, error) {
+		var d [][]float64
+		f, err := os.Open(fp)
+		defer f.Close()
+		if err != nil {
+			return nil, err
+		}
+		enc := gob.NewDecoder(f)
+		err = enc.Decode(&d)
+		if err != nil {
+			return nil, err
+		}
+		return d, nil
 	}
-	if masterDomain.frc.h.Nloc() != 1 && masterDomain.frc.h.LocationCode() <= 0 {
-		log.Fatalf(" basin.masterForcing error: invalid *FORC type in masterDomain\n")
+	loadINTSCT := func(fp string) (map[int]int, error) {
+		var d map[int]int
+		f, err := os.Open(fp)
+		defer f.Close()
+		if err != nil {
+			return nil, err
+		}
+		enc := gob.NewDecoder(f)
+		err = enc.Decode(&d)
+		if err != nil {
+			return nil, err
+		}
+		return d, nil
 	}
-	return masterDomain.frc, int(masterDomain.frc.h.Locations[0][0].(int32))
+
+	tt := mmio.NewTimer()
+	var wg sync.WaitGroup
+	fmt.Printf(" loading met GOBs from %s\n", gobdir)
+	var y, ep [][]float64
+	var intsct map[int]int
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		var err error
+		if y, err = loadGOB(gobdir + "frc.y.gob"); err != nil {
+			log.Fatalf("%v", err)
+		}
+		// tt.Lap(fmt.Sprintf(" %s loaded", "frc.y.gob"))
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		if ep, err = loadGOB(gobdir + "frc.ep.gob"); err != nil {
+			log.Fatalf("%v", err)
+		}
+		// tt.Lap(fmt.Sprintf(" %s loaded", "frc.ep.gob"))
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		if intsct, err = loadINTSCT(gobdir + "metIntersect.gob"); err != nil {
+			log.Fatalf("%v", err)
+		}
+		// tt.Lap(fmt.Sprintf(" %s loaded", "metIntersect.gob"))
+	}()
+	wg.Wait()
+	tt.Lap("met GOB load complete")
+
+	var d met.Coll
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////// Default HARD-CODED values ///////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	dtb, dte, intvl := time.Date(1999, time.October, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, time.September, 30, 0, 0, 0, 0, time.UTC), 86400
+	h := met.NewHeader(dtb, dte, intvl, len(y))
+	if len(y[0]) != h.Nstep() {
+		log.Fatalf("loadGOBforcing error: gob and date range are incompatible")
+	}
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	temp, k := make([]temporal, h.Nstep()), 0
+	d.T, d.D = make([]time.Time, h.Nstep()), make([][][]float64, 2)
+	for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
+		temp[k] = temporal{doy: dt.YearDay() - 1, mt: int(dt.Month())}
+		d.T[k] = dt
+		d.D = [][][]float64{y, ep}
+		k++
+	}
+
+	// slow
+	// ncell := len(y)
+	// temp, k := make([]temporal, h.Nstep()), 0
+	// d.T, d.D = make([]time.Time, h.Nstep()), make([][][]float64, ncell)
+	// for i := 0; i < ncell; i++ {
+	// 	d.D[i] = make([][]float64, h.Nstep())
+	// }
+	// for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
+	// 	temp[k] = temporal{doy: dt.YearDay() - 1, mt: int(dt.Month())}
+	// 	d.T[k] = dt
+	// 	d.D[k] = make([][]float64, ncell)
+	// 	for i := 0; i < ncell; i++ {
+	// 		d.D[i][k] = []float64{y[i][k], ep[i][k]}
+	// 	}
+	// 	k++
+	// }
+
+	tt.Lap("Forcing build complete")
+	return &FORC{
+		c:   d, // met.Coll
+		h:   h, // met.Header
+		t:   temp,
+		x:   intsct,
+		nam: "gob",
+	}, -1
 }

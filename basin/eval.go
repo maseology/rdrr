@@ -18,7 +18,7 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 	defer func() { res.getTotals(sim, hsto, gsto) }()
 
 	for _, c := range monid {
-		obs[p.xr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
+		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
 	}
 
 	dm := p.dm
@@ -28,7 +28,7 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 			p.ws[i].AddToStorage(v[k]) // inflow from up sws
 		}
 		for i := 0; i < ncid; i++ {
-			_, r, g := p.ws[i].UpdateWT(p.y[0][k], p.ep[0][k], dm+p.drel[i])
+			_, r, g := p.ws[i].UpdateWT(p.y[p.mxr[i]][k], p.ep[p.mxr[i]][k], dm+p.drel[i])
 			x := r * (1. - p.p0[i])
 			if x > hx {
 				x = hx
@@ -49,7 +49,7 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 			if p.ds[i] == -1 { // outlet cell
 				rs += r
 			} else {
-				p.ws[p.xr[p.ds[i]]].AddToStorage(r)
+				p.ws[p.cxr[p.ds[i]]].AddToStorage(r)
 			}
 			gs += g
 		}
@@ -72,14 +72,14 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 	defer func() {
 		res.getTotals(sim, hsto, gsto)
 		for _, v := range obs {
-			go v.print()
+			go v.print(p.id)
 		}
 		g := gmonitor{gy, ga, gr, gg, gb}
-		go g.print(p.ws, p.in, p.xr, p.ds, float64(p.nstep))
+		go g.print(p.ws, p.in, p.cxr, p.ds, float64(p.nstep), p.id)
 	}()
 
 	for _, c := range monid {
-		obs[p.xr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
+		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
 	}
 
 	dm, s0s := p.dm, p.s0s
@@ -92,8 +92,8 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 		}
 		for i := 0; i < ncid; i++ {
 			s0 := p.ws[i].Storage()
-			y := p.y[0][k]
-			ep := p.ep[0][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
+			y := p.y[p.mxr[i]][k]
+			ep := p.ep[p.mxr[i]][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
 			drel := p.drel[i]
 			p0 := p.p0[i]
 			a, r, g := p.ws[i].UpdateWT(y, ep, dm+drel)
@@ -129,7 +129,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 			if p.ds[i] == -1 { // outlet cell
 				rs += r
 			} else {
-				p.ws[p.xr[p.ds[i]]].AddToStorage(r)
+				p.ws[p.cxr[p.ds[i]]].AddToStorage(r)
 			}
 			gs += g
 			gr[i] += r
@@ -156,7 +156,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 		// basinwbal := (dm - dm0) + (gs-bs)/p.fncid // gwbal
 		if math.Abs(basinwbal) > nearzero {
 			// fmt.Printf("|basinwbal| = %e\n", basinwbal)
-			fmt.Print(".")
+			fmt.Print("+")
 		}
 		s0s = s1s
 	}

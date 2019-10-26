@@ -3,6 +3,7 @@ package basin
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/maseology/mmio"
 )
@@ -45,7 +46,7 @@ func RunDefault(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact
 		fmt.Printf("\n running model..\n\n")
 	}
 
-	return b.eval(&smpl, dinc, topm, print)
+	return b.eval(&smpl, dinc, topm, -1, print)
 }
 
 // RunMaster runs simulation of the entire masterdomain with default parameters
@@ -61,6 +62,8 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 			log.Fatalf(" basin.RunMaster error: no forcings made available\n")
 		}
 		frc, _ = masterForcing()
+	} else if strings.ToLower(metfp) == "gob" {
+		frc, _ = loadGOBforcing(mdldir+"met/", print)
 	} else {
 		frc, _ = loadForcing(metfp, print)
 	}
@@ -96,5 +99,5 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 		fmt.Printf("\n running model..\n\n")
 	}
 
-	return b.eval(&smpl, dinc, topm, print)
+	return b.eval(&smpl, dinc, topm, -1, print)
 }

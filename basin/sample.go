@@ -11,6 +11,7 @@ import (
 	"github.com/maseology/goHydro/hru"
 	"github.com/maseology/mmio"
 	"github.com/maseology/montecarlo"
+	"github.com/maseology/montecarlo/smpln"
 	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
@@ -55,8 +56,7 @@ func (s *sample) print(dir string) error {
 	return nil
 }
 
-// SampleDefault solves a default-parameter model to a given basin outlet
-// changes only 3 basin-wide parameters (Qo, topm, fcasc); freeboard set to 0.
+// SampleDefault samples a default-parameter model to a given basin outlet
 func SampleDefault(metfp, outdir string, nsmpl int) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
@@ -70,20 +70,23 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 	} else {
 		b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
 	}
+	fmt.Printf(" catchment area: %.1f km²\n\n", b.contarea/1000./1000.)
 
-	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
-	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
-
-	rng := rand.New(mrg63k3a.New())
-	rng.Seed(time.Now().UnixNano())
-	ver := b.eval
+	chi := make(chan int)
+	go func() {
+		for i := 1; i <= nsmpl; i++ {
+			chi <- i
+		}
+	}()
 
 	gen := func(u []float64) float64 {
 		m, smax, dinc, soildepth, kfact := par5(u)
+		i := <-chi
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
-		return ver(&smpl, dinc, m, false)
+		return b.eval(&smpl, dinc, m, i, false)
 	}
 
+	tt := mmio.NewTimer()
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
 	u, f, d := montecarlo.RankedUnBiased(gen, nSmplDim, nsmpl)
 
@@ -114,15 +117,87 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 		return math.NaN()
 	}()
 
+	tt.Lap("sampling complete")
 	t, err := mmio.NewTXTwriter(outdir + "sample.csv")
 	defer t.Close()
 	if err != nil {
-		log.Fatalf(" Definition.SaveAs: %v", err)
+		log.Fatalf("SampleDefault sample.csv save error: %v", err)
 	}
 	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,smax,dinc,soildepth,kfact", nsmpl))
 	for i, dd := range d {
 		nse := 1. - math.Pow(f[dd], 2.)/v // converting to nash-sutcliffe
 		m, smax, dinc, soildepth, kfact := par5(u[dd])
 		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f,%f", i+1, nse, m, smax, dinc, soildepth, kfact))
+	}
+	tt.Lap("results save complete")
+}
+
+// SampleMaster samples a default-parameter full-domain model
+func SampleMaster(outdir string, nsmpl int) {
+	if masterDomain.IsEmpty() {
+		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
+	}
+	var b subdomain
+	if masterDomain.frc == nil {
+		log.Fatalf(" basin.RunMaster error: no forcings made available\n")
+	}
+	frc, _ := masterForcing()
+	b = masterDomain.newSubDomain(frc, -1)
+	b.mdldir = outdir
+	b.cid0 = -1
+	if len(b.rtr.swscidxr) == 1 {
+		b.rtr.swscidxr = map[int][]int{-1: b.cids}
+		b.rtr.sws = make(map[int]int, b.ncid)
+		for _, c := range b.cids {
+			b.rtr.sws[c] = -1
+		}
+	}
+	// if len(metfp) == 0 {
+	// 	if masterDomain.frc == nil {
+	// 		log.Fatalf(" basin.RunDefault error: no forcings made available\n")
+	// 	}
+	// 	b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
+	// } else {
+	// 	b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
+	// }
+	fmt.Printf(" catchment area: %.1f km²\n\n", b.contarea/1000./1000.)
+
+	rng := rand.New(mrg63k3a.New())
+	rng.Seed(time.Now().UnixNano())
+	sp := smpln.NewLHC(rng, nsmpl, nSmplDim, false)
+
+	iter := 0
+	gen := func(u []float64) float64 {
+		m, smax, dinc, soildepth, kfact := par5(u)
+		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
+		iter++
+		return b.eval(&smpl, dinc, m, iter, false)
+	}
+
+	tt := mmio.NewTimer()
+	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
+
+	us := make([][]float64, nsmpl)
+	for k := 0; k < nsmpl; k++ {
+		ut := make([]float64, nSmplDim)
+		for j := 0; j < nSmplDim; j++ {
+			ut[j] = sp.U[j][k]
+		}
+		gen(ut)
+		us[k] = ut
+		fmt.Print(".")
+	}
+
+	tt.Lap("\nsampling complete")
+	fmt.Println(" saving results..")
+	t, err := mmio.NewTXTwriter(outdir + "sample.csv")
+	defer t.Close()
+	if err != nil {
+		log.Fatalf("SampleMaster sample.csv save error: %v", err)
+	}
+	t.WriteLine(fmt.Sprintf("sample(of%d),m,smax,dinc,soildepth,kfact", nsmpl))
+	for i, u := range us {
+		m, smax, dinc, soildepth, kfact := par5(u)
+		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f", i+1, m, smax, dinc, soildepth, kfact))
 	}
 }

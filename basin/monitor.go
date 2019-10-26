@@ -18,15 +18,20 @@ type monitor struct {
 	c int
 }
 
-func (m *monitor) print() {
+func (m *monitor) print(id int) {
 	gwg.Add(1)
 	defer gwg.Done()
-	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), m.v)
+	if id >= 0 {
+		mmio.MakeDir(mondir + fmt.Sprintf("%d/", id))
+		mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir+fmt.Sprintf("%d/", id), m.c), m.v)
+	} else {
+		mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), m.v)
+	}
 }
 
 type gmonitor struct{ gy, ga, gr, gg, gb []float64 }
 
-func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, xr map[int]int, ds []int, fnstep float64) {
+func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, xr map[int]int, ds []int, fnstep float64, id int) {
 	gwg.Add(1)
 	gmu.Lock()
 	defer gmu.Unlock()
@@ -74,15 +79,19 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, xr map[int]int, ds
 	}
 
 	// NOTE: wbal = yield + ron - (aat + gwe + olf)
-	mmio.WriteRMAP(mondir+"g.yield.rmap", my, true)
-	mmio.WriteRMAP(mondir+"g.aet.rmap", ma, true)
-	mmio.WriteRMAP(mondir+"g.olf.rmap", mr, true)
-	mmio.WriteRMAP(mondir+"g.ron.rmap", mron, true)
-	mmio.WriteRMAP(mondir+"g.rgen.rmap", mrgen, true)
-	mmio.WriteRMAP(mondir+"g.gwe.rmap", mg, true)
-	mmio.WriteRMAP(mondir+"g.sto.rmap", ms, true)
-	mmio.WriteRMAP(mondir+"g.sma.rmap", msma, true)
-	mmio.WriteRMAP(mondir+"g.srf.rmap", msrf, true)
+	outdir := mondir
+	if id >= 0 {
+		outdir += fmt.Sprintf("%d/", id)
+	}
+	mmio.WriteRMAP(outdir+"g.yield.rmap", my, true)
+	mmio.WriteRMAP(outdir+"g.aet.rmap", ma, true)
+	mmio.WriteRMAP(outdir+"g.olf.rmap", mr, true)
+	mmio.WriteRMAP(outdir+"g.ron.rmap", mron, true)
+	mmio.WriteRMAP(outdir+"g.rgen.rmap", mrgen, true)
+	mmio.WriteRMAP(outdir+"g.gwe.rmap", mg, true)
+	mmio.WriteRMAP(outdir+"g.sto.rmap", ms, true)
+	mmio.WriteRMAP(outdir+"g.sma.rmap", msma, true)
+	mmio.WriteRMAP(outdir+"g.srf.rmap", msrf, true)
 }
 
 // DeleteMonitors deletes monitor output from previous model run
@@ -98,6 +107,7 @@ func DeleteMonitors(mdldir string) {
 	mmio.DeleteFile(mondir + "g.sto.rmap")
 	mmio.DeleteFile(mondir + "g.sma.rmap")
 	mmio.DeleteFile(mondir + "g.srf.rmap")
+	mmio.DeleteAllSubdirectories(mondir)
 }
 
 // WaitMonitors waits for all writes to complete

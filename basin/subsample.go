@@ -9,17 +9,17 @@ import (
 )
 
 type subsample struct {
-	xr             map[int]int
+	cxr            map[int]int // mapping of cell to index
 	strm           map[int]float64
 	ws             []hru.HRU
 	in             map[int][]float64
-	f              [][]float64 // solar irradiation coefficient/(adjusted) potential evaporation
 	t              []temporal
 	y, ep          [][]float64
 	drel, p0       []float64
-	cids, ds       []int
+	cids, ds, mxr  []int
 	fncid, dm, s0s float64
-	nstep          int
+	nstep, id      int
+	// f              [][]float64 // solar irradiation coefficient/(adjusted) potential evaporation
 }
 
 func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) subsample {
@@ -56,15 +56,16 @@ func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) s
 
 	pp.initialize(b.frc.Q0, Ds, m, print)
 	// fmt.Printf(" **** sid: %d;  Dm0: %f;  s0: %f\n", sid, pp.dm, pp.s0s)
-	pp.ds[pp.xr[sid]] = -1 // new outlet
+	pp.ds[pp.cxr[sid]] = -1 // new outlet
 	return pp
 }
 
 func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 	pp.drel = make([]float64, ncid) // initialize mean TOPMODEL deficit
 	pp.ws, pp.p0, pp.ds = make([]hru.HRU, ncid), make([]float64, ncid), make([]int, ncid)
-	pp.f = make([][]float64, ncid)
-	pp.xr = make(map[int]int, ncid) // cellID to slice id cross-reference
+	// pp.f = make([][]float64, ncid)
+	pp.cxr = make(map[int]int, ncid) // cellID to slice id cross-reference
+	pp.mxr = make([]int, ncid)       // met cellID to slice id cross-reference
 	pp.strm = make(map[int]float64, nstrm)
 	for i, c := range pp.cids {
 		sid := b.rtr.sws[c] // groundwatershed id
@@ -72,8 +73,9 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 		pp.ws[i] = *p.ws[c]
 		pp.p0[i] = p.p0[c]
 		pp.ds[i] = b.ds[c]
-		pp.f[i] = b.strc.f[c]
-		pp.xr[c] = i
+		// pp.f[i] = b.strc.f[c]
+		pp.cxr[c] = i
+		pp.mxr[i] = b.frc.x[c]
 		if v, ok := p.gw[sid].Qs[c]; ok {
 			pp.strm[i] = v
 		}

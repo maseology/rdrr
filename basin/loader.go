@@ -3,6 +3,7 @@ package basin
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/maseology/goHydro/grid"
@@ -23,8 +24,12 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		defer wg.Done()
 		if len(l.Fmet) > 0 {
 			tt := mmio.NewTimer()
-			fmt.Printf(" loading: %s\n", l.Fmet)
-			frc, _ = loadForcing(l.Fmet, true)
+			if strings.ToLower(l.Fmet) == "gob" {
+				frc, _ = loadGOBforcing(l.Dir+"met/", true)
+			} else {
+				fmt.Printf(" loading: %s\n", l.Fmet)
+				frc, _ = loadForcing(l.Fmet, true)
+			}
 			tt.Lap("met loaded")
 		} else {
 			frc = nil
@@ -169,6 +174,8 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 	if frc != nil {
 		if frc.h.Nloc() == 1 && frc.h.LocationCode() > 0 {
 			cid0 = int(frc.h.Locations[0][0].(int32)) // gauge outlet id found in met file
+		} else if frc.h.Nloc() > 0 && frc.h.LocationCode() == 0 {
+			// do nothing (grid-based met input)
 		} else {
 			log.Fatalf(" Loader.load error: unrecognized .met type\n")
 		}

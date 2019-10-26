@@ -14,6 +14,7 @@ type FORC struct {
 	c   met.Coll
 	h   met.Header
 	t   []temporal
+	x   map[int]int // mapping of model grid cell to met grid cell
 	Q0  float64
 	nam string
 }
@@ -24,11 +25,7 @@ func (f *FORC) subset(cids []int) {
 	if f.h.Nloc() == 1 {
 		f.Q0 = f.medQ()
 	} else {
-		// newFORC := FORC{
-		// 	Q0: f.medQ(),
-		// }
-		// return &newFORC
-		log.Fatalf(" FORC.subset error: unsupported met format")
+		f.Q0 = avgRch
 	}
 	return
 }

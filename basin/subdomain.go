@@ -203,7 +203,8 @@ func buildObs(d *domain, r *RTR) map[int][]int {
 
 func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int) {
 	ns, nloc, x := b.frc.h.Nstep(), b.frc.h.Nloc(), b.frc.h.WBDCxr()
-	dt, y, ep, obs, intvl, nstep = make([]time.Time, ns), make([][]float64, nloc), make([][]float64, nloc), make([]float64, ns), int64(b.frc.h.IntervalSec()), ns
+	dt, y, ep, obs = make([]time.Time, ns), make([][]float64, nloc), make([][]float64, nloc), make([]float64, ns)
+	intvl, nstep = int64(b.frc.h.IntervalSec()), ns
 	h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor for subdomain outlet cell
 	if nloc == 1 {
 		y[0], ep[0] = make([]float64, ns), make([]float64, ns)
@@ -216,7 +217,16 @@ func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []floa
 			obs[k] = v[x["UnitDischarge"]] * h2cms
 		}
 	} else {
-		log.Fatalf("subdomain.getForcings todo: forcings with multiple locations")
+		if b.frc.nam == "gob" {
+			obs = []float64{}
+			for k, dt1 := range b.frc.c.T {
+				dt[k] = dt1
+			}
+			y = b.frc.c.D[0]
+			ep = b.frc.c.D[1]
+		} else {
+			log.Fatalf("subdomain.getForcings todo: forcings with multiple locations")
+		}
 	}
 	return
 }

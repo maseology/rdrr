@@ -18,7 +18,7 @@ type stran struct {
 }
 
 // eval evaluates a subdomain
-func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
+func (b *subdomain) eval(p *sample, Ds, m float64, id int, print bool) (of float64) {
 	ver := evalWB
 	if print {
 		tt := mmio.NewTimer()
@@ -32,6 +32,7 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 			rs.dt, rs.obs = dt, obs
 			var res resulter = &rs
 			pp := newSubsample(b, p, Ds, m, -1, print)
+			pp.id = id
 			pp.y, pp.ep, pp.nstep = y, ep, nstep
 			ver(&pp, Ds, m, res, b.obs[-1])
 			of = res.report(print)[0]
@@ -54,14 +55,15 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 				go func(sid int, t []itran) {
 					defer wg.Done()
 					pp := newSubsample(b, p, Ds, m, sid, print)
+					pp.id = id
 					pp.y, pp.ep, pp.nstep = y, ep, nstep
 					if len(t) > 0 {
 						pp.in = make(map[int][]float64, len(t)) // upstream inputs
 						for _, v := range t {
-							if _, ok := pp.in[pp.xr[v.c]]; ok {
+							if _, ok := pp.in[pp.cxr[v.c]]; ok {
 								log.Fatalf("TODO (subdomain.eval): more than one inputs transferred to the same cell: sid: %d, cell: %d\n", sid, v.c)
 							}
-							pp.in[pp.xr[v.c]] = v.v
+							pp.in[pp.cxr[v.c]] = v.v
 						}
 					}
 					if sid == b.cid0 { // outlet

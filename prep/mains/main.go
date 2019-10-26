@@ -51,7 +51,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	for _, i := range gd.Actives() {
+	for _, i := range gd.Sactives {
 		if tem.TEC[i].Z == -9999. {
 			log.Fatalf("no elevation assigned to cell %d", i)
 		}
@@ -67,7 +67,7 @@ func main() {
 
 	// initialize
 	cells, x := make([]prep.Cell, gd.Nactives()), hdr.WBDCxr()
-	for k, i := range gd.Sactives() {
+	for k, i := range gd.Sactives {
 		latitude, _, err := UTM.ToLatLon(gd.Coord[i].X, gd.Coord[i].Y, 17, "", true)
 		if err != nil {
 			log.Fatalf(" prep error: %v -- (x,y)=(%f, %f); cid: %d\n", err, gd.Coord[i].X, gd.Coord[i].Y, i)
@@ -131,12 +131,15 @@ func saveIntersect(fp string, gd *grid.Definition) {
 		log.Fatalf("saveIntersect is intended for met grids at a lower resultion than the model grid")
 	}
 	intsct := mdlgd.Intersect(gd)
-	a := make([]int, mdlgd.Nactives())
-	for i, c := range mdlgd.Sactives() {
+	a, x := make(map[int]int, mdlgd.Nactives()), make(map[int]int, gd.Nactives())
+	for i, c := range gd.Sactives {
+		x[c] = i
+	}
+	for _, c := range mdlgd.Sactives {
 		if _, ok := intsct[c]; !ok {
 			log.Fatalf("saveIntersect error: cell %d not found", c)
 		}
-		a[i] = intsct[c][0]
+		a[c] = x[intsct[c][0]]
 	}
 
 	// save as gob
