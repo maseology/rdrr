@@ -67,7 +67,7 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 		m, smax, dinc, soildepth, kfact := par5(u)
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
 		// Qo *= b.frc.h.IntervalSec() / 1000. / 365.24 / 86400. // [mm/yr] to [m/ts]
-		return b.eval(&smpl, dinc, m, -1, false)
+		return b.eval(&smpl, dinc, m, false)
 	}
 
 	fmt.Println(" optimizing..")
@@ -77,7 +77,7 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	m, smax, dinc, soildepth, kfact := par5(uFinal)
 	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\tsmax:\t\t%v\n\tdinc:\t\t%v\n\tsoildepth:\t%v\n\tkfact:\t\t%v\n\n", m, smax, dinc, soildepth, kfact)
 	final := b.toDefaultSample(m, smax, soildepth, kfact)
-	return b.eval(&final, dinc, m, -1, true), []float64{m, smax, dinc, soildepth, kfact}
+	return b.eval(&final, dinc, m, true), []float64{m, smax, dinc, soildepth, kfact}
 }
 
 // OptimizeDefault1 solves a default-parameter model to a given basin outlet
@@ -116,7 +116,7 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	}
 	gen := func(u []float64) float64 {
 		smpl := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
-		return b.eval(&smpl, 1., par1(u), -1, false)
+		return b.eval(&smpl, 1., par1(u), false)
 	}
 
 	fmt.Println(" optimizing..")
@@ -125,5 +125,5 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 	sldpth := par1([]float64{uFinal})
 	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\tsmax:\t\t%v\n\tdinc:\t\t%v\n\tsoildepth:\t%v\n\tkfact:\t\t%v\n\n", TMQm, smax, dinc, sldpth, kfact)
 	final := smpl1.copy() // b.toDefaultSample(TMQm, fcasc)
-	return b.eval(&final, dinc, sldpth, -1, true), []float64{TMQm, smax, sldpth, kfact}
+	return b.eval(&final, dinc, sldpth, true), []float64{TMQm, smax, sldpth, kfact}
 }

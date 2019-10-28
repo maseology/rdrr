@@ -18,8 +18,8 @@ type stran struct {
 }
 
 // eval evaluates a subdomain
-func (b *subdomain) eval(p *sample, Ds, m float64, id int, print bool) (of float64) {
-	ver := evalWB
+func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
+	ver := evalMC
 	if print {
 		tt := mmio.NewTimer()
 		defer tt.Lap("\nevaluation completed in")
@@ -32,7 +32,6 @@ func (b *subdomain) eval(p *sample, Ds, m float64, id int, print bool) (of float
 			rs.dt, rs.obs = dt, obs
 			var res resulter = &rs
 			pp := newSubsample(b, p, Ds, m, -1, print)
-			pp.id = id
 			pp.y, pp.ep, pp.nstep = y, ep, nstep
 			ver(&pp, Ds, m, res, b.obs[-1])
 			of = res.report(print)[0]
@@ -55,7 +54,6 @@ func (b *subdomain) eval(p *sample, Ds, m float64, id int, print bool) (of float
 				go func(sid int, t []itran) {
 					defer wg.Done()
 					pp := newSubsample(b, p, Ds, m, sid, print)
-					pp.id = id
 					pp.y, pp.ep, pp.nstep = y, ep, nstep
 					if len(t) > 0 {
 						pp.in = make(map[int][]float64, len(t)) // upstream inputs
@@ -84,9 +82,9 @@ func (b *subdomain) eval(p *sample, Ds, m float64, id int, print bool) (of float
 						ver(&pp, Ds, m, res, b.obs[sid])
 						dsid := -1
 						if d, ok := b.rtr.dsws[sid]; ok {
-							if _, ok := transfers[d]; !ok {
-								transfers[d] = []itran{}
-							}
+							// if _, ok := transfers[d]; !ok {
+							// 	transfers[d] = []itran{} //// concurrent map write potential (now fixed below)
+							// }
 							dsid = d
 						}
 						chstrans <- stran{s: dsid, i: itran{c: b.ds[sid], v: res.report(false)}}
@@ -96,7 +94,11 @@ func (b *subdomain) eval(p *sample, Ds, m float64, id int, print bool) (of float
 			wg.Wait()
 			close(chstrans)
 			for t := range chstrans {
-				transfers[t.s] = append(transfers[t.s], t.i)
+				if _, ok := transfers[t.s]; !ok {
+					transfers[t.s] = []itran{t.i}
+				} else {
+					transfers[t.s] = append(transfers[t.s], t.i)
+				}
 			}
 		}
 		// printTrans(b, transfers, outflw)

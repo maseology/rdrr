@@ -18,7 +18,7 @@ type subsample struct {
 	drel, p0       []float64
 	cids, ds, mxr  []int
 	fncid, dm, s0s float64
-	nstep, id      int
+	nstep          int
 	// f              [][]float64 // solar irradiation coefficient/(adjusted) potential evaporation
 }
 

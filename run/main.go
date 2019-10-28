@@ -32,8 +32,7 @@ func main() {
 	// load data
 	basin.LoadMasterDomain(&ldr, true)
 	tt.Print("Master Domain Load complete\n")
-	basin.DeleteMonitors(indir + "output/")
-	defer basin.WaitMonitors()
+	basin.PrepMC(indir + "MC/")
 
 	// run model
 	basin.SampleMaster(indir, 100)

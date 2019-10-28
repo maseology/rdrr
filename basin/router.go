@@ -99,33 +99,33 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 		defer wg.Done()
 		// compute sws topology
 		fmt.Println(" building sws topology..")
-		// ord = mmaths.OrderedForest(dsws, -1)
+		ord = mmaths.OrderedForest(dsws, -1)
 
-		cnt := make(map[int]int, len(sids))
-		incr := func(i, v int) {
-			if _, ok := cnt[i]; !ok {
-				cnt[i] = v + 1
-			} else {
-				if v+1 > cnt[i] {
-					cnt[i] = v + 1
-				}
-			}
-		}
-		for _, s := range sids {
-			incr(s, 0)
-			if v, ok := dsws[s]; ok {
-				if v >= 0 { // outlet =-1
-					incr(v, cnt[s])
-				}
-			}
-		}
-		mord, lord := mmio.InvertMap(cnt)
-		ord = make([][]int, len(lord)) // concurrent-safe ordering of subwatersheds
-		for i, k := range lord {
-			cpy := make([]int, len(mord[k]))
-			copy(cpy, mord[k])
-			ord[i] = cpy
-		}
+		// cnt := make(map[int]int, len(sids))
+		// incr := func(i, v int) {
+		// 	if _, ok := cnt[i]; !ok {
+		// 		cnt[i] = v + 1
+		// 	} else {
+		// 		if v+1 > cnt[i] {
+		// 			cnt[i] = v + 1
+		// 		}
+		// 	}
+		// }
+		// for _, s := range sids {
+		// 	incr(s, 0)
+		// 	if v, ok := dsws[s]; ok {
+		// 		if v >= 0 { // outlet =-1
+		// 			incr(v, cnt[s])
+		// 		}
+		// 	}
+		// }
+		// mord, lord := mmio.InvertMap(cnt)
+		// ord = make([][]int, len(lord)) // concurrent-safe ordering of subwatersheds
+		// for i, k := range lord {
+		// 	cpy := make([]int, len(mord[k]))
+		// 	copy(cpy, mord[k])
+		// 	ord[i] = cpy
+		// }
 	}
 
 	var uca map[int]map[int]int

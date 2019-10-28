@@ -72,18 +72,10 @@ func SampleDefault(metfp, outdir string, nsmpl int) {
 	}
 	fmt.Printf(" catchment area: %.1f km²\n\n", b.contarea/1000./1000.)
 
-	chi := make(chan int)
-	go func() {
-		for i := 1; i <= nsmpl; i++ {
-			chi <- i
-		}
-	}()
-
 	gen := func(u []float64) float64 {
 		m, smax, dinc, soildepth, kfact := par5(u)
-		i := <-chi
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
-		return b.eval(&smpl, dinc, m, i, false)
+		return b.eval(&smpl, dinc, m, false)
 	}
 
 	tt := mmio.NewTimer()
@@ -166,38 +158,41 @@ func SampleMaster(outdir string, nsmpl int) {
 	rng.Seed(time.Now().UnixNano())
 	sp := smpln.NewLHC(rng, nsmpl, nSmplDim, false)
 
-	iter := 0
-	gen := func(u []float64) float64 {
+	printParams := func(m, smax, dinc, soildepth, kfact float64) {
+		tw, err := mmio.NewTXTwriter(mondir + "params.txt")
+		defer tw.Close()
+		if err != nil {
+			log.Fatalf("SampleMaster error: %v", err)
+		}
+		tw.WriteLine(mmio.MMtime(time.Now()))
+		tw.WriteLine(mondir)
+		tw.WriteLine(fmt.Sprintf("m\t%f", m))
+		tw.WriteLine(fmt.Sprintf("smax\t%f", smax))
+		tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
+		tw.WriteLine(fmt.Sprintf("soildepth\t%f", soildepth))
+		tw.WriteLine(fmt.Sprintf("kfact\t%f", kfact))
+	}
+
+	gen := func(u []float64) {
+		setMCdir()
 		m, smax, dinc, soildepth, kfact := par5(u)
+		go printParams(m, smax, dinc, soildepth, kfact)
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
-		iter++
-		return b.eval(&smpl, dinc, m, iter, false)
+		b.eval(&smpl, dinc, m, false)
+		WaitMonitors()
 	}
 
 	tt := mmio.NewTimer()
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
 
-	us := make([][]float64, nsmpl)
 	for k := 0; k < nsmpl; k++ {
 		ut := make([]float64, nSmplDim)
 		for j := 0; j < nSmplDim; j++ {
 			ut[j] = sp.U[j][k]
 		}
 		gen(ut)
-		us[k] = ut
 		fmt.Print(".")
 	}
 
 	tt.Lap("\nsampling complete")
-	fmt.Println(" saving results..")
-	t, err := mmio.NewTXTwriter(outdir + "sample.csv")
-	defer t.Close()
-	if err != nil {
-		log.Fatalf("SampleMaster sample.csv save error: %v", err)
-	}
-	t.WriteLine(fmt.Sprintf("sample(of%d),m,smax,dinc,soildepth,kfact", nsmpl))
-	for i, u := range us {
-		m, smax, dinc, soildepth, kfact := par5(u)
-		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f", i+1, m, smax, dinc, soildepth, kfact))
-	}
 }
