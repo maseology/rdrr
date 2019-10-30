@@ -15,6 +15,7 @@
 *.bak
 *.old
 *.rar
+*.png
 /bak
 /doc/latex
 /doc/images
