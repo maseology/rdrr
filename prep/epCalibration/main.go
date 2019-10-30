@@ -3,8 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
+	"math/rand"
+	"time"
 
+	"github.com/maseology/glbopt"
+	"github.com/maseology/mmaths"
 	"github.com/maseology/objfunc"
+	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 
 	"github.com/maseology/goHydro/met"
 	"github.com/maseology/goHydro/pet"
@@ -31,16 +37,22 @@ func main() {
 	dts, obs := dat.Get(x["Evaporation"])
 	_, tx := dat.Get(x["MaxDailyT"])
 	_, tn := dat.Get(x["MinDailyT"])
-	_, r := dat.Get(x["Rainfall"])
-	_, s := dat.Get(x["Snowfall"])
+	// _, r := dat.Get(x["Rainfall"])
+	// _, s := dat.Get(x["Snowfall"])
 
-	gen := func(a, b, t, nNn, alpha, beta float64) (sim, mx, mobs, msim []float64) {
-		etRadToGlobal := func(Ke, a, b, nN float64) float64 {
-			// the Prescott-type equation (Novák, 2012, pg.232)
-			return Ke * (a + b*nN)
+	gen := func(a, b, t, g, alpha, beta float64) (sim, mx, mobs, msim []float64) {
+		etRadToGlobal := func(Ke, a, b, g, tx, tn float64) float64 {
+			// see pg 151 in DeWalle & Rango; attributed to Bristow and Campbell (1984)
+			// ref: Bristow, K.L. and G.S. Campbell, 1984. On the relationship between incoming solar radiation and daily maximum and minimum temperature. Agricultural and Forest Meteorology 31(2):159--166.
+			return Ke * a * (1. - math.Exp(-b*math.Pow(tx-tn, g)))
 		}
-		makkink := func(tm, nN, alpha, beta float64, doy int) float64 {
-			Kg := etRadToGlobal(si.PSIdaily(doy), a, b, nN)
+		// etRadToGlobal := func(Ke, a, b, nN float64) float64 {
+		// 	// the Prescott-type equation (Novák, 2012, pg.232)
+		// 	return Ke * (a + b*nN)
+		// }
+		makkink := func(tx, tn, alpha, beta, a, b, g float64, doy int) float64 {
+			tm := (tx + tn) / 2.
+			Kg := etRadToGlobal(si.PSIdaily(doy), a, b, g, tx, tn)
 			return pet.Makkink(Kg, tm, 101300., alpha, beta)
 		}
 
@@ -54,12 +66,12 @@ func main() {
 		mx, mobs, msim = make([]float64, mc+1), make([]float64, mc+1), make([]float64, mc+1)
 		sim = make([]float64, len(dts))
 		for i, dt := range dts {
-			nN := 1. // ratio of sunshine hours (n) to total possible ( N = si.DaylightHours(doy) )
-			if r[i]+s[i] > t {
-				nN = nNn
-			}
-			tm := (tx[i] + tn[i]) / 2.
-			sim[i] = makkink(tm, nN, alpha, beta, dt.YearDay())
+			// nN := 1. // ratio of sunshine hours (n) to total possible ( N = si.DaylightHours(doy) )
+			// if r[i]+s[i] > t {
+			// 	nN = g
+			// }
+			// sim[i] = makkink(tx[i], tn[i], alpha, beta, nN, dt.YearDay())
+			sim[i] = makkink(tx[i], tn[i], alpha, beta, a, b, g, dt.YearDay())
 			mobs[xr[i]] += obs[i]
 			msim[xr[i]] += sim[i]
 			mx[xr[i]] = float64(xr[i])
@@ -67,30 +79,36 @@ func main() {
 		return
 	}
 
-	// fmt.Println(" optimizing..")
-	// smple := func(u []float64) (a, b, t, nNn, alpha, beta float64) {
-	// 	a = mmaths.LinearTransform(0., 1., u[0])
-	// 	b = mmaths.LinearTransform(0., 1., u[1])
-	// 	t = mmaths.LinearTransform(0., 2., u[2])
-	// 	nNn = mmaths.LinearTransform(0., 1., u[3])
-	// 	alpha = mmaths.LinearTransform(0., 2., u[4])
-	// 	beta = mmaths.LinearTransform(-.005, 0.005, u[5])
-	// 	return
-	// }
-	// eval := func(u []float64) float64 {
-	// 	a, b, t, nNn, alpha, beta := smple(u)
-	// 	_, _, mobs, msim := gen(a, b, t, nNn, alpha, beta)
-	// 	return objfunc.NSE(mobs, msim)
-	// }
-	// rng := rand.New(mrg63k3a.New())
-	// rng.Seed(time.Now().UnixNano())
-	// uFinal, _ := glbopt.SCE(200, 6, rng, eval, false)
-	// aFinal, bFinal, tFinal, nNnFinal, alphaFinal, betaFinal := smple(uFinal)
+	fmt.Println(" optimizing..")
+	smple := func(u []float64) (a, b, t, g, alpha, beta float64) {
+		a = 1.
+		b = mmaths.LinearTransform(0., 1., u[0])
+		t = 0.
+		g = mmaths.LinearTransform(0., 2., u[1])
+		alpha = mmaths.LinearTransform(0., 2., u[2])
+		beta = mmaths.LinearTransform(-.005, 0.005, u[3])
+		// a = mmaths.LinearTransform(0., 1., u[0])
+		// b = mmaths.LinearTransform(0., 1., u[1])
+		// t = mmaths.LinearTransform(0., 2., u[2])
+		// g = mmaths.LinearTransform(0., 1., u[3])
+		// alpha = mmaths.LinearTransform(0., 2., u[4])
+		// beta = mmaths.LinearTransform(-.005, 0.005, u[5])
+		return
+	}
+	eval := func(u []float64) float64 {
+		a, b, t, g, alpha, beta := smple(u)
+		_, _, mobs, msim := gen(a, b, t, g, alpha, beta)
+		return objfunc.NSE(mobs, msim)
+	}
+	rng := rand.New(mrg63k3a.New())
+	rng.Seed(time.Now().UnixNano())
+	uFinal, _ := glbopt.SCE(200, 4, rng, eval, false)
+	aFinal, bFinal, tFinal, gFinal, alphaFinal, betaFinal := smple(uFinal)
 
-	// aFinal, bFinal, tFinal, nNnFinal, alphaFinal, betaFinal := 0.3750253781645832, 0.6862718561400876, 0.0007986224334156789, 0.2732214983494662, 0.6783274265762209, -0.0009731523799474152
-	aFinal, bFinal, tFinal, nNnFinal, alphaFinal, betaFinal := 0.37503, 0.68627, 0.0007986, 0.2732, 0.6783, -0.00097315
-	sim, mx, mobs, msim := gen(aFinal, bFinal, tFinal, nNnFinal, alphaFinal, betaFinal)
-	fmt.Println(aFinal, bFinal, tFinal, nNnFinal, alphaFinal, betaFinal)
+	// aFinal, bFinal, tFinal, gFinal, alphaFinal, betaFinal := 0.3750253781645832, 0.6862718561400876, 0.0007986224334156789, 0.2732214983494662, 0.6783274265762209, -0.0009731523799474152
+	// aFinal, bFinal, tFinal, gFinal, alphaFinal, betaFinal := 0.37503, 0.68627, 0.0007986, 0.2732, 0.6783, -0.00097315
+	sim, mx, mobs, msim := gen(aFinal, bFinal, tFinal, gFinal, alphaFinal, betaFinal)
+	fmt.Println(aFinal, bFinal, tFinal, gFinal, alphaFinal, betaFinal)
 	fmt.Println(" monthly NSE: ", objfunc.NSE(mobs, msim))
 	mmio.Temporal("t.png", dts, map[string][]float64{"PanET": obs, "simulated": sim}, 48.)
 	mmio.Line("m.png", mx, map[string][]float64{"obs": mobs, "sim": msim}, 36.)
