@@ -7,18 +7,25 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/maseology/mmio"
 )
 
 var mcdir string
+var mcwg sync.WaitGroup
 
 // PrepMC creates a root Monte Carlo directory
 func PrepMC(path string) {
 	mcdir = path
 	mmio.MakeDir(mcdir)
 	rand.Seed(time.Now().UnixNano())
+}
+
+// WaitMC waits for all Monte Carlo writes to complete
+func WaitMC() {
+	mcwg.Wait()
 }
 
 func setMCdir() {
@@ -31,6 +38,14 @@ func setMCdir() {
 	mmio.MakeDir(mondir)
 }
 
+func compressMC() {
+	mcwg.Add(1)
+	go func() {
+		defer mcwg.Done()
+		mmio.CompressTarGZ(mondir)
+	}()
+}
+
 type mcmonitor struct{ gy, ga, gr, gg, gb [][]float64 }
 
 func (g *mcmonitor) print(pin map[int][]float64, xr map[int]int, ds []int, fnstep float64) {
@@ -40,8 +55,11 @@ func (g *mcmonitor) print(pin map[int][]float64, xr map[int]int, ds []int, fnste
 	defer gwg.Done()
 	nc := len(g.gy[0])
 	my, ma, mr, mron, mg := make(map[int][]float32, nc), make(map[int][]float32, nc), make(map[int][]float32, nc), make(map[int][]float32, nc), make(map[int][]float32, nc)
-	for c := range xr {
+	for c, i := range xr {
 		my[c], ma[c], mr[c], mron[c], mg[c] = make([]float32, 12), make([]float32, 12), make([]float32, 12), make([]float32, 12), make([]float32, 12)
+		if _, ok := mron[ds[i]]; !ok {
+			mron[ds[i]] = make([]float32, 12)
+		}
 	}
 	f := 30. * 1000. / fnstep
 	for c, i := range xr {

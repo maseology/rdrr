@@ -13,7 +13,7 @@ import (
 )
 
 // masterForcing returns forcing data from mastreDomain
-func masterForcing() (*FORC, int) {
+func masterForcing() (*FORC, int, string) {
 	if masterDomain.frc == nil {
 		log.Fatalf(" basin.masterForcing error: masterDomain.frc == nil\n")
 	}
@@ -21,16 +21,16 @@ func masterForcing() (*FORC, int) {
 	// 	log.Fatalf(" basin.masterForcing error: invalid *FORC type in masterDomain\n")
 	// }
 	if masterDomain.frc.h.LocationCode() == 0 {
-		return masterDomain.frc, -1
+		return masterDomain.frc, -1, masterDomain.dir
 	}
-	return masterDomain.frc, int(masterDomain.frc.h.Locations[0][0].(int32))
+	return masterDomain.frc, int(masterDomain.frc.h.Locations[0][0].(int32)), masterDomain.dir
 }
 
 // LoadForcing (re-)loads forcing data
-func loadForcing(fp string, print bool) (*FORC, int) {
+func loadForcing(fp string, print bool) (*FORC, int, string) {
 	// import forcings
 	if _, ok := mmio.FileExists(fp); !ok {
-		return nil, -1
+		return nil, -1, ""
 	}
 	m, d, err := met.ReadMET(fp, print)
 	if err != nil {
@@ -40,7 +40,7 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 	// checks
 	dtb, dte, intvl := m.BeginEndInterval() // start date, end date, time step interval [s]
 	temp, k := make([]temporal, m.Nstep()), 0
-	x := m.WBDCxr()
+	x, mdir := m.WBDCxr(), mmio.GetFileDir(fp)
 	for dt := dtb; !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
 		if d.T[k] != dt {
 			log.Fatalf("loadForcing error: date mis-match: %v vs %v", d.T[k], dt)
@@ -65,10 +65,10 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 		h:   *m, // met.Header
 		t:   temp,
 		nam: mmio.FileName(fp, false), // station name
-	}, outlet
+	}, outlet, mdir
 }
 
-func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
+func loadGOBforcing(gobdir string, print bool) (*FORC, int, string) {
 	// import forcings
 	loadGOB := func(fp string) ([][]float64, error) {
 		var d [][]float64
@@ -178,5 +178,5 @@ func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
 		t:   temp,
 		x:   intsct,
 		nam: "gob",
-	}, -1
+	}, -1, gobdir
 }

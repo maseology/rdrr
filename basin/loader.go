@@ -25,10 +25,10 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		if len(l.Fmet) > 0 {
 			tt := mmio.NewTimer()
 			if strings.ToLower(l.Fmet) == "gob" {
-				frc, _ = loadGOBforcing(l.Dir+"met/", true)
+				frc, _, _ = loadGOBforcing(l.Dir+"met/", true)
 			} else {
 				fmt.Printf(" loading: %s\n", l.Fmet)
-				frc, _ = loadForcing(l.Fmet, true)
+				frc, _, _ = loadForcing(l.Fmet, true)
 			}
 			tt.Lap("met loaded")
 		} else {

@@ -1,6 +1,7 @@
 package basin
 
 import (
+	"fmt"
 	"log"
 	"path/filepath"
 
@@ -50,6 +51,8 @@ func loadSWS(gd *grid.Definition, fp string) (sws, dsws map[int]int, swscidxr ma
 		for _, ln := range d {
 			dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
 		}
+	} else {
+		fmt.Printf(" warning: sws topology (*.topo) not found\n")
 	}
 	return
 }
