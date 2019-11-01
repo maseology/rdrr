@@ -18,6 +18,7 @@ type domain struct {
 	rtr  *RTR             // subwatershed topology
 	gd   *grid.Definition // grid definition
 	obs  []int            // observation cell IDs
+	dir  string
 }
 
 // LoadMasterDomain loads all data from which sub-domain scale models can be derived
@@ -41,6 +42,7 @@ func newDomain(ldr *Loader, buildEP bool) domain {
 		rtr:  &rtr,
 		gd:   gd,
 		obs:  obs,
+		dir:  ldr.Dir,
 	}
 }
 
@@ -57,6 +59,7 @@ func newUniformDomain(ldr *Loader, buildEP bool) domain {
 		rtr:  &rtr,
 		gd:   gd,
 		obs:  obs,
+		dir:  ldr.Dir,
 	}
 }
 
@@ -66,7 +69,7 @@ func ReLoadMasterForcings(fp string) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" ReLoadMasterForcings error: masterDomain not loaded")
 	}
-	masterDomain.frc, _ = loadForcing(fp, true)
+	masterDomain.frc, _, _ = loadForcing(fp, true)
 }
 
 // IsEmpty returns true if the domain has no data

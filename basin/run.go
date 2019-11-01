@@ -61,13 +61,13 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 		if masterDomain.frc == nil {
 			log.Fatalf(" basin.RunMaster error: no forcings made available\n")
 		}
-		frc, _ = masterForcing()
+		frc, _, _ = masterForcing()
 	} else if strings.ToLower(metfp) == "gob" {
-		frc, _ = loadGOBforcing(mdldir+"met/", print)
+		frc, _, _ = loadGOBforcing(mdldir+"met/", print)
 	} else {
-		frc, _ = loadForcing(metfp, print)
+		frc, _, _ = loadForcing(metfp, print)
 	}
-	b = masterDomain.newSubDomain(frc, -1)
+	b = masterDomain.newSubDomain(frc, -1, mdldir)
 	b.mdldir = mdldir
 	b.cid0 = -1
 	if len(b.rtr.swscidxr) == 1 {

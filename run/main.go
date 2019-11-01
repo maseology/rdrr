@@ -33,6 +33,7 @@ func main() {
 	basin.LoadMasterDomain(&ldr, true)
 	tt.Print("Master Domain Load complete\n")
 	basin.PrepMC(indir + "MC/")
+	defer basin.WaitMC()
 
 	// run model
 	basin.SampleMaster(indir, 100)
