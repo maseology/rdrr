@@ -69,7 +69,7 @@ func ReLoadMasterForcings(fp string) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" ReLoadMasterForcings error: masterDomain not loaded")
 	}
-	masterDomain.frc, _, _ = loadForcing(fp, true)
+	masterDomain.frc, _ = loadForcing(fp, true)
 }
 
 // IsEmpty returns true if the domain has no data

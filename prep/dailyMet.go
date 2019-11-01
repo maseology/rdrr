@@ -1,7 +1,6 @@
 package prep
 
 import (
-	"fmt"
 	"log"
 	"math"
 	"time"
@@ -36,7 +35,8 @@ const (
 func etRadToGlobal(Ke, tx, tn float64) float64 {
 	// see pg 151 in DeWalle & Rango; attributed to Bristow and Campbell (1984)
 	// ref: Bristow, K.L. and G.S. Campbell, 1984. On the relationship between incoming solar radiation and daily maximum and minimum temperature. Agricultural and Forest Meteorology 31(2):159--166.
-	return Ke * a * (1. - math.Exp(-b*math.Pow(tx-tn, g)))
+	Kg := Ke * a * (1. - math.Exp(-b*math.Pow(tx-tn, g)))
+	return Kg
 }
 
 // ComputeDaily updates the Cell's state
@@ -46,7 +46,10 @@ func (c *Cell) ComputeDaily(rain, snow, tn, tx float64, dt time.Time) (y, ep flo
 	}
 	tm, doy := (tx+tn)/2., dt.YearDay()
 	if math.IsNaN(tm) {
-		fmt.Println("blah")
+		log.Fatalf("%v NaN found: tx=%f  tn=%f  ", dt, tx, tn)
+	}
+	if tn > tx {
+		tn = tx - 0.01
 	}
 	y = c.SP.Update(rain, snow, tm)
 	// nN := 1. // ratio of sunshine hours (n) to total possible ( N = si.DaylightHours(doy) )

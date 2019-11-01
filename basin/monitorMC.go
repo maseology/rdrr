@@ -42,7 +42,7 @@ func compressMC() {
 	mcwg.Add(1)
 	go func() {
 		defer mcwg.Done()
-		mmio.CompressTarGZ(mondir)
+		mmio.CompressTarGZ(mondir[:len(mondir)-1])
 	}()
 }
 

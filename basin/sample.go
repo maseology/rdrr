@@ -129,12 +129,13 @@ func SampleMaster(outdir string, nsmpl int) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
 	}
+	fmt.Println("Building Sub Domain..")
 	var b subdomain
 	if masterDomain.frc == nil {
 		log.Fatalf(" basin.RunMaster error: no forcings made available\n")
 	}
-	frc, _, _ := masterForcing()
-	b = masterDomain.newSubDomain(frc, -1, outdir)
+	frc, _ := masterForcing()
+	b = masterDomain.newSubDomain(frc, -1)
 	b.mdldir = outdir
 	b.cid0 = -1
 	if len(b.rtr.swscidxr) == 1 {

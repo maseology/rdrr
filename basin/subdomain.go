@@ -50,17 +50,17 @@ func (b *subdomain) print(dir string) error {
 	return nil
 }
 
-func (d *domain) newSubDomain(frc *FORC, outlet int, mdldir string) subdomain {
+func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	_, ok := d.strc.t.TEC[outlet]
 	if outlet < 0 || !ok {
-		return d.noSubDomain(frc, mdldir)
+		return d.noSubDomain(frc)
 	}
 	if frc == nil {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
 	cids, ds := d.strc.t.DownslopeContributingAreaIDs(outlet)
 	strms := buildStreams(d.strc, cids)
-	newRTR, swsord, _ := d.rtr.subset(d.strc.t, cids, strms, outlet, mdldir+string(outlet))
+	newRTR, swsord, _ := d.rtr.subset(d.strc.t, cids, strms, outlet)
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)
@@ -114,7 +114,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int, mdldir string) subdomain {
 	return b
 }
 
-func (d *domain) noSubDomain(frc *FORC, mdldir string) subdomain {
+func (d *domain) noSubDomain(frc *FORC) subdomain {
 	if frc == nil {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
@@ -122,7 +122,7 @@ func (d *domain) noSubDomain(frc *FORC, mdldir string) subdomain {
 	cid0 := cids[len(cids)-1] // assumes only one outlet
 	ds[cid0] = -1
 	strms := buildStreams(d.strc, cids)
-	newRTR, swsord, _ := d.rtr.subset(d.strc.t, cids, strms, cids[len(cids)-1], mdldir) // assumes only one outlet
+	newRTR, swsord, _ := d.rtr.subset(d.strc.t, cids, strms, cids[len(cids)-1]) // assumes only one outlet
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)

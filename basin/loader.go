@@ -25,10 +25,10 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		if len(l.Fmet) > 0 {
 			tt := mmio.NewTimer()
 			if strings.ToLower(l.Fmet) == "gob" {
-				frc, _, _ = loadGOBforcing(l.Dir+"met/", true)
+				frc, _ = loadGOBforcing(l.Dir+"met/", true)
 			} else {
 				fmt.Printf(" loading: %s\n", l.Fmet)
-				frc, _, _ = loadForcing(l.Fmet, true)
+				frc, _ = loadForcing(l.Fmet, true)
 			}
 			tt.Lap("met loaded")
 		} else {
@@ -45,7 +45,8 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
 	var ilu, isg, ilk, sws, dsws, ucnt map[int]int
-	var swscidxr map[int][]int
+	var swscidxr map[int][]int  // set of cells for every sws siswd{[]cellid}
+	var uca map[int]map[int]int // unit contirbuing areas
 
 	wg.Add(1)
 	go readmet()
@@ -168,6 +169,18 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 	}
 	wg.Wait()
 
+	readUCA := func() {
+		tt := mmio.NewTimer()
+		defer wg.Done()
+		fmt.Printf(" loading: %s\n", l.Fhdem+".uca.gob")
+		uca = loadUCA(&t, swscidxr, sws, l.Fhdem+".uca.gob")
+		tt.Lap("UCA loaded")
+	}
+
+	wg.Add(1)
+	go readUCA()
+	wg.Wait()
+
 	// compute static variables
 	cid0 := -1
 	// nc := gd.Nactives()
@@ -252,6 +265,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		sws:      sws,
 		dsws:     dsws,
 		swscidxr: swscidxr,
+		uca:      uca,
 	}
 
 	return frc, mdl, mpr, rtr, gd, obs
