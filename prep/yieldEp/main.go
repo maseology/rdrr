@@ -24,6 +24,7 @@ const (
 	demFP     = "S:/ormgp_rdrr/met/ORMGP_500.hdem"
 	metFP     = "S:/ormgp_rdrr/met/ORMGP_500a_YCDB.met"
 	metOutFP  = "S:/ormgp_rdrr/met/" //"S:/ormgp_rdrr/met/RDRR_500a_YCDB.met" //
+	patm      = 101300.              // (constant) atmospheric pressure [Pa]
 )
 
 func main() {
@@ -67,14 +68,15 @@ func main() {
 
 	// initialize
 	cells, x := make([]prep.Cell, gd.Nactives()), hdr.WBDCxr()
-	tindex, ddfc, baseT, tsf := 0.009981, 1.794442, -2.035386, 0.211562
+	b, g, alpha, beta := .06142, .899, 1.3077261, -0.000361             // calibrated PE parameters
+	tindex, ddfc, baseT, tsf := 0.009981, 1.794442, -2.035386, 0.211562 // calibrated snowmelt parameters
 	for k, i := range gd.Sactives {
 		latitude, _, err := UTM.ToLatLon(gd.Coord[i].X, gd.Coord[i].Y, 17, "", true)
 		if err != nil {
 			log.Fatalf(" prep error: %v -- (x,y)=(%f, %f); cid: %d\n", err, gd.Coord[i].X, gd.Coord[i].Y, i)
 		}
 		t := tem.TEC[i]
-		cells[k] = prep.NewCell(latitude, math.Tan(t.G), math.Pi/2.-t.A, tindex, ddfc, baseT, tsf)
+		cells[k] = prep.NewCell(latitude, math.Tan(t.G), math.Pi/2.-t.A, b, g, alpha, beta, tindex, ddfc, baseT, tsf)
 	}
 
 	if mmio.IsDir(metOutFP) {
@@ -88,7 +90,7 @@ func main() {
 			fmt.Println(dt)
 			for i := 0; i < gd.Nactives(); i++ {
 				v, c := dat.D[k][i], cells[i]
-				ys[i][k], as[i][k] = c.ComputeDaily(v[x["Rainfall"]], v[x["Snowfall"]], v[x["MinDailyT"]], v[x["MaxDailyT"]], dt)
+				ys[i][k], as[i][k] = c.ComputeDaily(v[x["Rainfall"]], v[x["Snowfall"]], v[x["MinDailyT"]], v[x["MaxDailyT"]], patm, dt)
 			}
 		}
 		if err := saveGOB(metOutFP+"frc.y.gob", ys); err != nil {
@@ -111,7 +113,7 @@ func main() {
 			a, j := make([]float32, gd.Nactives()*2), 0
 			for i := 0; i < gd.Nactives(); i++ {
 				v, c := dat.D[k][i], cells[i]
-				y, ep := c.ComputeDaily(v[x["Rainfall"]], v[x["Snowfall"]], v[x["MinDailyT"]], v[x["MaxDailyT"]], dt)
+				y, ep := c.ComputeDaily(v[x["Rainfall"]], v[x["Snowfall"]], v[x["MinDailyT"]], v[x["MaxDailyT"]], patm, dt)
 				a[j] = float32(y)
 				a[j+1] = float32(ep)
 				j += 2
