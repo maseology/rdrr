@@ -67,13 +67,14 @@ func main() {
 
 	// initialize
 	cells, x := make([]prep.Cell, gd.Nactives()), hdr.WBDCxr()
+	tindex, ddfc, baseT, tsf := 0.009981, 1.794442, -2.035386, 0.211562
 	for k, i := range gd.Sactives {
 		latitude, _, err := UTM.ToLatLon(gd.Coord[i].X, gd.Coord[i].Y, 17, "", true)
 		if err != nil {
 			log.Fatalf(" prep error: %v -- (x,y)=(%f, %f); cid: %d\n", err, gd.Coord[i].X, gd.Coord[i].Y, i)
 		}
 		t := tem.TEC[i]
-		cells[k] = prep.NewCell(latitude, math.Tan(t.G), math.Pi/2.-t.A)
+		cells[k] = prep.NewCell(latitude, math.Tan(t.G), math.Pi/2.-t.A, tindex, ddfc, baseT, tsf)
 	}
 
 	if mmio.IsDir(metOutFP) {
