@@ -16,6 +16,8 @@
 *.old
 *.rar
 *.png
+*.csv
+*.Rhistory
 /bak
 /doc/latex
 /doc/images
