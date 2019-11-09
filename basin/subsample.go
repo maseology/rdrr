@@ -72,7 +72,11 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 		pp.drel[i] = p.gw[sid].D[c]
 		pp.ws[i] = *p.ws[c]
 		pp.p0[i] = p.p0[c]
-		pp.ds[i] = b.ds[c]
+		if d, ok := b.ds[c]; ok {
+			pp.ds[i] = d
+		} else {
+			pp.ds[i] = -1 // farfield
+		}
 		// pp.f[i] = b.strc.f[c]
 		pp.cxr[c] = i
 		pp.mxr[i] = b.frc.x[c]
@@ -111,8 +115,11 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 
 func (pp *subsample) initialize(q0, Ds, m float64, print bool) {
 	pp.dm = func() (dm float64) {
-		q0t, n := 0., 0
 		dm = 0. //-m * math.Log(q0/Qs)
+		if len(pp.strm) == 0 {
+			return
+		}
+		q0t, n := 0., 0
 		for {
 			for i, v := range pp.strm {
 				q0t += v * math.Exp((Ds-dm-pp.drel[i])/m)

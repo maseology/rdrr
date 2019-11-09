@@ -59,9 +59,13 @@ func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
 						pp.in = make(map[int][]float64, len(t)) // upstream inputs
 						for _, v := range t {
 							if _, ok := pp.in[pp.cxr[v.c]]; ok {
-								log.Fatalf("TODO (subdomain.eval): more than one inputs transferred to the same cell: sid: %d, cell: %d\n", sid, v.c)
+								for i, vv := range v.v {
+									pp.in[pp.cxr[v.c]][i] += vv
+								}
+								// log.Fatalf("TODO (subdomain.eval): more than one inputs transferred to the same cell: sid: %d, cell: %d\n", sid, v.c)
+							} else {
+								pp.in[pp.cxr[v.c]] = v.v
 							}
-							pp.in[pp.cxr[v.c]] = v.v
 						}
 					}
 					if sid == b.cid0 { // outlet

@@ -1,6 +1,7 @@
 package basin
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -11,49 +12,31 @@ import (
 
 // RTR holds topological info for subwatershed routing
 type RTR struct {
-	swscidxr, swsstrmxr map[int][]int
+	swscidxr, swsstrmxr map[int][]int       // cross reference sws to cids; sws to stream cell ids
 	sws, dsws           map[int]int         // cross reference of cid to sub-watershed ID; map upsws{downsws}
 	uca                 map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
 }
 
 func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]int, []int) {
-	var sids []int // slice of subwatershed IDs, safely ordered downslope
-	var swscidxr map[int][]int
-	var swsstrmxr map[int][]int
-	sws, dsws := make(map[int]int, len(cids)), make(map[int]int, len(r.dsws))
+	var wg sync.WaitGroup
+	var swscidxr map[int][]int  // ordered cids, per sws
+	var swsstrmxr map[int][]int // stream cells per sws
+	var sws, dsws map[int]int   // sws mapping; downslope watershed mapping
+	var sids []int              // slice of subwatershed IDs, safely ordered downslope
+	var ord [][]int             // ordered groupings of sws for parallel operations
 	if outlet < 0 {
-		log.Fatalf(" RTR.subset error: outlet cell needs to be provided")
-	}
-	if len(r.sws) > 0 {
-		if _, ok := r.sws[outlet]; !ok {
-			log.Fatalf(" RTR.subset error: outlet cell not belonging to a sws")
-		}
+		// log.Fatalf(" RTR.subset error: outlet cell needs to be provided")
+		sws = make(map[int]int, len(cids))
+		dsws = r.dsws
 		sct := make(map[int][]int, len(r.swscidxr))
-		osws := r.sws[outlet]
 		for _, cid := range cids {
 			if s, ok := r.sws[cid]; ok {
-				if s == osws {
-					sws[cid] = outlet // crops sws to outlet
-				} else {
-					sws[cid] = s
-				}
+				sws[cid] = s
 			} else {
-				sws[cid] = cid // sacrificial main channel outlet cells
+				log.Fatalf(" RTR.subset error: cell not belonging to a sws")
 			}
-			if _, ok := dsws[sws[cid]]; !ok { // temporarily collect sws's
-				if sws[cid] != outlet {
-					if r.dsws[sws[cid]] == osws {
-						dsws[sws[cid]] = outlet
-					} else {
-						if _, ok := r.dsws[sws[cid]]; ok {
-							dsws[sws[cid]] = r.dsws[sws[cid]]
-						} else {
-							dsws[sws[cid]] = -1
-						}
-					}
-				} else {
-					dsws[sws[cid]] = -1
-				}
+			if _, ok := dsws[sws[cid]]; !ok {
+				dsws[sws[cid]] = -1
 			}
 			if _, ok := sct[sws[cid]]; !ok {
 				sct[sws[cid]] = []int{cid}
@@ -61,12 +44,104 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 				sct[sws[cid]] = append(sct[sws[cid]], cid)
 			}
 		}
+		sids = mmaths.OrderFromToTree(dsws, -1)
 		swscidxr = make(map[int][]int, len(sct))
 		for k, v := range sct {
-			a := make([]int, len(v))
+			a := make([]int, len(v)) // note: cids here will be ordered topologically
 			copy(a, v)
 			swscidxr[k] = a
 		}
+	} else {
+		sws, dsws = make(map[int]int, len(cids)), make(map[int]int, len(r.dsws))
+		if len(r.sws) > 0 {
+			if _, ok := r.sws[outlet]; !ok {
+				log.Fatalf(" RTR.subset error: outlet cell not belonging to a sws")
+			}
+			sct := make(map[int][]int, len(r.swscidxr))
+			osws := r.sws[outlet]
+			for _, cid := range cids {
+				if s, ok := r.sws[cid]; ok {
+					if s == osws {
+						sws[cid] = outlet // crops sws to outlet
+					} else {
+						sws[cid] = s
+					}
+				} else {
+					sws[cid] = cid // sacrificial main channel outlet cells
+				}
+				if _, ok := dsws[sws[cid]]; !ok { // temporarily collect sws's
+					if sws[cid] != outlet {
+						if r.dsws[sws[cid]] == osws {
+							dsws[sws[cid]] = outlet
+						} else {
+							if _, ok := r.dsws[sws[cid]]; ok {
+								dsws[sws[cid]] = r.dsws[sws[cid]]
+							} else {
+								dsws[sws[cid]] = -1
+							}
+						}
+					} else {
+						dsws[sws[cid]] = -1 // outlet sws grains to farfield
+					}
+				}
+				if _, ok := sct[sws[cid]]; !ok {
+					sct[sws[cid]] = []int{cid}
+				} else {
+					sct[sws[cid]] = append(sct[sws[cid]], cid)
+				}
+			}
+			swscidxr = make(map[int][]int, len(sct))
+			for k, v := range sct {
+				a := make([]int, len(v)) // note: cids here will be ordered topologically
+				copy(a, v)
+				swscidxr[k] = a
+			}
+			sids = mmaths.OrderFromToTree(dsws, -1)
+		} else { // entire model domain is one subwatershed to outlet
+			for _, cid := range cids {
+				sws[cid] = outlet
+			}
+			sids = []int{outlet}
+			swscidxr = map[int][]int{outlet: cids}
+		}
+	}
+
+	getSWSord := func() { // build a concurrent-safe ordering of sws
+		defer wg.Done()
+		// compute sws topology
+		tt := mmio.NewTimer()
+		defer tt.Print(" sws topology build complete")
+		// ord = mmaths.OrderedForest(dsws, -1)
+
+		// Top heavy
+		cnt := make(map[int]int, len(sids))
+		incr := func(i, v int) {
+			if _, ok := cnt[i]; !ok {
+				cnt[i] = v + 1
+			} else {
+				if v+1 > cnt[i] {
+					cnt[i] = v + 1
+				}
+			}
+		}
+		for _, s := range sids {
+			incr(s, 0)
+			if v, ok := dsws[s]; ok {
+				if v >= 0 { // outlet =-1
+					incr(v, cnt[s])
+				}
+			}
+		}
+		mord, lord := mmio.InvertMap(cnt)
+		ord = make([][]int, len(lord)) // concurrent-safe ordering of subwatersheds
+		for i, k := range lord {
+			cpy := make([]int, len(mord[k]))
+			copy(cpy, mord[k])
+			ord[i] = cpy
+		}
+	}
+	getSWSstrms := func() {
+		defer wg.Done()
 		sst := make(map[int][]int, len(r.swsstrmxr))
 		for _, c := range strms {
 			if s, ok := sws[c]; ok {
@@ -83,54 +158,12 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			copy(a, v)
 			swsstrmxr[k] = a
 		}
-		sids = mmaths.OrderFromToTree(dsws, -1)
-	} else { // entire model domain is one subwatershed to outlet
-		for _, cid := range cids {
-			sws[cid] = outlet
-		}
-		sids = []int{outlet}
-		swscidxr = map[int][]int{outlet: cids}
 	}
 
-	var wg sync.WaitGroup
-	var ord [][]int
-	getSWSord := func() { // build a concurrent-safe ordering of sws
-		defer wg.Done()
-		// compute sws topology
-		tt := mmio.NewTimer()
-		defer tt.Print(" sws topology build complete")
-		ord = mmaths.OrderedForest(dsws, -1)
-
-		// cnt := make(map[int]int, len(sids))
-		// incr := func(i, v int) {
-		// 	if _, ok := cnt[i]; !ok {
-		// 		cnt[i] = v + 1
-		// 	} else {
-		// 		if v+1 > cnt[i] {
-		// 			cnt[i] = v + 1
-		// 		}
-		// 	}
-		// }
-		// for _, s := range sids {
-		// 	incr(s, 0)
-		// 	if v, ok := dsws[s]; ok {
-		// 		if v >= 0 { // outlet =-1
-		// 			incr(v, cnt[s])
-		// 		}
-		// 	}
-		// }
-		// mord, lord := mmio.InvertMap(cnt)
-		// ord = make([][]int, len(lord)) // concurrent-safe ordering of subwatersheds
-		// for i, k := range lord {
-		// 	cpy := make([]int, len(mord[k]))
-		// 	copy(cpy, mord[k])
-		// 	ord[i] = cpy
-		// }
-	}
-
-	wg.Add(1)
+	wg.Add(2)
 	// go getUCA()
 	go getSWSord()
+	go getSWSstrms()
 	wg.Wait()
 
 	return &RTR{
@@ -145,6 +178,14 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 func (r *RTR) print(dir string) {
 	mmio.WriteIMAP(dir+"sws.imap", r.sws)
 	if len(r.dsws) > 0 {
-		mmio.WriteIMAP(dir+"dsws.imap", r.dsws)
+		gdsws := make(map[int]int, len(r.sws))
+		for k, v := range r.sws {
+			if d, ok := r.dsws[v]; ok {
+				gdsws[k] = d
+			} else {
+				fmt.Println("RTR.print error: issue with sws mapping")
+			}
+		}
+		mmio.WriteIMAP(dir+"dsws.imap", gdsws)
 	}
 }

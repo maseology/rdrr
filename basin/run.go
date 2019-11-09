@@ -36,7 +36,7 @@ func RunDefault(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact
 		tt.Lap("sample build complete")
 		if len(chkdir) > 0 {
 			mmio.MakeDir(chkdir)
-			masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
+			// masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
 			b.print(chkdir)
 			smpl.print(chkdir)
 			tt.Lap("sample maps printed")
@@ -70,7 +70,7 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 	} else {
 		frc, _ = loadForcing(metfp, print)
 	}
-	b = masterDomain.newSubDomain(frc, -1)
+	b = masterDomain.noSubDomain(frc)
 	b.mdldir = mdldir
 	b.cid0 = -1
 	if len(b.rtr.swscidxr) == 1 {
@@ -92,7 +92,7 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 		tt.Lap("complete")
 		if len(chkdir) > 0 {
 			mmio.MakeDir(chkdir)
-			masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
+			// masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
 			b.print(chkdir)
 			smpl.print(chkdir)
 			tt.Lap("sample maps printed")

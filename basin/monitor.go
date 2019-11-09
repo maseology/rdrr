@@ -26,7 +26,7 @@ func (m *monitor) print() {
 
 type gmonitor struct{ gy, ga, gr, gg, gb []float64 }
 
-func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, xr map[int]int, ds []int, fnstep float64) {
+func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, ds []int, fnstep float64) {
 	gwg.Add(1)
 	gmu.Lock()
 	defer gmu.Unlock()
@@ -34,7 +34,10 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, xr map[int]int, ds
 	my, ma, mr, mron, mrgen, mg := make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy))
 	ms, msma, msrf := make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy))
 	f := 365.24 * 1000. / fnstep
-	for c, i := range xr {
+	for c := range cxr {
+		mron[c] = 0.
+	}
+	for c, i := range cxr {
 		my[c] = g.gy[i] * f
 		ma[c] = g.ga[i] * f
 		mr[c] = g.gr[i] * f
@@ -49,13 +52,12 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, xr map[int]int, ds
 		}
 		if _, ok := pin[i]; ok {
 			for _, v := range pin[i] {
-				mron[c] += v // add inputs
+				mron[c] += v * f // add external inputs
 			}
-			mron[c] *= f
 		}
 	}
 
-	for c := range xr {
+	for c := range cxr {
 		mrgen[c] = mr[c] - mron[c]
 		if mg[c] < 0. {
 			mrgen[c] += mg[c] // exclude runoff from groundwater discharge
@@ -65,12 +67,14 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, xr map[int]int, ds
 		}
 	}
 
-	for i, c := range xr {
+	mw := make(map[int]float64, len(cxr))
+	for c, i := range cxr {
 		y, a, g, r, o, s := my[c], ma[c], mg[c], mr[c], mron[c], ms[c]
 		wbal := y + o - (a + g + r + s)
 		if math.Abs(wbal) > .01*y {
-			fmt.Printf("cell %d (index %d) wbal error: (delSto = %f)\n", c, i, s)
+			fmt.Printf("cell id %d (index %d) wbal error: (wbal = %.1fmm  delSto = %.3fmm)\n", c, i, wbal, s)
 		}
+		mw[c] = wbal
 	}
 
 	// NOTE: wbal = yield + ron - (aet + gwe + olf + s)
@@ -83,6 +87,7 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, xr map[int]int, ds
 	mmio.WriteRMAP(mondir+"g.sto.rmap", ms, true)
 	mmio.WriteRMAP(mondir+"g.sma.rmap", msma, true)
 	mmio.WriteRMAP(mondir+"g.srf.rmap", msrf, true)
+	mmio.WriteRMAP(mondir+"g.wbal.rmap", mw, true)
 }
 
 // DeleteMonitors deletes monitor output from previous model run
@@ -98,6 +103,7 @@ func DeleteMonitors(mdldir string) {
 	mmio.DeleteFile(mondir + "g.sto.rmap")
 	mmio.DeleteFile(mondir + "g.sma.rmap")
 	mmio.DeleteFile(mondir + "g.srf.rmap")
+	mmio.DeleteFile(mondir + "g.wbal.rmap")
 	// mmio.DeleteAllSubdirectories(mondir)
 }
 

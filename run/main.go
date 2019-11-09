@@ -25,7 +25,7 @@ func main() {
 		Fhdem: indir + "ORMGP_50_hydrocorrect.uhdem",
 		Flu:   indir + "ORMGP_50_hydrocorrect_SOLRISv2_ID.grd",
 		Fsg:   indir + "ORMGP_50_hydrocorrect_PorousMedia_ID.grd",
-		Fsws:  indir + "ORMGP_50_hydrocorrect_SWS10.indx",
+		Fsws:  indir + "ORMGP_50_hydrocorrect_SWS10_merged.indx",
 		Fobs:  indir + "ORMGP_50_hydrocorrect.uhdem.obs",
 	}
 
@@ -33,7 +33,6 @@ func main() {
 	basin.LoadMasterDomain(&ldr, true)
 	tt.Print("Master Domain Load complete\n")
 	basin.PrepMC(indir + "MC/")
-	defer basin.WaitMC()
 
 	// run model
 	basin.SampleMaster(indir, 100)

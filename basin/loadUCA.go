@@ -60,8 +60,7 @@ func loadUCA(topo *tem.TEM, swscidxr map[int][]int, sws map[int]int, fp string) 
 		}
 		close(ch)
 		go func() {
-			prfx := ""
-			if err := saveUCAgob(uca, prfx); err != nil {
+			if err := saveUCAgob(uca, fp); err != nil {
 				log.Fatalf(" RTR.subset getUCA.saveUCAgob error: %v", err)
 			}
 		}()
@@ -69,8 +68,8 @@ func loadUCA(topo *tem.TEM, swscidxr map[int][]int, sws map[int]int, fp string) 
 	return
 }
 
-func saveUCAgob(uca map[int]map[int]int, prfx string) error {
-	f, err := os.Create(prfx + "uca.gob")
+func saveUCAgob(uca map[int]map[int]int, fp string) error {
+	f, err := os.Create(fp)
 	defer f.Close()
 	if err != nil {
 		return err

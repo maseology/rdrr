@@ -119,10 +119,11 @@ func (d *domain) noSubDomain(frc *FORC) subdomain {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
 	cids, ds := d.strc.t.DownslopeContributingAreaIDs(-1)
-	cid0 := cids[len(cids)-1] // assumes only one outlet
-	ds[cid0] = -1
+	// cid0 := cids[len(cids)-1] // assumes only one outlet
+	// ds[cid0] = -1
+	cid0 := -1
 	strms := buildStreams(d.strc, cids)
-	newRTR, swsord, _ := d.rtr.subset(d.strc.t, cids, strms, cids[len(cids)-1]) // assumes only one outlet
+	newRTR, swsord, _ := d.rtr.subset(d.strc.t, cids, strms, cid0)
 	frc.subset(cids)
 	ncid := len(cids)
 	fncid := float64(ncid)

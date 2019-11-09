@@ -135,7 +135,7 @@ func SampleMaster(outdir string, nsmpl int) {
 		log.Fatalf(" basin.RunMaster error: no forcings made available\n")
 	}
 	frc, _ := masterForcing()
-	b = masterDomain.newSubDomain(frc, -1)
+	b = masterDomain.noSubDomain(frc)
 	b.mdldir = outdir
 	b.cid0 = -1
 	if len(b.rtr.swscidxr) == 1 {
@@ -181,7 +181,7 @@ func SampleMaster(outdir string, nsmpl int) {
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
 		b.eval(&smpl, dinc, m, false)
 		WaitMonitors()
-		compressMC()
+		compressMC(masterDomain.gd)
 	}
 
 	tt := mmio.NewTimer()

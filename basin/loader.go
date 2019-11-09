@@ -172,8 +172,9 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 	readUCA := func() {
 		tt := mmio.NewTimer()
 		defer wg.Done()
-		fmt.Printf(" loading: %s\n", l.Fhdem+".uca.gob")
-		uca = loadUCA(&t, swscidxr, sws, l.Fhdem+".uca.gob")
+		fp := mmio.RemoveExtension(l.Fsws) + ".uca.gob"
+		fmt.Printf(" loading: %s\n", fp)
+		uca = loadUCA(&t, swscidxr, sws, fp)
 		tt.Lap("UCA loaded")
 	}
 
