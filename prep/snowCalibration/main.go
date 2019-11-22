@@ -20,7 +20,7 @@ import (
 func main() {
 	tt := mmio.NewTimer()
 	defer tt.Print("snowmelt evaluation complete")
-	fp := "S:/ormgp_rdrr/met/stations.json" // "M:/ORMGP/met/stations.json"
+	fp := "S:/ormgp_rdrr/met/stations.json" // "M:/ORMGP/met/stations.json" // from pyMet align.py 191112
 
 	dat := func() [][]float64 { // load data
 		f, err := os.Open(fp)

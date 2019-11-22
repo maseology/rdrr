@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/maseology/glbopt"
-	"github.com/maseology/mmaths"
-	"github.com/maseology/objfunc"
-	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
-
 	"github.com/maseology/goHydro/met"
 	"github.com/maseology/goHydro/pet"
 	"github.com/maseology/goHydro/solirrad"
+	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
+	"github.com/maseology/objfunc"
+	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
 func main() {
@@ -112,11 +111,22 @@ func main() {
 	fmt.Println(" monthly NSE: ", objfunc.NSE(mobs, msim))
 	mmio.Temporal("t.png", dts, map[string][]float64{"PanET": obs, "simulated": sim}, 48.)
 	mmio.Line("m.png", mx, map[string][]float64{"obs": mobs, "sim": msim}, 36.)
+	ftoi := func(f []float64) []interface{} {
+		b := make([]interface{}, len(f))
+		for i := range f {
+			b[i] = f[i]
+		}
+		return b
+	}
+	mmio.WriteCSV("m.csv", "month,obs,sim", ftoi(mx), ftoi(mobs), ftoi(msim))
 	mmio.Scatter11("s.png", mobs, msim)
 }
 
 /*
  --using Bristow and Campbell
+1 0.060639679562861176 0 0.8972864886528819 1.3265625764694242 -0.0003664953523919842
+ monthly NSE:  0.8240706890181866
+
 1 0.06142000937166982 0 0.8993576921076015 1.3077260971977016 -0.0003611220703204068
  monthly NSE:  0.8240671569965909
 
