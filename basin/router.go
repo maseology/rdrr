@@ -110,7 +110,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 		defer wg.Done()
 		// compute sws topology
 		tt := mmio.NewTimer()
-		defer tt.Print(" sws topology build complete")
+		defer tt.Print("sws topology build complete")
 		// ord = mmaths.OrderedForest(dsws, -1)
 
 		// Top heavy

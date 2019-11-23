@@ -99,7 +99,7 @@ func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
 		return d, nil
 	}
 
-	tt := mmio.NewTimer()
+	// tt := mmio.NewTimer()
 	var wg sync.WaitGroup
 	fmt.Printf(" loading met GOBs from %s\n", gobdir)
 	var y, ep [][]float64
@@ -130,7 +130,7 @@ func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
 		// tt.Lap(fmt.Sprintf(" %s loaded", "metIntersect.gob"))
 	}()
 	wg.Wait()
-	tt.Lap("met GOB load complete")
+	// tt.Lap("met GOB load complete")
 
 	var d met.Coll
 
@@ -138,7 +138,7 @@ func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
 	//////////////////////////////////// Default HARD-CODED values ///////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	dtb, dte, intvl := time.Date(1999, time.October, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, time.September, 30, 0, 0, 0, 0, time.UTC), 86400
-	h := met.NewHeader(dtb, dte, intvl, len(y))
+	h := met.NewHeader(dtb, dte, intvl, len(y), 8)
 	if len(y[0]) != h.Nstep() {
 		log.Fatalf("loadGOBforcing error: gob and date range are incompatible")
 	}
@@ -171,7 +171,7 @@ func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
 	// 	k++
 	// }
 
-	tt.Lap("Forcing build complete")
+	// tt.Lap("Forcing build complete")
 	return &FORC{
 		c:   d, // met.Coll
 		h:   h, // met.Header

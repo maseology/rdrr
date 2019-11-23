@@ -35,5 +35,5 @@ func main() {
 	basin.PrepMC(indir + "MC/")
 
 	// run model
-	basin.SampleMaster(indir, 100)
+	basin.SampleMaster(indir, 500)
 }
