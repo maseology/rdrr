@@ -57,7 +57,6 @@ func compressMC(gd *grid.Definition) {
 type mcmonitor struct{ gy, ga, gr, gg, gb [][]float64 }
 
 func (g *mcmonitor) print(pin map[int][]float64, xr map[int]int, ds []int, fnstep float64) {
-	gwg.Add(1)
 	gmu.Lock()
 	defer gmu.Unlock()
 	defer gwg.Done()
@@ -69,7 +68,7 @@ func (g *mcmonitor) print(pin map[int][]float64, xr map[int]int, ds []int, fnste
 			mron[ds[i]] = make([]float32, 12)
 		}
 	}
-	f := 30. * 1000. / fnstep
+	f := 30. * 12. * 1000. / fnstep // ~[mm/mo]
 	for c, i := range xr {
 		for mt := 0; mt < 12; mt++ {
 			my[c][mt] = float32(g.gy[mt][i] * f)

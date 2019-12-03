@@ -72,9 +72,11 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 	defer func() {
 		res.getTotals(sim, hsto, gsto)
 		for _, v := range obs {
+			gwg.Add(1)
 			go v.print()
 		}
 		g := gmonitor{gy, ga, gr, gg, gb}
+		gwg.Add(1)
 		go g.print(p.ws, p.in, p.cxr, p.ds, float64(p.nstep))
 	}()
 
@@ -175,9 +177,11 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 	defer func() {
 		res.getTotals(sim, hsto, gsto)
 		for _, v := range obs {
+			gwg.Add(1)
 			go v.print()
 		}
 		g := mcmonitor{gy, ga, gr, gg, gb}
+		gwg.Add(1)
 		go g.print(p.in, p.cxr, p.ds, float64(p.nstep))
 	}()
 
