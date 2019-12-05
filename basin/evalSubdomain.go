@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/maseology/mmio"
 )
@@ -16,16 +17,18 @@ type stran struct {
 	i itran
 	s int
 }
+type frc struct {
+}
 
 // eval evaluates a subdomain
-func (b *subdomain) eval(p *sample, Ds, m float64, print bool) (of float64) {
+func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int, Ds, m float64, print bool) (of float64) {
 	ver := evalMC
 	if print {
 		tt := mmio.NewTimer()
 		defer tt.Lap("\nevaluation completed in")
 	}
 	var wg sync.WaitGroup
-	dt, y, ep, obs, intvl, nstep := b.getForcings()
+	// dt, y, ep, obs, intvl, nstep := b.getForcings()
 	if len(b.swsord) == 1 {
 		if len(b.rtr.swscidxr) == 1 {
 			rs := newResults(b, intvl, nstep)

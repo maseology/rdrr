@@ -11,18 +11,15 @@ import (
 )
 
 func loadUCA(topo *tem.TEM, swscidxr map[int][]int, sws map[int]int, fp string) (uca map[int]map[int]int) {
-
 	if _, ok := mmio.FileExists(fp); ok {
-		// fmt.Println(" loading uca.gob..")
+		fmt.Printf(" loading: %s\n", fp)
 		var err error
 		if uca, err = loadUCAgob(fp); err != nil {
-			log.Fatalf(" RTR.subset getUCA.loadUCAgob error: %v", err)
+			log.Fatalf(" loadUCA.go loadUCAgob error: %v", err)
 		}
 	} else {
 		// compute unit contributing areas
-		fmt.Println(" building uca..")
-		tt := mmio.NewTimer()
-		defer tt.Print(" uca build and gob save complete")
+		fmt.Print(" building uca.. ")
 		type col struct {
 			s int
 			u map[int]int
@@ -59,11 +56,12 @@ func loadUCA(topo *tem.TEM, swscidxr map[int][]int, sws map[int]int, fp string) 
 			uca[c.s] = c.u
 		}
 		close(ch)
-		go func() {
-			if err := saveUCAgob(uca, fp); err != nil {
-				log.Fatalf(" RTR.subset getUCA.saveUCAgob error: %v", err)
-			}
-		}()
+		// go func() {
+		fmt.Printf("saving to %s\n", fp)
+		if err := saveUCAgob(uca, fp); err != nil {
+			log.Fatalf(" loadUCA.go saveUCAgob error: %v", err)
+		}
+		// }()
 	}
 	return
 }

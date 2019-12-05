@@ -51,15 +51,39 @@ func (f *FORC) medQ() float64 {
 	return math.NaN()
 }
 
-func (f *FORC) trimFrc(nYrs int) (nstep int, dtb, dte time.Time, intvl int64) {
-	nstep = f.h.Nstep()                      // number of time steps
-	dtb, dte, intvl = f.h.BeginEndInterval() // start date, end date, time step interval [s]
-	if nYrs > 0 {
-		dur, durx := dte.Sub(dtb), time.Duration(nYrs*365*86400)*time.Second
-		if dur > durx {
-			dtb = dte.Add(-durx)
-			nstep = int(dte.Add(time.Second*time.Duration(intvl)).Sub(dtb).Seconds() / float64(intvl))
+func (f *FORC) get(dtb, dte time.Time, col int) []float64 {
+	_, fdte, intvl := f.h.BeginEndInterval() // time step interval [s]
+	n := int(dte.Add(time.Second*time.Duration(intvl)).Sub(dtb).Seconds() / float64(intvl))
+	fout, ii := make([]float64, n), 0
+	for i, dt := range f.c.T {
+		if dt.Before(dtb) {
+			continue
+		}
+		if dt.After(dte) {
+			fout[ii] = math.NaN()
+		} else {
+			fout[ii] = f.c.D[i][0][col]
+		}
+		ii++
+	}
+	if fdte.Before(dte) {
+		for dt := fdte.Add(time.Second * time.Duration(intvl)); !dt.After(dte); dt = dt.Add(time.Second * time.Duration(intvl)) {
+			fout[ii] = math.NaN()
+			ii++
 		}
 	}
-	return
+	return fout
 }
+
+// func (f *FORC) trimFrc(nYrs int) (nstep int, dtb, dte time.Time, intvl int64) {
+// 	nstep = f.h.Nstep()                      // number of time steps
+// 	dtb, dte, intvl = f.h.BeginEndInterval() // start date, end date, time step interval [s]
+// 	if nYrs > 0 {
+// 		dur, durx := dte.Sub(dtb), time.Duration(nYrs*365*86400)*time.Second
+// 		if dur > durx {
+// 			dtb = dte.Add(-durx)
+// 			nstep = int(dte.Add(time.Second*time.Duration(intvl)).Sub(dtb).Seconds() / float64(intvl))
+// 		}
+// 	}
+// 	return
+// }

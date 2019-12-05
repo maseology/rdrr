@@ -173,7 +173,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		tt := mmio.NewTimer()
 		defer wg.Done()
 		fp := mmio.RemoveExtension(l.Fsws) + ".uca.gob"
-		fmt.Printf(" loading: %s\n", fp)
+		// fmt.Printf(" loading: %s\n", fp)
 		uca = loadUCA(&t, swscidxr, sws, fp)
 		tt.Lap("UCA loaded")
 	}

@@ -26,6 +26,35 @@ func masterForcing() (*FORC, int) {
 	return masterDomain.frc, int(masterDomain.frc.h.Locations[0][0].(int32))
 }
 
+// masterForcingNewOutlet reloads discharge from *.met file
+func masterForcingNewOutlet(metfp string) (*FORC, int) {
+	if masterDomain.frc == nil {
+		log.Fatalf(" masterForcingNewOutlet error: masterDomain.frc == nil\n")
+	}
+	nfrc, outlet := loadForcing(metfp, true) // gauge outlet cell id found in .met file
+	if nfrc == nil {
+		log.Fatalf(" masterForcingNewOutlet error: %s == nil\n", metfp)
+	}
+	if _, ok := nfrc.h.WBDCxr()["UnitDischarge"]; !ok {
+		log.Fatalf(" masterForcingNewOutlet error: no 'UnitDischarge' found in %s\n", metfp)
+	}
+
+	nintvl := int64(nfrc.h.IntervalSec())                    // time step interval [s]
+	dtb, dte, intvl := masterDomain.frc.h.BeginEndInterval() // start date, end date, time step interval [s]
+	if nintvl != intvl {
+		log.Fatalf(" masterForcingNewOutlet TODO: unequal time steps found\n")
+	}
+	dnew := make([][][]float64, 3)
+	dnew[0] = masterDomain.frc.c.D[0]
+	dnew[1] = masterDomain.frc.c.D[1]
+	dnew[2] = [][]float64{nfrc.get(dtb, dte, nfrc.h.WBDCxr()["UnitDischarge"])}
+
+	masterDomain.frc.c.D = dnew
+	masterDomain.frc.Q0 = nfrc.medQ()
+	masterDomain.frc.h.SetWBDC(masterDomain.frc.h.WBCD + met.UnitDischarge)
+	return masterDomain.frc, outlet
+}
+
 // LoadForcing (re-)loads forcing data
 func loadForcing(fp string, print bool) (*FORC, int) {
 	// import forcings
@@ -56,7 +85,7 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 	}
 
 	if m.Nloc() != 1 && m.LocationCode() <= 0 {
-		log.Fatalf(" basin.loadForcing error: unrecognized .met type\n")
+		log.Fatalf(" loadForcing error: unrecognized .met type\n")
 	}
 	outlet := int(m.Locations[0][0].(int32))
 
@@ -139,6 +168,7 @@ func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	dtb, dte, intvl := time.Date(1999, time.October, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, time.September, 30, 0, 0, 0, 0, time.UTC), 86400
 	h := met.NewHeader(dtb, dte, intvl, len(y), 8)
+	h.SetWBDC(met.AtmosphericYield + met.AtmosphericDemand)
 	if len(y[0]) != h.Nstep() {
 		log.Fatalf("loadGOBforcing error: gob and date range are incompatible")
 	}

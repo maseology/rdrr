@@ -219,7 +219,14 @@ func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []floa
 		}
 	} else {
 		if b.frc.nam == "gob" {
-			obs = []float64{}
+			if _, ok := b.frc.h.WBDCxr()["UnitDischarge"]; ok {
+				if len(b.frc.c.D[2]) != 1 {
+					log.Fatalf("subdomain.getForcings error: only one outlet discharge currently supported")
+				}
+				obs = b.frc.c.D[2][0]
+			} else {
+				obs = []float64{}
+			}
 			for k, dt1 := range b.frc.c.T {
 				dt[k] = dt1
 			}

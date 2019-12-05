@@ -46,7 +46,8 @@ func RunDefault(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact
 		fmt.Printf("\n running model..\n\n")
 	}
 
-	return b.eval(&smpl, dinc, topm, print)
+	dt, y, ep, obs, intvl, nstep := b.getForcings()
+	return b.eval(&smpl, dt, y, ep, obs, intvl, nstep, dinc, topm, print)
 }
 
 // RunMaster runs simulation of the entire masterdomain with default parameters
@@ -102,5 +103,6 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 		fmt.Printf("\n running model..\n\n")
 	}
 
-	return b.eval(&smpl, dinc, topm, print)
+	dt, y, ep, obs, intvl, nstep := b.getForcings()
+	return b.eval(&smpl, dt, y, ep, obs, intvl, nstep, dinc, topm, print)
 }
