@@ -70,8 +70,12 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 	} else {
 		if masterDomain.frc != nil && masterDomain.frc.nam == "gob" {
 			b = masterDomain.newSubDomain(masterForcingNewOutlet(metfp)) // gauge outlet cell id found in .met file
+			if !b.frc.hasObservations() {
+				fmt.Println(" >> model will not proceed as no observations were found within model period")
+				return
+			}
 			dtb, dte, _ := masterDomain.frc.h.BeginEndInterval()
-			fmt.Println(" model will proceed from " + dtb.Format("2006-01-02") + " to " + dte.Format("2006-01-02"))
+			fmt.Printf(" >> model will proceed from %s to %s (%d timesteps)\n", dtb.Format("2006-01-02"), dte.Format("2006-01-02"), masterDomain.frc.h.Nstep())
 		} else {
 			b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
 		}

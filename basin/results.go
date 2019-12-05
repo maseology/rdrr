@@ -48,10 +48,10 @@ func (r *results) report(print bool) []float64 {
 		r.sim[k] *= r.h2cms / r.fncid
 		// r.bf[k] *= r.h2cms / r.fncid / r.fnstrm
 	}
-	rmse := objfunc.RMSE(r.obs[365:], r.sim[365:])
+	rmse := objfunc.RMSE(r.obs[warmup:], r.sim[warmup:])
 	if print {
 		kge := objfunc.KGE(r.obs, r.sim)
-		mwr2 := objfunc.Krause(computeMonthly(r.dt[365:], r.obs[365:], r.sim[365:], float64(r.intvl), r.contarea))
+		mwr2 := objfunc.Krause(computeMonthly(r.dt[warmup:], r.obs[warmup:], r.sim[warmup:], float64(r.intvl), r.contarea))
 		nse := objfunc.NSE(r.obs, r.sim)
 		bias := objfunc.Bias(r.obs, r.sim)
 		// ff := 365.24 * 1000. / float64(r.nstep) / r.fncid

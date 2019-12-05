@@ -75,6 +75,22 @@ func (f *FORC) get(dtb, dte time.Time, col int) []float64 {
 	return fout
 }
 
+func (f *FORC) hasObservations() bool {
+	if _, ok := f.h.WBDCxr()["UnitDischarge"]; !ok {
+		return false
+	}
+	c, cnt := f.h.WBDCxr()["UnitDischarge"], 0
+	for _, o := range f.c.D[c][0][warmup:] {
+		if !math.IsNaN(o) {
+			cnt++
+		}
+	}
+	if cnt < warmup {
+		return false
+	}
+	return true
+}
+
 // func (f *FORC) trimFrc(nYrs int) (nstep int, dtb, dte time.Time, intvl int64) {
 // 	nstep = f.h.Nstep()                      // number of time steps
 // 	dtb, dte, intvl = f.h.BeginEndInterval() // start date, end date, time step interval [s]

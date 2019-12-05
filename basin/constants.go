@@ -14,4 +14,6 @@ const (
 
 	twoThirds  = 2. / 3.
 	fiveThirds = 5. / 3.
+
+	warmup = 365
 )
