@@ -185,7 +185,7 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 		go g.print(p.in, p.cxr, p.ds, float64(p.nstep))
 	}()
 
-	defer func() { res.getTotals(sim, hsto, gsto) }()
+	// defer func() { res.getTotals(sim, hsto, gsto) }()
 
 	for _, c := range monid {
 		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}

@@ -206,16 +206,16 @@ func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []floa
 	ns, nloc, x := b.frc.h.Nstep(), b.frc.h.Nloc(), b.frc.h.WBDCxr()
 	dt, y, ep, obs = make([]time.Time, ns), make([][]float64, nloc), make([][]float64, nloc), make([]float64, ns)
 	intvl, nstep = int64(b.frc.h.IntervalSec()), ns
-	h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor for subdomain outlet cell
 	if nloc == 1 {
 		y[0], ep[0] = make([]float64, ns), make([]float64, ns)
+		// h2cms := b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor for subdomain outlet cell
 		for k, dt1 := range b.frc.c.T {
 			dt[k] = dt1
 			v := b.frc.c.D[k][0]
 			// f := b.strc.f[c][d.YearDay()-1] // adjust for slope-aspect
 			y[0][k] = v[x["AtmosphericYield"]]   // precipitation/atmospheric yield (rainfall + snowmelt)
 			ep[0][k] = v[x["AtmosphericDemand"]] // evaporative demand
-			obs[k] = v[x["UnitDischarge"]] * h2cms
+			obs[k] = v[x["UnitDischarge"]]       //* h2cms
 		}
 	} else {
 		if b.frc.nam == "gob" {

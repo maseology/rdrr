@@ -11,18 +11,7 @@ import (
 // RunDefault runs simulation with default parameters
 func RunDefault(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact float64, print bool) float64 {
 	tt := mmio.NewTimer()
-	if masterDomain.IsEmpty() {
-		log.Fatalf(" basin.RunDefault error: masterDomain is empty\n")
-	}
-	var b subdomain
-	if len(metfp) == 0 {
-		if masterDomain.frc == nil {
-			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
-		}
-		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
-	} else {
-		b = masterDomain.newSubDomain(loadForcing(metfp, print)) // gauge outlet cell id found in .met file
-	}
+	b, _ := masterToSubomain(metfp)
 	b.mdldir = mdldir
 
 	if print {
@@ -36,7 +25,6 @@ func RunDefault(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact
 		tt.Lap("sample build complete")
 		if len(chkdir) > 0 {
 			mmio.MakeDir(chkdir)
-			// masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
 			b.print(chkdir)
 			smpl.print(chkdir)
 			tt.Lap("sample maps printed")

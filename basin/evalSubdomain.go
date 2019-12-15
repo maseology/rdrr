@@ -22,7 +22,7 @@ type frc struct {
 
 // eval evaluates a subdomain
 func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int, Ds, m float64, print bool) (of float64) {
-	ver := evalMC
+	ver := eval
 	if print {
 		tt := mmio.NewTimer()
 		defer tt.Lap("\nevaluation completed in")

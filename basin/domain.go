@@ -7,9 +7,6 @@ import (
 	"github.com/maseology/goHydro/grid"
 )
 
-// MasterDomain holds all data from which sub-domain scale models can be derived
-var masterDomain domain
-
 // domain holds all data and is the parent to Model
 type domain struct {
 	frc  *FORC            // forcing data
@@ -19,18 +16,6 @@ type domain struct {
 	gd   *grid.Definition // grid definition
 	obs  []int            // observation cell IDs
 	dir  string
-}
-
-// LoadMasterDomain loads all data from which sub-domain scale models can be derived
-func LoadMasterDomain(ldr *Loader, buildEP bool) {
-	fmt.Println("Loading Master Domain..")
-	masterDomain = newDomain(ldr, buildEP)
-}
-
-// LoadUniformMasterDomain loads all data from which sub-domain scale models can be derived
-func LoadUniformMasterDomain(ldr *Loader, buildEP bool) {
-	fmt.Println("Loading Master Domain..")
-	masterDomain = newUniformDomain(ldr, buildEP)
 }
 
 func newDomain(ldr *Loader, buildEP bool) domain {

@@ -127,7 +127,7 @@ func (pp *subsample) initialize(q0, Ds, m float64, print bool) {
 			q0t /= pp.fncid
 			if q0t <= q0 {
 				if print && dm <= 0. {
-					fmt.Println("subsample.initialize: steady reached without iterations")
+					fmt.Println("  subsample.initialize: steady reached without iterations")
 				}
 				break
 			}
@@ -135,7 +135,7 @@ func (pp *subsample) initialize(q0, Ds, m float64, print bool) {
 			q0t = 0.
 			n++
 			if n > steadyiter {
-				fmt.Println("subsample.initialize: steady reached max iterations")
+				fmt.Println("  subsample.initialize: steady reached max iterations")
 				break
 			}
 		}

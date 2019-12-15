@@ -24,6 +24,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 	var sws, dsws map[int]int   // sws mapping; downslope watershed mapping
 	var sids []int              // slice of subwatershed IDs, safely ordered downslope
 	var ord [][]int             // ordered groupings of sws for parallel operations
+	var uca map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
 	if outlet < 0 {
 		// log.Fatalf(" RTR.subset error: outlet cell needs to be provided")
 		sws = make(map[int]int, len(cids))
@@ -51,6 +52,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			copy(a, v)
 			swscidxr[k] = a
 		}
+		uca = r.uca
 	} else {
 		sws, dsws = make(map[int]int, len(cids)), make(map[int]int, len(r.dsws))
 		if len(r.sws) > 0 {
@@ -58,7 +60,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 				log.Fatalf(" RTR.subset error: outlet cell not belonging to a sws")
 			}
 			sct := make(map[int][]int, len(r.swscidxr))
-			osws := r.sws[outlet]
+			osws := r.sws[outlet] // outlet sws (the original sws the outlet cell existed in)
 			for _, cid := range cids {
 				if s, ok := r.sws[cid]; ok {
 					if s == osws {
@@ -96,6 +98,16 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 				copy(a, v)
 				swscidxr[k] = a
 			}
+			uca = make(map[int]map[int]int, len(sct))
+			for s := range swscidxr {
+				if _, ok := r.uca[s]; ok {
+					uca[s] = r.uca[s]
+				} else if s == outlet {
+					uca[s] = r.uca[osws]
+				} else {
+					log.Fatalf(" RTR.subset uca error: unknown sws")
+				}
+			}
 			sids = mmaths.OrderFromToTree(dsws, -1)
 		} else { // entire model domain is one subwatershed to outlet
 			for _, cid := range cids {
@@ -103,6 +115,8 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			}
 			sids = []int{outlet}
 			swscidxr = map[int][]int{outlet: cids}
+			log.Fatalf(" router.go RTR.subset: to check")
+			uca = r.uca
 		}
 	}
 
@@ -171,7 +185,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 		swsstrmxr: swsstrmxr,
 		sws:       sws,
 		dsws:      dsws,
-		uca:       r.uca,
+		uca:       uca,
 	}, ord, sids
 }
 

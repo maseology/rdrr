@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/maseology/goHydro/gwru"
@@ -58,61 +59,43 @@ func (s *sample) print(dir string) error {
 
 // SampleDefault samples a default-parameter model to a given basin outlet
 func SampleDefault(metfp, outprfx string, nsmpl int) {
-	if masterDomain.IsEmpty() {
-		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
-	}
-	var b subdomain
-	if len(metfp) == 0 {
-		if masterDomain.frc == nil {
-			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
-		}
-		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
-	} else {
-		if masterDomain.frc != nil && masterDomain.frc.nam == "gob" {
-			b = masterDomain.newSubDomain(masterForcingNewOutlet(metfp)) // gauge outlet cell id found in .met file
-			if !b.frc.hasObservations() {
-				fmt.Println(" >> model will not proceed as no observations were found within model period")
-				return
-			}
-			dtb, dte, _ := masterDomain.frc.h.BeginEndInterval()
-			fmt.Printf(" >> model will proceed from %s to %s (%d timesteps)\n", dtb.Format("2006-01-02"), dte.Format("2006-01-02"), masterDomain.frc.h.Nstep())
-		} else {
-			b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
-		}
+	b, ok := masterToSubomain(metfp)
+	if !ok {
+		return
 	}
 	fmt.Printf(" catchment area: %.1f km²\n\n", b.contarea/1000./1000.)
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
-
-	gen := func(u []float64) float64 {
-		m, smax, dinc, soildepth, kfact := par5(u)
-		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
-		return b.eval(&smpl, dt, y, ep, obs, intvl, nstep, dinc, m, false)
-	}
-
-	tt := mmio.NewTimer()
-	u, f, d := montecarlo.RankedUnBiased(gen, nSmplDim, nsmpl)
-
 	v := func() float64 {
-		h2cms := b.contarea / b.frc.h.IntervalSec() // [m/ts] to [m³/s] conversion factor
+		// h2cms := b.contarea / b.frc.h.IntervalSec() // [m/ts] to [m³/s] conversion factor
 		m, n, c := 0., 0., 0.
 		for i := range obs {
 			if !math.IsNaN(obs[i]) {
-				m += obs[i] * h2cms
+				m += obs[i] //* h2cms
 				c++
 			}
 		}
 		m /= c // mean
 		for i := range obs {
 			if !math.IsNaN(obs[i]) {
-				n += math.Pow(obs[i]*h2cms-m, 2.)
+				// n += math.Pow(obs[i]*h2cms-m, 2.)
+				n += math.Pow(obs[i]-m, 2.)
 			}
 		}
 		return n / c // population variance
 	}()
 
-	tt.Lap("sampling complete")
+	gen := func(u []float64) float64 {
+		m, smax, dinc, soildepth, kfact := par5(u)
+		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
+		fmt.Print(".")
+		return b.eval(&smpl, dt, y, ep, obs, intvl, nstep, dinc, m, false)
+	}
+
+	tt := mmio.NewTimer()
+	u, f, d := montecarlo.RankedUnBiased(gen, nSmplDim, nsmpl)
+
+	tt.Lap("\nsampling complete")
 	t, err := mmio.NewTXTwriter(outprfx + "_smpl.csv")
-	defer t.Close()
 	if err != nil {
 		log.Fatalf("SampleDefault %s save error: %v", outprfx+"_smpl.csv", err)
 	}
@@ -122,6 +105,8 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 		m, smax, dinc, soildepth, kfact := par5(u[dd])
 		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f,%f", i+1, nse, m, smax, dinc, soildepth, kfact))
 	}
+	t.Close()
+	runtime.GC()
 	tt.Lap("results save complete")
 }
 
