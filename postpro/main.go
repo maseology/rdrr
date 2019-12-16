@@ -20,7 +20,7 @@ func main() {
 		log.Fatalf("Fatal error: read failed: %v", err)
 	}
 	buf := mmio.OpenBinary("C:/Users/Mason/Desktop/g.yield.bin")
-	uc := make([]coll, gd.Nactives())
+	uc := make([]coll, gd.Na)
 	if err := binary.Read(buf, binary.LittleEndian, uc); err != nil {
 		log.Fatalf("Fatal error: read failed: %v", err)
 	}
