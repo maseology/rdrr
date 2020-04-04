@@ -119,7 +119,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 				log.Fatalf(" file not found: %s\n", l.Flu)
 			}
 			lu = *lusg.LoadLandUse([]int{-1})
-			ilu = make(map[int]int, gd.Nactives())
+			ilu = make(map[int]int, gd.Na)
 			for _, c := range gd.Sactives {
 				ilu[c] = -1
 			}
@@ -144,7 +144,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 				log.Fatalf(" file not found: %s\n", l.Fsg)
 			}
 			sg = *lusg.LoadSurfGeo([]int{-1})
-			isg = make(map[int]int, gd.Nactives())
+			isg = make(map[int]int, gd.Na)
 			for _, c := range gd.Sactives {
 				isg[c] = -1
 			}
@@ -253,7 +253,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		// f: sif,
 		u: ucnt,
 		a: gd.CellArea(),
-		w: gd.CellWidth(),
+		w: gd.Cw,
 	}
 	mpr := MAPR{
 		lu:  lu,

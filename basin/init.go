@@ -75,7 +75,6 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 		} else {
 			for _, c := range b.cids {
 				build(c)
-
 			}
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/maseology/glbopt"
@@ -61,6 +62,9 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
 
+	b.print()
+	// return 0., []float64{0.}
+
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
 
@@ -72,8 +76,8 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	}
 
 	fmt.Println(" optimizing..")
-	// uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nSmplDim, rng, gen, true)
-	uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
+	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nSmplDim, rng, gen, true)
+	// uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
 
 	m, smax, dinc, soildepth, kfact := par5(uFinal)
 	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\tsmax:\t\t%v\n\tdinc:\t\t%v\n\tsoildepth:\t%v\n\tkfact:\t\t%v\n\n", m, smax, dinc, soildepth, kfact)

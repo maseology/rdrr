@@ -189,7 +189,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 	}, ord, sids
 }
 
-func (r *RTR) print(dir string) {
+func (r *RTR) write(dir string) {
 	mmio.WriteIMAP(dir+"sws.imap", r.sws)
 	if len(r.dsws) > 0 {
 		gdsws := make(map[int]int, len(r.sws))
@@ -197,7 +197,7 @@ func (r *RTR) print(dir string) {
 			if d, ok := r.dsws[v]; ok {
 				gdsws[k] = d
 			} else {
-				fmt.Println("RTR.print error: issue with sws mapping")
+				fmt.Println("RTR.write error: issue with sws mapping")
 			}
 		}
 		mmio.WriteIMAP(dir+"dsws.imap", gdsws)

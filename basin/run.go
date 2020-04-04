@@ -25,7 +25,7 @@ func RunDefault(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact
 		tt.Lap("sample build complete")
 		if len(chkdir) > 0 {
 			mmio.MakeDir(chkdir)
-			b.print(chkdir)
+			b.write(chkdir)
 			smpl.print(chkdir)
 			tt.Lap("sample maps printed")
 		}
@@ -82,7 +82,7 @@ func RunMaster(mdldir, metfp, chkdir string, topm, smax, dinc, soildepth, kfact 
 		if len(chkdir) > 0 {
 			mmio.MakeDir(chkdir)
 			// masterDomain.gd.SaveAs(chkdir + "masterDomain.gdef")
-			b.print(chkdir)
+			b.write(chkdir)
 			smpl.print(chkdir)
 			tt.Lap("sample maps printed")
 		}

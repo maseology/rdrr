@@ -21,19 +21,19 @@ func (o *outflow) report(dummy bool) []float64     { return o.sim }
 func (o *outflow) getTotals(sim, d0, d1 []float64) { o.sim = sim }
 
 type results struct {
-	dt                           []time.Time
-	mon                          []monitor
-	obs, sim, hsto, gsto         []float64
-	ytot, atot, rtot, gtot, btot float64
-	fncid, fnstrm, contarea      float64 // h2cms,
-	nstep, intvl, ncid, nstrm    int
+	dt                              []time.Time
+	mon                             []monitor
+	obs, sim, hsto, gsto            []float64
+	ytot, atot, rtot, gtot, btot    float64
+	fncid, fnstrm, contarea, gwsink float64 // h2cms,
+	nstep, intvl, ncid, nstrm       int
 }
 
 func newResults(b *subdomain, intvl int64, nstep int) results {
 	var r results
 	r.contarea = b.contarea
 	// r.h2cms = b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor for subdomain outlet cell
-	r.fncid, r.fnstrm = b.fncid, b.fnstrm
+	r.fncid, r.fnstrm, r.gwsink = b.fncid, b.fnstrm, b.gwsink
 	r.nstep, r.intvl, r.ncid, r.nstrm = nstep, int(intvl), b.ncid, b.nstrm
 	return r
 }
@@ -46,6 +46,7 @@ func (r *results) getTotals(sim, hsto, gsto []float64) {
 func (r *results) report(print bool) []float64 {
 	for k := 0; k < r.nstep; k++ {
 		r.sim[k] /= r.fncid
+		r.sim[k] += r.gwsink
 		// r.sim[k] *= r.h2cms / r.fncid
 		// r.obs[k] *= r.h2cms
 		// r.bf[k] *= r.h2cms / r.fncid / r.fnstrm

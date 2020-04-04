@@ -5,28 +5,61 @@ import (
 	"log"
 	"time"
 
+	"github.com/maseology/mmaths"
 	mmio "github.com/maseology/mmio"
 )
 
 // subdomain carries all non-parameter data for a particular region (eg a catchment).
 // Forcing variables are collected and held to be run independently for each sample.
 type subdomain struct {
-	frc                     *FORC         // forcing data
-	strc                    *STRC         // structural data
-	mpr                     *MAPR         // land use/surficial geology mapping
-	rtr                     *RTR          // subwatershed topology and mapping
-	obs                     map[int][]int // sws{[]obs-cid}
-	ds                      map[int]int   // downslope cell ID
-	swsord                  [][]int       // sws IDs (topologically ordered, concurrent safe)
-	cids, strms             []int         // cell IDs (topologically ordered); stream cell IDs
-	contarea, fncid, fnstrm float64       // contributing area [m²], (float) number of cells
-	ncid, nstrm, cid0       int           // number of cells, number of stream cells, outlet cell ID
-	mdldir                  string        // model directory
+	frc                             *FORC         // forcing data
+	strc                            *STRC         // structural data
+	mpr                             *MAPR         // land use/surficial geology mapping
+	rtr                             *RTR          // subwatershed topology and mapping
+	obs                             map[int][]int // sws{[]obs-cid}
+	ds                              map[int]int   // downslope cell ID
+	swsord                          [][]int       // sws IDs (topologically ordered, concurrent safe)
+	cids, strms                     []int         // cell IDs (topologically ordered); stream cell IDs
+	contarea, fncid, fnstrm, gwsink float64       // contributing area [m²], (float) number of cells
+	ncid, nstrm, cid0               int           // number of cells, number of stream cells, outlet cell ID
+	mdldir                          string        // model directory
 }
 
-func (b *subdomain) print(dir string) error {
-	b.rtr.print(dir + "b.rtr.")
-	b.mpr.printSubset(dir+"b.mpr.", b.cids)
+func (b *subdomain) print() {
+	fmt.Println("Land Use proportions")
+	mLU := make(map[int]int, 10)
+	for _, i := range b.cids {
+		v := b.mpr.ilu[i]
+		if _, ok := mLU[v]; ok {
+			mLU[v]++
+		} else {
+			mLU[v] = 1
+		}
+	}
+	k, v := mmaths.SortMapInt(mLU)
+	for i := len(k) - 1; i >= 0; i-- {
+		fmt.Printf("%10d %10.1f%%\n", k[i], float64(v[i])*100./float64(len(b.cids)))
+	}
+
+	fmt.Println("\nSurficial Geology proportions")
+	mSG := make(map[int]int, 10)
+	for _, i := range b.cids {
+		v := b.mpr.isg[i]
+		if _, ok := mSG[v]; ok {
+			mSG[v]++
+		} else {
+			mSG[v] = 1
+		}
+	}
+	k, v = mmaths.SortMapInt(mSG)
+	for i := len(k) - 1; i >= 0; i-- {
+		fmt.Printf("%10d %10.1f%%\n", k[i], float64(v[i])*100./float64(len(b.cids)))
+	}
+}
+
+func (b *subdomain) write(dir string) error {
+	b.rtr.write(dir + "b.rtr.")
+	b.mpr.writeSubset(dir+"b.mpr.", b.cids)
 	ucnt, strm := make(map[int]float64, b.ncid), make(map[int]bool, b.nstrm)
 	for _, c := range b.cids {
 		ucnt[c] = float64(b.strc.u[c])
@@ -109,6 +142,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		fnstrm:   float64(len(strms)),
 		contarea: d.strc.a * fncid, // basin contributing area [m²]
 		cid0:     outlet,
+		gwsink:   frc.Qs,
 	}
 	// b.buildStreams(strmkm2)
 	return b

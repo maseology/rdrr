@@ -89,11 +89,13 @@ func loadForcing(fp string, print bool) (*FORC, int) {
 	}
 	outlet := int(m.Locations[0][0].(int32))
 
+	nam := mmio.FileName(fp, false)
 	return &FORC{
 		c:   *d, // met.Coll
 		h:   *m, // met.Header
 		t:   temp,
-		nam: mmio.FileName(fp, false), // station name
+		nam: nam, // station name
+		Qs:  gwsink(nam),
 	}, outlet
 }
 
@@ -209,4 +211,18 @@ func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
 		x:   intsct,
 		nam: "gob",
 	}, -1
+}
+
+func gwsink(sta string) float64 {
+	d := map[string]float64{
+		"02EC021": .0005,
+		"02ED030": .00025,
+		"02HB020": .0005,
+		"02HC056": .0005,
+		"02HC005": .00025,
+	}
+	if v, ok := d[sta]; ok {
+		return v
+	}
+	return 0.
 }

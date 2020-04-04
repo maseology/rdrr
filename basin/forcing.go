@@ -11,12 +11,12 @@ import (
 
 // FORC holds forcing data
 type FORC struct {
-	c   met.Coll
-	h   met.Header
-	t   []temporal
-	x   map[int]int // mapping of model grid cell to met grid cell
-	Q0  float64
-	nam string
+	c      met.Coll
+	h      met.Header
+	t      []temporal
+	x      map[int]int // mapping of model grid cell to met grid cell
+	Q0, Qs float64
+	nam    string
 }
 
 type temporal struct{ doy, mt int }

@@ -12,13 +12,13 @@ type MAPR struct {
 	ilu, isg, ilk map[int]int // cross reference of cid to lu/sg/lake id
 }
 
-func (m *MAPR) print(dir string) error {
+func (m *MAPR) write(dir string) error {
 	mmio.WriteIMAP(dir+"luid.imap", m.ilu)
 	mmio.WriteIMAP(dir+"sgid.imap", m.isg)
 	return nil
 }
 
-func (m *MAPR) printSubset(dir string, cids []int) error {
+func (m *MAPR) writeSubset(dir string, cids []int) error {
 	iluss, isgss := make(map[int]int, len(cids)), make(map[int]int, len(cids))
 	for _, c := range cids {
 		iluss[c] = m.ilu[c]
