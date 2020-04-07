@@ -98,7 +98,7 @@ func buildFromSOLRIS(soildepth, porosity, fc, intsto, depsto float64, id int) (r
 	case 11, 21, 41, 204, 205, -9999, -1: // bare (no vegetation)
 	// do nothing
 	default:
-		log.Fatalf("propsFromSOLRIS: no value asigned to SOLRIS ID %d", id)
+		log.Fatalf("buildFromSOLRIS: no value asigned to SOLRIS ID %d", id)
 	}
 	return
 	// 11. Open Beach/Bar
@@ -131,4 +131,64 @@ func buildFromSOLRIS(soildepth, porosity, fc, intsto, depsto float64, id int) (r
 	// 204. Extraction - Aggregate
 	// 205. Extraction - Peat/Topsoil
 	// 250. Undifferentiated
+}
+
+// SOLRIStoLandUseType returns the landuse description for a given SOLRIS ID
+func SOLRIStoLandUseType(id int) (int, string) {
+	switch id {
+	case 201:
+		return 0, "Transportation"
+		// fimp = 1.
+	case 202:
+		return 1, "Built Up Area - Pervious"
+		// surfsto += intsto / 2.
+		// ifct = 0.5
+	case 203:
+		return 2, "Built Up Area - Impervious"
+		// fimp = 0.9
+		// surfsto += fimp*depsto + (1.-fimp)*intsto
+		// ifct = 1.
+	case 193, 250:
+		return 3, "Undifferentiated/Agriculture"
+		// surfsto += intsto
+		// ifct = 1.
+	case 23, 43:
+		return 4, "Treed Sand Dune, Treed Cliff and Talus (canopy but little to no ground cover)"
+		// surfsto += intsto
+		// ifct = 1.
+	case 51:
+		return 5, "Open Alvar (85% bare)"
+		// ifct = 0.15
+		// surfsto += ifct * intsto
+	case 52, 53:
+		return 6, "Shrub Alvar, Treed Alvar (canopy with partial ground cover/85% bare)"
+		// ifct = 1.15
+		// surfsto += ifct * intsto
+	case 83, 90, 91, 92, 93, 131, 135, 191, 192:
+		return 7, "tall vegetation, vegetated ground cover"
+		// surfsto += intsto * 2.
+		// ifct = 2.
+	case 82:
+		return 8, "partial tall vegetation, vegetated ground cover"
+		// surfsto += intsto * 1.5
+		// ifct = 1.5
+	case 140, 150, 160:
+		return 9, "wetlands/marshes"
+		// surfsto += intsto
+		// ifct = 1.
+	case 81:
+		return 10, "short vegetation"
+		// surfsto += intsto
+		// ifct = 1.
+	case 170:
+		return 11, "Open water (can include streams in SOLRIS)"
+		// rzsto = 1.
+		// surfsto = 0.
+	case 11, 21, 41, 204, 205, -9999, -1:
+		return 12, "bare (no vegetation) and unknown/nodata"
+	// do nothing
+	default:
+		log.Fatalf("SOLRIStoLandUseType: no value asigned to SOLRIS ID %d", id)
+		return -1, "error"
+	}
 }
