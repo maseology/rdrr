@@ -39,7 +39,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if gd.Nactives() <= 0 {
+	nact := len(gd.Sactives)
+	if nact <= 0 {
 		log.Fatalf("error: grid definition requires active cells")
 	}
 	go func() {
@@ -67,7 +68,7 @@ func main() {
 	}
 
 	// initialize
-	cells, x := make([]prep.Cell, gd.Nactives()), hdr.WBDCxr()
+	cells, x := make([]prep.Cell, nact), hdr.WBDCxr()
 	b, g, alpha, beta := .06142, .899, 1.3077261, -0.000361             // calibrated PE parameters
 	tindex, ddfc, baseT, tsf := 0.009981, 1.794442, -2.035386, 0.211562 // calibrated snowmelt parameters
 	for k, i := range gd.Sactives {
@@ -81,14 +82,14 @@ func main() {
 
 	if mmio.IsDir(metOutFP) {
 		// build .gob
-		ys, as := make([][]float64, gd.Nactives()), make([][]float64, gd.Nactives()) // [cell ID][date ID]
-		for i := 0; i < gd.Nactives(); i++ {
+		ys, as := make([][]float64, nact), make([][]float64, nact) // [cell ID][date ID]
+		for i := 0; i < nact; i++ {
 			ys[i] = make([]float64, len(dat.T))
 			as[i] = make([]float64, len(dat.T))
 		}
 		for k, dt := range dat.T {
 			fmt.Println(dt)
-			for i := 0; i < gd.Nactives(); i++ {
+			for i := 0; i < nact; i++ {
 				v, c := dat.D[k][i], cells[i]
 				ys[i][k], as[i][k] = c.ComputeDaily(v[x["Rainfall"]], v[x["Snowfall"]], v[x["MinDailyT"]], v[x["MaxDailyT"]], patm, dt)
 			}
@@ -110,8 +111,8 @@ func main() {
 		}
 		for k, dt := range dat.T {
 			fmt.Println(dt)
-			a, j := make([]float32, gd.Nactives()*2), 0
-			for i := 0; i < gd.Nactives(); i++ {
+			a, j := make([]float32, nact*2), 0
+			for i := 0; i < nact; i++ {
 				v, c := dat.D[k][i], cells[i]
 				y, ep := c.ComputeDaily(v[x["Rainfall"]], v[x["Snowfall"]], v[x["MinDailyT"]], v[x["MaxDailyT"]], patm, dt)
 				a[j] = float32(y)
@@ -130,11 +131,12 @@ func saveIntersect(fp string, gd *grid.Definition) {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	if mdlgd.CellWidth() > gd.CellWidth() {
+	if mdlgd.Cw > gd.Cw {
 		log.Fatalf("saveIntersect is intended for met grids at a lower resultion than the model grid")
 	}
 	intsct := mdlgd.Intersect(gd)
-	a, x := make(map[int]int, mdlgd.Nactives()), make(map[int]int, gd.Nactives())
+
+	a, x := make(map[int]int, len(mdlgd.Sactives)), make(map[int]int, len(gd.Sactives))
 	for i, c := range gd.Sactives {
 		x[c] = i
 	}
