@@ -168,7 +168,8 @@ func loadGOBforcing(gobdir string, print bool) (*FORC, int) {
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////// Default HARD-CODED values ///////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	dtb, dte, intvl := time.Date(1999, time.October, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, time.September, 30, 0, 0, 0, 0, time.UTC), 86400
+	// dtb, dte, intvl := time.Date(1999, time.October, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, time.September, 30, 0, 0, 0, 0, time.UTC), 86400
+	dtb, dte, intvl := time.Date(1989, time.October, 1, 0, 0, 0, 0, time.UTC), time.Date(2019, time.September, 30, 0, 0, 0, 0, time.UTC), 86400
 	h := met.NewHeader(dtb, dte, intvl, len(y), 8)
 	h.SetWBDC(met.AtmosphericYield + met.AtmosphericDemand)
 	if len(y[0]) != h.Nstep() {

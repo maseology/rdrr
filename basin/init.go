@@ -46,7 +46,9 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 				log.Fatalf(" toDefaultSample.assignHRUs error, no LandUse assigned to cell ID %d", cid)
 			}
 			if gg, ok = b.mpr.isg[cid]; !ok {
-				log.Fatalf(" toDefaultSample.assignHRUs error, no SurfGeo assigned to cell ID %d", cid)
+				// log.Fatalf(" toDefaultSample.assignHRUs error, no SurfGeo assigned to cell ID %d", cid)
+				log.Printf(" toDefaultSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
+				gg = 6 // Unknown (variable)
 			}
 			var lu lusg.LandUse
 			var sg lusg.SurfGeo
@@ -95,18 +97,21 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 		getgw := func(sid int) {
 			ksat := make(map[int]float64)
 			for _, c := range b.rtr.swscidxr[sid] {
-				if gg, ok := b.mpr.isg[c]; ok {
-					if sg, ok := b.mpr.sg[gg]; ok {
-						if sg.Ksat <= 0. {
-							log.Fatalf(" toDefaultSample.buildTopmodel error: cell %d has an assigned ksat = %v\n", c, sg.Ksat)
-						}
-						ksat[c] = sg.Ksat * kfact * ts // [m/ts]
-					} else {
-						log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
-					}
-				} else {
-					log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", c)
+				gg := 6 // Unknown (variable)
+				if _, ok := b.mpr.isg[c]; ok {
+					gg = b.mpr.isg[c]
 				}
+				if sg, ok := b.mpr.sg[gg]; ok {
+					if sg.Ksat <= 0. {
+						log.Fatalf(" toDefaultSample.buildTopmodel error: cell %d has an assigned ksat = %v\n", c, sg.Ksat)
+					}
+					ksat[c] = sg.Ksat * kfact * ts // [m/ts]
+				} else {
+					log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
+				}
+				// } else {
+				// 	log.Fatalf(" toDefaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", c)
+				// }
 			}
 			var gwt gwru.TMQ
 			gwt.New(ksat, b.rtr.uca[sid], b.rtr.swsstrmxr[sid], b.strc.t, b.strc.w, m)

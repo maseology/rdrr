@@ -19,12 +19,30 @@ import (
 )
 
 const (
-	gdefFP    = "S:/ormgp_rdrr/met/ORMGP_500a.gdef"
-	gdefMdlFP = "S:/ormgp_rdrr/ORMGP_50_hydrocorrect.uhdem.gdef"
-	demFP     = "S:/ormgp_rdrr/met/ORMGP_500.hdem"
-	metFP     = "S:/ormgp_rdrr/met/ORMGP_500a_YCDB.met"
-	metOutFP  = "S:/ormgp_rdrr/met/" //"S:/ormgp_rdrr/met/RDRR_500a_YCDB.met" //
-	patm      = 101300.              // (constant) atmospheric pressure [Pa]
+	b, g, alpha, beta        = .06142, .899, 1.3077261, -0.000361      // calibrated PE parameters
+	tindex, ddfc, baseT, tsf = 0.009981, 1.794442, -2.035386, 0.211562 // calibrated snowmelt parameters
+)
+
+var (
+	dtb = time.Date(1989, 10, 1, 0, 0, 0, 0, time.UTC)
+	dte = time.Date(2019, 9, 30, 0, 0, 0, 0, time.UTC)
+)
+
+// const (
+// 	gdefFP    = "S:/ormgp_rdrr/met/ORMGP_500a.gdef"
+// 	gdefMdlFP = "S:/ormgp_rdrr/ORMGP_50_hydrocorrect.uhdem.gdef"
+// 	demFP     = "S:/ormgp_rdrr/met/ORMGP_500.hdem"
+// 	metFP     = "S:/ormgp_rdrr/met/ORMGP_500a_YCDB.met"
+// 	metOutFP  = "S:/ormgp_rdrr/met/" //"S:/ormgp_rdrr/met/RDRR_500a_YCDB.met" //
+// 	patm      = 101300.              // (constant) atmospheric pressure [Pa]
+// )
+const (
+	gdefMdlFP = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10-select.indx.gdef"
+	gdefFP    = "M:/Peel/RDRR-PWRMM21/met/RDRR-PWRMM21_5000.gdef"
+	demFP     = "M:/Peel/RDRR-PWRMM21/met/RDRR-PWRMM21_5000.hdem"
+	metFP     = "M:/Peel/RDRR-PWRMM21/met/RDRR-PWRMM21_5000_YCDB.met"
+	metOutFP  = "M:/Peel/RDRR-PWRMM21/met/"
+	patm      = 101300.
 )
 
 func main() {
@@ -55,7 +73,8 @@ func main() {
 	}
 	for _, i := range gd.Sactives {
 		if tem.TEC[i].Z == -9999. {
-			log.Fatalf("no elevation assigned to cell %d", i)
+			// log.Fatalf("no elevation assigned to cell %d", i)
+			fmt.Printf(" WARNING no elevation assigned to meteo cell %d\n", i)
 		}
 	}
 
@@ -69,8 +88,6 @@ func main() {
 
 	// initialize
 	cells, x := make([]prep.Cell, nact), hdr.WBDCxr()
-	b, g, alpha, beta := .06142, .899, 1.3077261, -0.000361             // calibrated PE parameters
-	tindex, ddfc, baseT, tsf := 0.009981, 1.794442, -2.035386, 0.211562 // calibrated snowmelt parameters
 	for k, i := range gd.Sactives {
 		latitude, _, err := UTM.ToLatLon(gd.Coord[i].X, gd.Coord[i].Y, 17, "", true)
 		if err != nil {
@@ -83,16 +100,23 @@ func main() {
 	if mmio.IsDir(metOutFP) {
 		// build .gob
 		ys, as := make([][]float64, nact), make([][]float64, nact) // [cell ID][date ID]
+		_, _, intvl := hdr.BeginEndInterval()
+		nt := int(dte.Add(time.Second*time.Duration(intvl)).Sub(dtb).Seconds() / float64(intvl))
 		for i := 0; i < nact; i++ {
-			ys[i] = make([]float64, len(dat.T))
-			as[i] = make([]float64, len(dat.T))
+			ys[i] = make([]float64, nt)
+			as[i] = make([]float64, nt)
 		}
+		ii := 0
 		for k, dt := range dat.T {
+			if dt.After(dte) || dt.Before(dtb) {
+				continue
+			}
 			fmt.Println(dt)
 			for i := 0; i < nact; i++ {
 				v, c := dat.D[k][i], cells[i]
-				ys[i][k], as[i][k] = c.ComputeDaily(v[x["Rainfall"]], v[x["Snowfall"]], v[x["MinDailyT"]], v[x["MaxDailyT"]], patm, dt)
+				ys[i][ii], as[i][ii] = c.ComputeDaily(v[x["Rainfall"]], v[x["Snowfall"]], v[x["MinDailyT"]], v[x["MaxDailyT"]], patm, dt)
 			}
+			ii++
 		}
 		if err := saveGOB(metOutFP+"frc.y.gob", ys); err != nil {
 			log.Fatalf("%v", err)

@@ -46,7 +46,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 	var sg lusg.SurfGeoColl
 	var ilu, isg, ilk, sws, dsws, ucnt map[int]int
 	var swscidxr map[int][]int  // set of cells for every sws siswd{[]cellid}
-	var uca map[int]map[int]int // unit contirbuing areas
+	var uca map[int]map[int]int // unit contributing areas
 
 	wg.Add(1)
 	go readmet()
@@ -85,6 +85,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		}
 		tt.Lap("topo.ContributingCellMap loaded")
 	}
+
 	readLU := func() {
 		const LakeID = 170 // SOLRIS
 		tt := mmio.NewTimer()
@@ -107,7 +108,17 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 		if _, ok := mmio.FileExists(l.Flu); ok {
 			fmt.Printf(" loading: %s\n", l.Flu)
 			var g grid.Indx
-			g.LoadGDef(gd)
+			func() {
+				if _, ok := mmio.FileExists(l.Flu + ".gdef"); ok {
+					gd1, err := grid.ReadGDEF(l.Flu+".gdef", false)
+					if err != nil {
+						log.Fatalf(" grid.ReadGDEF: %v", err)
+					}
+					g.LoadGDef(gd1)
+				} else {
+					g.LoadGDef(gd)
+				}
+			}()
 			g.NewShort(l.Flu, false)
 			ulu := g.UniqueValues()
 			lu = *lusg.LoadLandUse(ulu)
@@ -127,13 +138,24 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 			tt.Lap("(uniform) LU loaded")
 		}
 	}
+
 	readSG := func() {
 		tt := mmio.NewTimer()
 		defer wg.Done()
 		if _, ok := mmio.FileExists(l.Fsg); ok {
 			fmt.Printf(" loading: %s\n", l.Fsg)
 			var g grid.Indx
-			g.LoadGDef(gd)
+			func() {
+				if _, ok := mmio.FileExists(l.Fsg + ".gdef"); ok {
+					gd1, err := grid.ReadGDEF(l.Fsg+".gdef", false)
+					if err != nil {
+						log.Fatalf(" grid.ReadGDEF: %v", err)
+					}
+					g.LoadGDef(gd1)
+				} else {
+					g.LoadGDef(gd)
+				}
+			}()
 			g.NewShort(l.Fsg, false)
 			usg := g.UniqueValues()
 			sg = *lusg.LoadSurfGeo(usg)
@@ -151,6 +173,7 @@ func (l *Loader) load(buildEp bool) (*FORC, STRC, MAPR, RTR, *grid.Definition, [
 			tt.Lap("(uniform) SG loaded")
 		}
 	}
+
 	readSWS := func() {
 		tt := mmio.NewTimer()
 		defer wg.Done()

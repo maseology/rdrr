@@ -88,6 +88,8 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	if outlet < 0 || !ok {
 		return d.noSubDomain(frc)
 	}
+
+	// rarely used?
 	if frc == nil {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
@@ -152,7 +154,21 @@ func (d *domain) noSubDomain(frc *FORC) subdomain {
 	if frc == nil {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
-	cids, ds := d.strc.t.DownslopeContributingAreaIDs(-1)
+	cids0, ds := d.strc.t.DownslopeContributingAreaIDs(-1)
+	cids := make([]int, d.gd.Na)
+	icid := 0
+	for _, cid := range cids0 {
+		if _, ok := d.rtr.sws[cid]; ok {
+			cids[icid] = cid
+			icid++
+			if _, ok := d.rtr.sws[ds[cid]]; !ok {
+				ds[cid] = -1
+			}
+		} else {
+			delete(ds, cid)
+		}
+	}
+
 	// cid0 := cids[len(cids)-1] // assumes only one outlet
 	// ds[cid0] = -1
 	cid0 := -1
