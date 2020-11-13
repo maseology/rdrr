@@ -35,3 +35,8 @@ func NewCell2(LatitudeDeg, SlopeRad, AspectCwnRad, b, g, alpha, beta float64) Ce
 		beta:  beta,
 	}
 }
+
+// NewCell0 creates a new cell struct without snowpack and radiation parameters
+func NewCell0(LatitudeDeg, SlopeRad, AspectCwnRad float64) Cell {
+	return Cell{SI: solirrad.New(LatitudeDeg, SlopeRad, AspectCwnRad)}
+}
