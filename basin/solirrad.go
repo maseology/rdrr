@@ -41,7 +41,7 @@ func loadSolIrradFrac(frc *FORC, t *tem.TEM, gd *grid.Definition, nc, cid0 int, 
 		}
 		si := solirrad.New(latitude, math.Tan(tec.G), math.Pi/2.-tec.A)
 		f := make([]float64, 366)
-		for i, v := range si.PSIfactor() {
+		for i, v := range si.PSIfactor {
 			f[i] = v * sinEp(i)
 		}
 		if EnableSineET {

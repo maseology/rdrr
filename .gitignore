@@ -13,12 +13,14 @@
 
 # others
 *.bak
+*.bak*
 *.old
 *.rar
 *.png
 *.csv
 *.Rhistory
 /bak
+*/old
 /doc/latex
 /doc/images
 /test
