@@ -27,3 +27,19 @@ func (s *STRC) SaveGob(fp string) error {
 	}
 	return nil
 }
+
+// LoadGobSTRC loads
+func LoadGobSTRC(fp string) (*STRC, error) {
+	var strc STRC
+	f, err := os.Open(fp)
+	defer f.Close()
+	if err != nil {
+		return nil, err
+	}
+	enc := gob.NewDecoder(f)
+	err = enc.Decode(&strc)
+	if err != nil {
+		return nil, err
+	}
+	return &strc, nil
+}

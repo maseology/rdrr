@@ -9,17 +9,16 @@ import (
 )
 
 const (
-	gdefFP = "M:/OWRC-RDRR/owrc20-50a.uhdem.gdef"
-	demFP  = "M:/OWRC-RDRR/owrc20-50a.uhdem"
-	swsFP  = "M:/OWRC-RDRR/owrc20-50a_SWS10.indx"
-	topoFP = "M:/OWRC-RDRR/owrc20-50a_SWS10.topo"
+	gobDir = "S:/OWRC-RDRR/owrc."
+	gdefFP = "S:/OWRC-RDRR/owrc20-50a.uhdem.gdef"
+	demFP  = "S:/OWRC-RDRR/owrc20-50a.uhdem"
+	swsFP  = "S:/OWRC-RDRR/owrc20-50a_SWS10.indx"
+	topoFP = "S:/OWRC-RDRR/owrc20-50a_SWS10.topo"
+	ncfp   = "S:/OWRC-RDRR/met/202010010100.nc.bin" // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
 
 	lufp = "M:/OWRC-RDRR/build/lusg/solrisv3_10.bil" // + lookup??
 	sgfp = ""                                        // + lookup??
 
-	ncfp = "M:/OWRC-RDRR/met/202010010100.nc.bin" // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
-
-	gobDir = "M:/OWRC-RDRR/owrc."
 )
 
 var (
@@ -30,7 +29,7 @@ var (
 func main() {
 
 	tt := mmio.NewTimer()
-	defer tt.Print("prep complete!")
+	defer tt.Print("\n\nprep complete!")
 
 	fmt.Println("\ncollecting DEM..")
 	strc, cells, sws, nsws := prep.BuildSTRC(gobDir, gdefFP, demFP, swsFP)

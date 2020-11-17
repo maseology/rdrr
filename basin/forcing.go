@@ -31,6 +31,22 @@ func (frc *FORC) SaveGob(fp string) error {
 	return nil
 }
 
+// LoadGobFORC loads
+func LoadGobFORC(fp string) (*FORC, error) {
+	var frc FORC
+	f, err := os.Open(fp)
+	defer f.Close()
+	if err != nil {
+		return nil, err
+	}
+	enc := gob.NewDecoder(f)
+	err = enc.Decode(&frc)
+	if err != nil {
+		return nil, err
+	}
+	return &frc, nil
+}
+
 func gwsink(sta string) float64 {
 	d := map[string]float64{
 		"02EC021": .0005,

@@ -99,7 +99,7 @@ func BuildRTR(gobDir, topoFP string, strc *basin.STRC, sws map[int]int, nsws int
 		UCA:       uca,       // unit contributing areas per sws: swsid{cid{upcnt}}
 	}
 
-	if err := strc.SaveGob(gobDir + "RTR.gob"); err != nil {
+	if err := rtr.SaveGob(gobDir + "RTR.gob"); err != nil {
 		log.Fatalf(" BuildRTR error: %v", err)
 	}
 

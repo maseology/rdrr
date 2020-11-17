@@ -218,3 +218,19 @@ func (r *RTR) SaveGob(fp string) error {
 	}
 	return nil
 }
+
+// LoadGobRTR loads
+func LoadGobRTR(fp string) (*RTR, error) {
+	var rtr RTR
+	f, err := os.Open(fp)
+	defer f.Close()
+	if err != nil {
+		return nil, err
+	}
+	enc := gob.NewDecoder(f)
+	err = enc.Decode(&rtr)
+	if err != nil {
+		return nil, err
+	}
+	return &rtr, nil
+}
