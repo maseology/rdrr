@@ -53,9 +53,10 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 		if masterDomain.frc == nil {
 			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
 		}
-		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
+		b = masterDomain.newSubDomain(masterDomain.frc, -1) // gauge outlet cell id found in .met file
 	} else {
-		b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
+		log.Fatalf(" to fix")
+		// b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
 	}
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
 
@@ -96,9 +97,10 @@ func OptimizeDefault1(metfp string) (float64, []float64) {
 		if masterDomain.frc == nil {
 			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
 		}
-		b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
+		b = masterDomain.newSubDomain(masterDomain.frc, -1) // gauge outlet cell id found in .met file
 	} else {
-		b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
+		log.Fatalf(" to fix...")
+		// b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
 	}
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
 

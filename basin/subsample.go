@@ -4,21 +4,22 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"time"
 
 	"github.com/maseology/goHydro/hru"
 )
 
 type subsample struct {
-	cxr            map[int]int // mapping of cell to index
-	strm           map[int]float64
-	ws             []hru.HRU
-	in             map[int][]float64
-	t              []temporal
-	y, ep          [][]float64
-	drel, p0       []float64
-	cids, ds, mxr  []int
-	fncid, dm, s0s float64
-	nstep          int
+	cxr               map[int]int // mapping of cell to index
+	strm              map[int]float64
+	ws                []hru.HRU
+	in                map[int][]float64
+	t                 []time.Time
+	y, ep             [][]float64
+	drel, p0          []float64
+	cids, ds, mxr, mt []int
+	fncid, dm, s0s    float64
+	nstep             int
 	// f              [][]float64 // solar irradiation coefficient/(adjusted) potential evaporation
 }
 
@@ -27,18 +28,19 @@ func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) s
 	if sid < 0 {
 		pp.cids, pp.fncid = b.cids, b.fncid
 		pp.dehash(b, p, b.ncid, b.nstrm)
-		pp.initialize(b.frc.Q0, Ds, m, print)
+		pp.initialize(b.frc.q0, Ds, m, print)
 		return pp
 	}
-	if _, ok := b.rtr.swscidxr[sid]; !ok {
+	if _, ok := b.rtr.SwsCidXR[sid]; !ok {
 		log.Fatalf("subsample.newSubsample error: subwatershed id %d cannot be found.", sid)
 	}
 	if _, ok := p.gw[sid]; !ok {
 		log.Fatalf("subsample.newSubsample error: subwatershed id %d cannot be found as a groundwater reservoir.", sid)
 	}
-	pp.t = b.frc.t
-	pp.cids, pp.fncid = b.rtr.swscidxr[sid], float64(len(b.rtr.swscidxr[sid]))
-	pp.dehash(b, p, len(b.rtr.swscidxr[sid]), len(p.gw[sid].Qs))
+	pp.t = b.frc.T
+	pp.mt = b.frc.mt
+	pp.cids, pp.fncid = b.rtr.SwsCidXR[sid], float64(len(b.rtr.SwsCidXR[sid]))
+	pp.dehash(b, p, len(b.rtr.SwsCidXR[sid]), len(p.gw[sid].Qs))
 
 	// cktopo := make(map[int]bool, len(pp.cids))
 	// for _, i := range pp.cids {
@@ -54,7 +56,7 @@ func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) s
 	// 	cktopo[i] = true
 	// }
 
-	pp.initialize(b.frc.Q0, Ds, m, print)
+	pp.initialize(b.frc.q0, Ds, m, print)
 	// fmt.Printf(" **** sid: %d;  Dm0: %f;  s0: %f\n", sid, pp.dm, pp.s0s)
 	pp.ds[pp.cxr[sid]] = -1 // new outlet
 	return pp
@@ -68,7 +70,7 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 	pp.mxr = make([]int, ncid)       // met cellID to slice id cross-reference
 	pp.strm = make(map[int]float64, nstrm)
 	for i, c := range pp.cids {
-		sid := b.rtr.sws[c] // groundwatershed id
+		sid := b.rtr.Sws[c] // groundwatershed id
 		pp.drel[i] = p.gw[sid].D[c]
 		pp.ws[i] = *p.ws[c]
 		pp.p0[i] = p.p0[c]
@@ -79,7 +81,7 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 		}
 		// pp.f[i] = b.strc.f[c]
 		pp.cxr[c] = i
-		pp.mxr[i] = b.frc.x[c]
+		pp.mxr[i] = b.frc.XR[c]
 		if v, ok := p.gw[sid].Qs[c]; ok {
 			pp.strm[i] = v
 		}

@@ -14,7 +14,7 @@ import (
 func (b *subdomain) buildSfrac(smax float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
-		s := b.strc.t.TEC[c].G
+		s := b.strc.TEM.TEC[c].G
 		if s <= minslope {
 			fc[c] = 0.
 		} else if s >= smax {
@@ -29,7 +29,7 @@ func (b *subdomain) buildSfrac(smax float64) map[int]float64 {
 func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 	var wg sync.WaitGroup
 
-	ts := b.frc.h.IntervalSec() // [s/ts]
+	ts := b.frc.IntervalSec // [s/ts]
 	if ts <= 0. {
 		log.Fatalf(" toDefaultSample error, timestep (IntervalSec) = %v", ts)
 	}
@@ -69,7 +69,7 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 			var recurs func(int)
 			recurs = func(cid int) {
 				build(cid)
-				for _, upcid := range b.strc.t.UpIDs(cid) {
+				for _, upcid := range b.strc.TEM.UpIDs(cid) {
 					recurs(upcid)
 				}
 			}
@@ -84,19 +84,19 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 	buildTopmodel := func() {
 		// defer fmt.Println("  buildTopmodel complete")
 		defer wg.Done()
-		if b.frc.Q0 <= 0. {
-			log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.Q0)
+		if b.frc.q0 <= 0. {
+			log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.q0)
 		}
 
 		type kv struct {
 			k int
 			v gwru.TMQ
 		}
-		nsws := len(b.rtr.swscidxr)
+		nsws := len(b.rtr.SwsCidXR)
 		ch := make(chan kv, runtime.NumCPU()/2)
 		getgw := func(sid int) {
 			ksat := make(map[int]float64)
-			for _, c := range b.rtr.swscidxr[sid] {
+			for _, c := range b.rtr.SwsCidXR[sid] {
 				gg := 6 // Unknown (variable)
 				if _, ok := b.mpr.isg[c]; ok {
 					gg = b.mpr.isg[c]
@@ -114,19 +114,19 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 				// }
 			}
 			var gwt gwru.TMQ
-			gwt.New(ksat, b.rtr.uca[sid], b.rtr.swsstrmxr[sid], b.strc.t, b.strc.w, m)
+			gwt.New(ksat, b.rtr.UCA[sid], b.rtr.SwsStrmXR[sid], b.strc.TEM, b.strc.Wcell, m)
 			ch <- kv{k: sid, v: gwt}
 		}
 
 		if b.cid0 >= 0 {
-			for s := range b.rtr.swscidxr {
+			for s := range b.rtr.SwsCidXR {
 				go getgw(s)
 			}
 		} else {
-			if len(b.rtr.swscidxr) == 1 {
+			if len(b.rtr.SwsCidXR) == 1 {
 				go getgw(-1)
 			} else {
-				for k := range b.rtr.swscidxr {
+				for k := range b.rtr.SwsCidXR {
 					go getgw(k)
 				}
 			}

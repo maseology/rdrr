@@ -11,6 +11,7 @@ import (
 	"github.com/maseology/goHydro/pet"
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/basin"
 )
 
 const (
@@ -21,11 +22,34 @@ const (
 	penmanWFa, penmanWFb = 0.009, 0.26 // calibrated ep parameters
 )
 
-// CollectMeteoData (1) loads FEWS NetCDF (bin) output
+// BuildFORC builds the gob containing forcing data.
+// (1) loads FEWS NetCDF (bin) output
 // (2) returns sorted dates
 // (2) computes basin
 // (3) parses precipitation into rainfall by optimizing t_crit
-func CollectMeteoData(ncfp string, dtb, dte time.Time) (dts []time.Time, y, ea [][]float64, xr map[int]int, ndat int) {
+func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *basin.FORC {
+	dts, ys, eao, mxr, _ := collectMeteoData(ncfp, dtb, dte)
+
+	cmxr := make(map[int]int, len(cells))
+	for _, c := range cells {
+		cmxr[c.Cid] = mxr[c.Mid]
+	}
+
+	frc := basin.FORC{
+		T:           dts,
+		D:           [][][]float64{ys, eao},
+		XR:          cmxr,
+		IntervalSec: 86400 / 4,
+	}
+
+	if err := frc.SaveGob(gobDir + "FORC.gob"); err != nil {
+		log.Fatalf(" BuildFORC error: %v", err)
+	}
+
+	return &frc
+}
+
+func collectMeteoData(ncfp string, dtb, dte time.Time) (dts []time.Time, y, ea [][]float64, xr map[int]int, ndat int) {
 	fmt.Println(" loading data exported from FEWS:", ncfp, "...")
 
 	ndat, nsta, nvar, dat := loadNC(ncfp) //[station_id][datetime][ precipitation_amount, surface_snow_and_ice_melt_flux, air_temperature, air_pressure, relative_humidity, wind_speed ]

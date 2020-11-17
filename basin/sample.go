@@ -59,10 +59,7 @@ func (s *sample) print(dir string) error {
 
 // SampleDefault samples a default-parameter model to a given basin outlet
 func SampleDefault(metfp, outprfx string, nsmpl int) {
-	b, ok := masterToSubomain(metfp)
-	if !ok {
-		return
-	}
+	b := masterDomain.newSubDomain(masterDomain.frc, -1)
 	fmt.Printf(" catchment area: %.1f km²\n\n", b.contarea/1000./1000.)
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
 	v := func() float64 {
@@ -120,26 +117,18 @@ func SampleMaster(outdir string, nsmpl int) {
 	if masterDomain.frc == nil {
 		log.Fatalf(" basin.RunMaster error: no forcings made available\n")
 	}
-	frc, _ := masterForcing()
-	b = masterDomain.noSubDomain(frc)
+
+	b = masterDomain.newSubDomain(masterDomain.frc, -1)
 	b.mdldir = outdir
 	b.cid0 = -1
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
-	if len(b.rtr.swscidxr) == 1 {
-		b.rtr.swscidxr = map[int][]int{-1: b.cids}
-		b.rtr.sws = make(map[int]int, b.ncid)
+	if len(b.rtr.SwsCidXR) == 1 {
+		b.rtr.SwsCidXR = map[int][]int{-1: b.cids}
+		b.rtr.Sws = make(map[int]int, b.ncid)
 		for _, c := range b.cids {
-			b.rtr.sws[c] = -1
+			b.rtr.Sws[c] = -1
 		}
 	}
-	// if len(metfp) == 0 {
-	// 	if masterDomain.frc == nil {
-	// 		log.Fatalf(" basin.RunDefault error: no forcings made available\n")
-	// 	}
-	// 	b = masterDomain.newSubDomain(masterForcing()) // gauge outlet cell id found in .met file
-	// } else {
-	// 	b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
-	// }
 	fmt.Printf(" catchment area: %.1f km²\n\n", b.contarea/1000./1000.)
 
 	rng := rand.New(mrg63k3a.New())
@@ -168,7 +157,7 @@ func SampleMaster(outdir string, nsmpl int) {
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
 		b.eval(&smpl, dt, y, ep, obs, intvl, nstep, dinc, m, false)
 		WaitMonitors()
-		compressMC(masterDomain.gd)
+		compressMC()
 	}
 
 	tt := mmio.NewTimer()

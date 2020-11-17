@@ -193,7 +193,7 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 
 	dm := p.dm
 	for k := 0; k < p.nstep; k++ {
-		mt := p.t[k].mt - 1
+		mt := p.mt[k] - 1
 		rs, gs, s1s, bs := 0., 0., 0., 0.
 		for i, v := range p.in {
 			p.ws[i].AddToStorage(v[k]) // inflow from up sws

@@ -44,7 +44,7 @@ func setMCdir() {
 	mmio.MakeDir(mondir)
 }
 
-func compressMC(gd *grid.Definition) {
+func compressMC() {
 	// fmt.Println("reorg")
 	// reorgMC(gd)
 	// fmt.Println("compress")

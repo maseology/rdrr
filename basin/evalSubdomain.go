@@ -30,7 +30,7 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 	var wg sync.WaitGroup
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
 	if len(b.swsord) == 1 {
-		if len(b.rtr.swscidxr) == 1 {
+		if len(b.rtr.SwsCidXR) == 1 {
 			rs := newResults(b, intvl, nstep)
 			rs.dt, rs.obs = dt, obs
 			var res resulter = &rs
@@ -44,7 +44,7 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 	} else {
 		// var outflw []float64
 		tt := mmio.NewTimer()
-		transfers := make(map[int][]itran, len(b.rtr.swscidxr))
+		transfers := make(map[int][]itran, len(b.rtr.SwsCidXR))
 		nrnds := len(b.swsord)
 		for i, k := range b.swsord {
 			if print {
@@ -88,7 +88,7 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 						}
 						ver(&pp, Ds, m, res, b.obs[sid])
 						dsid := -1
-						if d, ok := b.rtr.dsws[sid]; ok {
+						if d, ok := b.rtr.Dsws[sid]; ok {
 							// if _, ok := transfers[d]; !ok {
 							// 	transfers[d] = []itran{} //// concurrent map write potential (now fixed below)
 							// }
@@ -117,9 +117,9 @@ func printTrans(b *subdomain, m map[int][]itran, outflow []float64) {
 	nstp := 10
 	txt, _ := mmio.NewTXTwriter("printTrans.txt")
 	defer txt.Close()
-	osws := b.rtr.sws[b.cid0]
-	xr := make(map[int]int, len(b.rtr.swscidxr))
-	for sws := range b.rtr.swscidxr {
+	osws := b.rtr.Sws[b.cid0]
+	xr := make(map[int]int, len(b.rtr.SwsCidXR))
+	for sws := range b.rtr.SwsCidXR {
 		xr[b.ds[sws]] = sws
 	}
 	for i, k := range b.swsord {

@@ -1,8 +1,10 @@
 package basin
 
 import (
+	"encoding/gob"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 
 	"github.com/maseology/goHydro/tem"
@@ -12,9 +14,9 @@ import (
 
 // RTR holds topological info for subwatershed routing
 type RTR struct {
-	swscidxr, swsstrmxr map[int][]int       // cross reference sws to cids; sws to stream cell ids
-	sws, dsws           map[int]int         // cross reference of cid to sub-watershed ID; map upsws{downsws}
-	uca                 map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
+	SwsCidXR, SwsStrmXR map[int][]int       // cross reference sws to cids; sws to stream cell ids
+	Sws, Dsws           map[int]int         // cross reference of cid to sub-watershed ID; map upsws{downsws}
+	UCA                 map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
 }
 
 func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]int, []int) {
@@ -28,10 +30,10 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 	if outlet < 0 {
 		// log.Fatalf(" RTR.subset error: outlet cell needs to be provided")
 		sws = make(map[int]int, len(cids))
-		dsws = r.dsws
-		sct := make(map[int][]int, len(r.swscidxr))
+		dsws = r.Dsws
+		sct := make(map[int][]int, len(r.SwsCidXR))
 		for _, cid := range cids {
-			if s, ok := r.sws[cid]; ok {
+			if s, ok := r.Sws[cid]; ok {
 				sws[cid] = s
 			} else {
 				log.Fatalf(" RTR.subset error: cell not belonging to a sws")
@@ -52,17 +54,17 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			copy(a, v)
 			swscidxr[k] = a
 		}
-		uca = r.uca
+		uca = r.UCA
 	} else {
-		sws, dsws = make(map[int]int, len(cids)), make(map[int]int, len(r.dsws))
-		if len(r.sws) > 0 {
-			if _, ok := r.sws[outlet]; !ok {
+		sws, dsws = make(map[int]int, len(cids)), make(map[int]int, len(r.Dsws))
+		if len(r.Sws) > 0 {
+			if _, ok := r.Sws[outlet]; !ok {
 				log.Fatalf(" RTR.subset error: outlet cell not belonging to a sws")
 			}
-			sct := make(map[int][]int, len(r.swscidxr))
-			osws := r.sws[outlet] // outlet sws (the original sws the outlet cell existed in)
+			sct := make(map[int][]int, len(r.SwsCidXR))
+			osws := r.Sws[outlet] // outlet sws (the original sws the outlet cell existed in)
 			for _, cid := range cids {
-				if s, ok := r.sws[cid]; ok {
+				if s, ok := r.Sws[cid]; ok {
 					if s == osws {
 						sws[cid] = outlet // crops sws to outlet
 					} else {
@@ -73,11 +75,11 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 				}
 				if _, ok := dsws[sws[cid]]; !ok { // temporarily collect sws's
 					if sws[cid] != outlet {
-						if r.dsws[sws[cid]] == osws {
+						if r.Dsws[sws[cid]] == osws {
 							dsws[sws[cid]] = outlet
 						} else {
-							if _, ok := r.dsws[sws[cid]]; ok {
-								dsws[sws[cid]] = r.dsws[sws[cid]]
+							if _, ok := r.Dsws[sws[cid]]; ok {
+								dsws[sws[cid]] = r.Dsws[sws[cid]]
 							} else {
 								dsws[sws[cid]] = -1
 							}
@@ -100,12 +102,12 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			}
 			uca = make(map[int]map[int]int, len(sct))
 			for s := range swscidxr {
-				if _, ok := r.uca[s]; ok {
-					uca[s] = r.uca[s]
+				if _, ok := r.UCA[s]; ok {
+					uca[s] = r.UCA[s]
 				} else if s == outlet {
-					uca[s] = r.uca[osws]
+					uca[s] = r.UCA[osws]
 				} else {
-					log.Fatalf(" RTR.subset uca error: unknown sws")
+					log.Fatalf(" RTR.subset UCA error: unknown sws")
 				}
 			}
 			sids = mmaths.OrderFromToTree(dsws, -1)
@@ -116,7 +118,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			sids = []int{outlet}
 			swscidxr = map[int][]int{outlet: cids}
 			log.Fatalf(" router.go RTR.subset: to check")
-			uca = r.uca
+			uca = r.UCA
 		}
 	}
 
@@ -156,7 +158,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 	}
 	getSWSstrms := func() {
 		defer wg.Done()
-		sst := make(map[int][]int, len(r.swsstrmxr))
+		sst := make(map[int][]int, len(r.SwsStrmXR))
 		for _, c := range strms {
 			if s, ok := sws[c]; ok {
 				if _, ok := sst[s]; !ok {
@@ -181,20 +183,20 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 	wg.Wait()
 
 	return &RTR{
-		swscidxr:  swscidxr,
-		swsstrmxr: swsstrmxr,
-		sws:       sws,
-		dsws:      dsws,
-		uca:       uca,
+		SwsCidXR:  swscidxr,
+		SwsStrmXR: swsstrmxr,
+		Sws:       sws,
+		Dsws:      dsws,
+		UCA:       uca,
 	}, ord, sids
 }
 
 func (r *RTR) write(dir string) {
-	mmio.WriteIMAP(dir+"sws.imap", r.sws)
-	if len(r.dsws) > 0 {
-		gdsws := make(map[int]int, len(r.sws))
-		for k, v := range r.sws {
-			if d, ok := r.dsws[v]; ok {
+	mmio.WriteIMAP(dir+"sws.imap", r.Sws)
+	if len(r.Dsws) > 0 {
+		gdsws := make(map[int]int, len(r.Sws))
+		for k, v := range r.Sws {
+			if d, ok := r.Dsws[v]; ok {
 				gdsws[k] = d
 			} else {
 				fmt.Println("RTR.write error: issue with sws mapping")
@@ -202,4 +204,17 @@ func (r *RTR) write(dir string) {
 		}
 		mmio.WriteIMAP(dir+"dsws.imap", gdsws)
 	}
+}
+
+// SaveGob RTR to gob
+func (r *RTR) SaveGob(fp string) error {
+	f, err := os.Create(fp)
+	defer f.Close()
+	if err != nil {
+		return fmt.Errorf(" RTR.SaveGob %v", err)
+	}
+	if err := gob.NewEncoder(f).Encode(r); err != nil {
+		return fmt.Errorf(" RTR.SaveGob %v", err)
+	}
+	return nil
 }

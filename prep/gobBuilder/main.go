@@ -1,10 +1,7 @@
 package main
 
 import (
-	"encoding/gob"
 	"fmt"
-	"log"
-	"os"
 	"time"
 
 	"github.com/maseology/mmio"
@@ -12,12 +9,17 @@ import (
 )
 
 const (
-	gdefFP = "S:/OWRC-RDRR/owrc20-50a.uhdem.gdef"
-	demFP  = "S:/OWRC-RDRR/owrc20-50a.uhdem"
-	swsFP  = "S:/OWRC-RDRR/owrc20-50a_SWS10.indx"
-	ncfp   = "M:/OWRC-RDRR/met/202010010100.nc.bin" // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
+	gdefFP = "M:/OWRC-RDRR/owrc20-50a.uhdem.gdef"
+	demFP  = "M:/OWRC-RDRR/owrc20-50a.uhdem"
+	swsFP  = "M:/OWRC-RDRR/owrc20-50a_SWS10.indx"
+	topoFP = "M:/OWRC-RDRR/owrc20-50a_SWS10.topo"
 
-	gobDir = "M:/OWRC-RDRR/met/"
+	lufp = "M:/OWRC-RDRR/build/lusg/solrisv3_10.bil" // + lookup??
+	sgfp = ""                                        // + lookup??
+
+	ncfp = "M:/OWRC-RDRR/met/202010010100.nc.bin" // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
+
+	gobDir = "M:/OWRC-RDRR/owrc."
 )
 
 var (
@@ -26,50 +28,63 @@ var (
 )
 
 func main() {
+
 	tt := mmio.NewTimer()
 	defer tt.Print("prep complete!")
 
 	fmt.Println("\ncollecting DEM..")
-	prep.GetCells(gdefFP, demFP, swsFP)
+	strc, cells, sws, nsws := prep.BuildSTRC(gobDir, gdefFP, demFP, swsFP)
 
-	fmt.Println("\ncollecting station data and computing basin atmospheric yield and Eao..")
-	dts, ys, eao, mxr, _ := prep.CollectMeteoData(ncfp, dtb, dte)
-	fmt.Printf("\n Model start:\t%v\n Model end:\t%v\n saving met gobs..\n", dts[0], dts[len(dts)-1])
-	if err := saveGOB(gobDir+"frc.ys.gob", ys); err != nil {
-		log.Fatalf("%v", err)
+	if _, ok := mmio.FileExists(gobDir + "FORC.gob"); !ok {
+		fmt.Println("\ncollecting station data and computing basin atmospheric yield and Eao..")
+		prep.BuildFORC(gobDir, ncfp, cells, dtb, dte)
 	}
-	if err := saveGOB(gobDir+"frc.ep.gob", eao); err != nil {
-		log.Fatalf("%v", err)
+
+	if _, ok := mmio.FileExists(gobDir + "RTR.gob"); !ok {
+		fmt.Println("\nbuilding subbasin routing scheme..")
+		prep.BuildRTR(gobDir, topoFP, strc, sws, nsws)
 	}
-	if err := saveGOBxr(gobDir+"frc.xr.gob", mxr); err != nil {
-		log.Fatalf("%v", err)
-	}
+
 }
 
-func saveGOB(fp string, d [][]float64) error {
-	f, err := os.Create(fp)
-	defer f.Close()
-	if err != nil {
-		return err
-	}
-	enc := gob.NewEncoder(f)
-	err = enc.Encode(d)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func saveGOB(fp string, d [][]float64) error {
+// 	f, err := os.Create(fp)
+// 	defer f.Close()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	enc := gob.NewEncoder(f)
+// 	err = enc.Encode(d)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func saveGOBxr(fp string, xr map[int]int) error {
-	f, err := os.Create(fp)
-	defer f.Close()
-	if err != nil {
-		return err
-	}
-	enc := gob.NewEncoder(f)
-	err = enc.Encode(xr)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func saveGOBdts(fp string, dts []time.Time) error {
+// 	f, err := os.Create(fp)
+// 	defer f.Close()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	enc := gob.NewEncoder(f)
+// 	err = enc.Encode(dts)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
+
+// func saveGOBxr(fp string, xr map[int]int) error {
+// 	f, err := os.Create(fp)
+// 	defer f.Close()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	enc := gob.NewEncoder(f)
+// 	err = enc.Encode(xr)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
