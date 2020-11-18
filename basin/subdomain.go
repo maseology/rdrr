@@ -29,7 +29,7 @@ func (b *subdomain) print() {
 	fmt.Println("Land Use proportions")
 	mLU := make(map[int]int, 10)
 	for _, i := range b.cids {
-		v := b.mpr.ilu[i]
+		v := b.mpr.LUx[i]
 		if _, ok := mLU[v]; ok {
 			mLU[v]++
 		} else {
@@ -44,7 +44,7 @@ func (b *subdomain) print() {
 	fmt.Println("\nSurficial Geology proportions")
 	mSG := make(map[int]int, 10)
 	for _, i := range b.cids {
-		v := b.mpr.isg[i]
+		v := b.mpr.SGx[i]
 		if _, ok := mSG[v]; ok {
 			mSG[v]++
 		} else {
@@ -144,6 +144,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	return b
 }
 
+// BuildStreams determines stream cells based on const strmkm2
 func BuildStreams(strc *STRC, cids []int) ([]int, int) {
 	strmcthresh := int(strmkm2 * 1000. * 1000. / strc.Acell) // "stream cell" threshold
 	strms, nstrm := []int{}, 0

@@ -8,7 +8,7 @@ import (
 	"github.com/maseology/rdrr/basin"
 )
 
-// BuildRTR returns (and saves) the the topological routing scheme amongst sub-basins
+// BuildRTR returns (and saves) the topological routing scheme amongst sub-basins
 func BuildRTR(gobDir, topoFP string, strc *basin.STRC, sws map[int]int, nsws int) *basin.RTR {
 
 	cids, _ := strc.TEM.DownslopeContributingAreaIDs(-1)

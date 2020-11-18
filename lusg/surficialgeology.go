@@ -7,6 +7,17 @@ import (
 	"github.com/maseology/montecarlo/invdistr"
 )
 
+const (
+	low = iota + 1
+	lowMedium
+	medium
+	mediumHigh
+	high
+	unknown   // variable
+	streambed // fluvial/floodplain
+	wetlandSediments
+)
+
 // SurfGeoColl holds a collection of SurfGeo.
 type SurfGeoColl map[int]SurfGeo // cell ID to SurfGeo
 
@@ -16,7 +27,7 @@ func LoadSurfGeo(UniqueValues []int) *SurfGeoColl {
 	p := make(map[int]SurfGeo, len(UniqueValues))
 	for _, id := range UniqueValues {
 		switch id {
-		case -9999, -1:
+		case -9999, -1, 0:
 			p[id] = SurfGeo{
 				ID:   id,
 				Ksat: ksatFromID(6),
@@ -43,6 +54,14 @@ type SurfGeo struct {
 	dK, dP   *invdistr.Map
 	Ksat, SY float64
 	ID       int
+}
+
+// Sample returns a sample from the SurfGeo's range
+func (s *SurfGeo) Sample(u ...float64) (ksat, por, sy float64) {
+	ksat = s.dK.P(u[0])
+	por = s.dP.P(u[1])
+	sy = s.SY
+	return
 }
 
 /////////////////////////////////////////////////
@@ -168,16 +187,4 @@ func syFromID(sgid int) float64 {
 		log.Fatalf("syFromID: no value assigned to SurfGeo ID %d", sgid)
 		return 0.
 	}
-}
-
-/////////////////////////////////////////////////
-//// MATERIAL PROPERTIES
-/////////////////////////////////////////////////
-
-// Sample returns a sample from the SurfGeo's range
-func (s *SurfGeo) Sample(u ...float64) (ksat, por, sy float64) {
-	ksat = s.dK.P(u[0])
-	por = s.dP.P(u[1])
-	sy = s.SY
-	return
 }

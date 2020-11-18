@@ -42,26 +42,26 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 		build := func(cid int) {
 			var ll, gg int
 			var ok bool
-			if ll, ok = b.mpr.ilu[cid]; !ok {
+			if ll, ok = b.mpr.LUx[cid]; !ok {
 				log.Fatalf(" toDefaultSample.assignHRUs error, no LandUse assigned to cell ID %d", cid)
 			}
-			if gg, ok = b.mpr.isg[cid]; !ok {
+			if gg, ok = b.mpr.SGx[cid]; !ok {
 				// log.Fatalf(" toDefaultSample.assignHRUs error, no SurfGeo assigned to cell ID %d", cid)
 				log.Printf(" toDefaultSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
 				gg = 6 // Unknown (variable)
 			}
 			var lu lusg.LandUse
 			var sg lusg.SurfGeo
-			if lu, ok = b.mpr.lu[ll]; !ok {
+			if lu, ok = b.mpr.LU[ll]; !ok {
 				log.Fatalf(" toDefaultSample.assignHRUs error, no LandUse assigned of type %d", ll)
 			}
-			if sg, ok = b.mpr.sg[gg]; !ok {
+			if sg, ok = b.mpr.SG[gg]; !ok {
 				log.Fatalf(" toDefaultSample.assignHRUs error, no SurfGeo assigned to type %d", gg)
 			}
 
 			var h hru.HRU
-			drnsto, srfsto, fimp, _ := lu.GetSOLRIS1(soildepth) //lu.GetDefaultsSOLRIS()
-			h.Initialize(drnsto, srfsto, fimp, sg.Ksat*kfact*ts)
+			drnsto, srfsto := lu.Rebuild1(soildepth, b.mpr.Fimp[cid], b.mpr.Fcov[cid])
+			h.Initialize(drnsto, srfsto, b.mpr.Fimp[cid], sg.Ksat*kfact*ts)
 			ws[cid] = &h
 		}
 
@@ -98,10 +98,10 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 			ksat := make(map[int]float64)
 			for _, c := range b.rtr.SwsCidXR[sid] {
 				gg := 6 // Unknown (variable)
-				if _, ok := b.mpr.isg[c]; ok {
-					gg = b.mpr.isg[c]
+				if _, ok := b.mpr.SGx[c]; ok {
+					gg = b.mpr.SGx[c]
 				}
-				if sg, ok := b.mpr.sg[gg]; ok {
+				if sg, ok := b.mpr.SG[gg]; ok {
 					if sg.Ksat <= 0. {
 						log.Fatalf(" toDefaultSample.buildTopmodel error: cell %d has an assigned ksat = %v\n", c, sg.Ksat)
 					}
@@ -162,12 +162,12 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 				}
 			}
 			for c := range g.D {
-				if _, ok := b.mpr.ilk[c]; ok {
+				if _, ok := b.mpr.LKx[c]; ok {
 					g.D[c] = minD // pressume lakes relative deficits to be equivalent to the SWS min
 				}
 			}
 		}
-		for c := range b.mpr.ilk {
+		for c := range b.mpr.LKx {
 			p0[c] = 1. // set open water to 100% cascade
 		}
 	}

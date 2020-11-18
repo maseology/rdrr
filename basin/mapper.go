@@ -11,9 +11,14 @@ import (
 
 // MAPR holds mappings of landuse and surficial geology
 type MAPR struct {
-	lu            lusg.LandUseColl
-	sg            lusg.SurfGeoColl
-	ilu, isg, ilk map[int]int // cross reference of cid to lu/sg/lake id
+	LU            lusg.LandUseColl // [luid]LandUseColl
+	SG            lusg.SurfGeoColl // [sgid]SurfGeoColl
+	Fimp, Fcov    map[int]float64
+	LUx, SGx, LKx map[int]int // cross reference of cid to lu/sg/lake id
+}
+
+// MaprCXR holds cell-based parameters and indices
+type MaprCXR struct {
 }
 
 // SaveGob MAPR to gob
@@ -46,16 +51,16 @@ func LoadGobMAPR(fp string) (*MAPR, error) {
 }
 
 // func (m *MAPR) write(dir string) error {
-// 	mmio.WriteIMAP(dir+"luid.imap", m.ilu)
-// 	mmio.WriteIMAP(dir+"sgid.imap", m.isg)
+// 	mmio.WriteIMAP(dir+"luid.imap", m.LUx)
+// 	mmio.WriteIMAP(dir+"sgid.imap", m.SGx)
 // 	return nil
 // }
 
 func (m *MAPR) writeSubset(dir string, cids []int) error {
 	iluss, isgss := make(map[int]int, len(cids)), make(map[int]int, len(cids))
 	for _, c := range cids {
-		iluss[c] = m.ilu[c]
-		isgss[c] = m.isg[c]
+		iluss[c] = m.LUx[c]
+		isgss[c] = m.SGx[c]
 	}
 	mmio.WriteIMAP(dir+"luid.imap", iluss)
 	mmio.WriteIMAP(dir+"sgid.imap", isgss)
