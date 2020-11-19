@@ -2,22 +2,24 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/basin"
 	"github.com/maseology/rdrr/prep"
 )
 
 const (
-	gobDir = "M:/OWRC-RDRR/owrc."
-	gdefFP = "M:/OWRC-RDRR/owrc20-50a.uhdem.gdef"
-	demFP  = "M:/OWRC-RDRR/owrc20-50a.uhdem"
-	swsFP  = "M:/OWRC-RDRR/owrc20-50a_SWS10.indx"
-	topoFP = "M:/OWRC-RDRR/owrc20-50a_SWS10.topo"
-	ncfp   = "M:/OWRC-RDRR/met/202010010100.nc.bin" // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
-
-	lufp = "M:/OWRC-RDRR/build/lusg/solrisv3_10.bil"
-	sgfp = "M:/OWRC-RDRR/build/lusg/OGSsurfGeo_50.bil"
+	gobDir = "S:/OWRC-RDRR/prep/owrc."
+	gdefFP = "S:/OWRC-RDRR/prep/owrc20-50a.uhdem.gdef"
+	demFP  = "S:/OWRC-RDRR/prep/owrc20-50a.uhdem"
+	swsFP  = "S:/OWRC-RDRR/prep/owrc20-50a_SWS10.indx"
+	topoFP = "S:/OWRC-RDRR/prep/owrc20-50a_SWS10.topo"
+	ncfp   = "S:/OWRC-RDRR/prep/met/202010010100.nc.bin" // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
+	lufp   = "S:/OWRC-RDRR/prep/solrisv3_10.bil"
+	sgfp   = "S:/OWRC-RDRR/prep/OGSsurfGeo_50.bil"
 )
 
 var (
@@ -30,8 +32,25 @@ func main() {
 	tt := mmio.NewTimer()
 	defer tt.Print("\n\nprep complete!")
 
-	fmt.Println("\ncollecting DEM..")
-	strc, gd, cells, sws, nsws := prep.BuildSTRC(gobDir, gdefFP, demFP, swsFP)
+	// get grid definition
+	fmt.Println("\ncollecting grid defintion..")
+	gd, err := grid.ReadGDEF(gdefFP, true)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	if len(gd.Sactives) <= 0 {
+		log.Fatalf("error: grid definition requires active cells")
+	}
+
+	var strc *basin.STRC
+	var cells []prep.Cell
+	var sws map[int]int
+	var nsws int
+
+	if _, ok := mmio.FileExists(gobDir + "FORC.gob"); !ok {
+		fmt.Println("\ncollecting DEM..")
+		strc, cells, sws, nsws = prep.BuildSTRC(gd, gobDir, demFP, swsFP)
+	}
 
 	if _, ok := mmio.FileExists(gobDir + "FORC.gob"); !ok {
 		fmt.Println("\ncollecting station data and computing basin atmospheric yield and Eao..")

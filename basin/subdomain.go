@@ -113,14 +113,14 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	for _, c := range cids {
 		if p, ok := d.strc.TEM.TEC[c]; ok {
 			if p.G <= 0. {
-				fmt.Printf(" domain.noSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.G)
+				fmt.Printf(" domain.newSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.G)
 				t := d.strc.TEM.TEC[c]
 				t.G = 0.0001
 				t.A = 0.
 				d.strc.TEM.TEC[c] = t
 			}
 		} else {
-			log.Fatalf(" domain.noSubDomain error: no topographic info available for cell %d", c)
+			log.Fatalf(" domain.newSubDomain error: no topographic info available for cell %d", c)
 		}
 	}
 

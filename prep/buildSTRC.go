@@ -17,19 +17,10 @@ type Cell struct {
 }
 
 // BuildSTRC builds the structural (static) form of the model
-func BuildSTRC(gobDir, gdefFP, demFP, swsFP string) (strc *basin.STRC, gd *grid.Definition, cells []Cell, sws map[int]int, nsws int) {
-
-	var err error
-	gd, err = grid.ReadGDEF(gdefFP, true)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	if len(gd.Sactives) <= 0 {
-		log.Fatalf("error: grid definition requires active cells")
-	}
+func BuildSTRC(gd *grid.Definition, gobDir, demFP, swsFP string) (strc *basin.STRC, cells []Cell, sws map[int]int, nsws int) {
 
 	var dem tem.TEM
-	if err = dem.New(demFP); err != nil {
+	if err := dem.New(demFP); err != nil {
 		log.Fatalf(" tem.New() error: %v", err)
 	}
 	for _, i := range gd.Sactives {
@@ -122,7 +113,7 @@ func BuildSTRC(gobDir, gdefFP, demFP, swsFP string) (strc *basin.STRC, gd *grid.
 	// 	return nil
 	// }()
 
-	if err = strc.SaveGob(gobDir + "STRC.gob"); err != nil {
+	if err := strc.SaveGob(gobDir + "STRC.gob"); err != nil {
 		log.Fatalf(" BuildSTRC error: %v", err)
 	}
 

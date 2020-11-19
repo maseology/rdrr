@@ -10,6 +10,7 @@ import (
 
 const (
 	mdlPrfx = "S:/OWRC-RDRR/owrc."
+	obsfp   = "S:/OWRC-RDRR/owrc20-50-obs.obs"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 	defer tt.Lap(fmt.Sprintf("\nRun complete. n processes: %v", runtime.GOMAXPROCS(0)))
 
 	// load data
-	basin.LoadMasterDomain(mdlPrfx)
+	basin.LoadMasterDomain(mdlPrfx, obsfp)
 	tt.Print("Master Domain Load complete\n")
 
 	// run model

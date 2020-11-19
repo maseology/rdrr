@@ -19,6 +19,14 @@ const (
 	defaultFc        = 0.3    // [-]
 )
 
+const ( // canopy types
+	open = iota
+	shrub
+	coniferous
+	deciduous
+	mixedVegetation
+)
+
 // BuildMAPR returns (and saves) the parameter mapping scheme
 func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *basin.MAPR {
 	var wg sync.WaitGroup
@@ -43,7 +51,15 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *basin.MAPR {
 			fmt.Printf(" loading: %s\n", fp)
 			var g grid.Real
 			g.NewGD32(fp, gd)
-			return g.A
+			aout := make(map[int]float64, len(g.A))
+			for k, v := range g.A {
+				if v < 0. {
+					aout[k] = 0.
+				} else {
+					aout[k] = v
+				}
+			}
+			return aout
 		}
 		fimp = loadReal(lufp + "-perimp.bil")
 		fcov = loadReal(lufp + "-percov.bil")
@@ -64,10 +80,10 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *basin.MAPR {
 		ilu, ulu = loadIndx(lufp + "-surfaceid.bil")
 		icov, _ := loadIndx(lufp + "-canopyid.bil")
 
-		// adjust cover
+		// adjust cover (convert to ifct)
 		for k, v := range fcov {
 			if ic, ok := icov[k]; ok {
-				fcov[k] = v * lusg.RelativeCover(ic, ilu[k])
+				fcov[k] = v * relativeCover(ic, ilu[k])
 			}
 		}
 
@@ -141,7 +157,7 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *basin.MAPR {
 		SGx:  isg,
 		LKx:  ilk,
 		Fimp: fimp,
-		Fcov: fcov,
+		Ifct: fcov,
 	}
 
 	if err := mpr.SaveGob(gobDir + "MAPR.gob"); err != nil {
@@ -149,4 +165,26 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *basin.MAPR {
 	}
 
 	return &mpr
+}
+
+// relativeCover creates a canopy cover factor based on land use
+func relativeCover(canopyID, surfaceID int) float64 {
+	f := 0.
+	switch canopyID {
+	case coniferous, deciduous, mixedVegetation:
+		f += 1.
+	case shrub:
+		f += .5
+	}
+	switch surfaceID {
+	case lusg.DenseVegetation:
+		f += 1.25
+	case lusg.ShortVegetation, lusg.TallVegetation, lusg.Forest, lusg.Swamp:
+		f += 1.
+	case lusg.Agriculture, lusg.Meadow:
+		f += .85
+	case lusg.Wetland, lusg.Marsh, lusg.SparseVegetation:
+		f += .35
+	}
+	return f
 }

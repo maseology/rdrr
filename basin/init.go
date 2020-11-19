@@ -60,7 +60,7 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 			}
 
 			var h hru.HRU
-			drnsto, srfsto := lu.Rebuild1(soildepth, b.mpr.Fimp[cid], b.mpr.Fcov[cid])
+			drnsto, srfsto := lu.Rebuild1(soildepth, b.mpr.Fimp[cid], b.mpr.Ifct[cid])
 			h.Initialize(drnsto, srfsto, b.mpr.Fimp[cid], sg.Ksat*kfact*ts)
 			ws[cid] = &h
 		}

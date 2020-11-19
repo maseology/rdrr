@@ -13,8 +13,8 @@ import (
 type MAPR struct {
 	LU            lusg.LandUseColl // [luid]LandUseColl
 	SG            lusg.SurfGeoColl // [sgid]SurfGeoColl
-	Fimp, Fcov    map[int]float64
-	LUx, SGx, LKx map[int]int // cross reference of cid to lu/sg/lake id
+	Fimp, Ifct    map[int]float64  // fraction impervious; interception factor, total intercption=Ifct*Fcov*IntSto
+	LUx, SGx, LKx map[int]int      // cross reference of cid to lu/sg/lake id
 }
 
 // MaprCXR holds cell-based parameters and indices
