@@ -1,4 +1,4 @@
-package basin
+package model
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 )
 
 // RunDefault runs simulation with default parameters
-func RunDefault(mdldir, chkdir string, topm, smax, dinc, soildepth, kfact float64, print bool) float64 {
+func RunDefault(mdldir, chkdir string, topm, smax, dinc, soildepth, kfact float64, outlet int, print bool) float64 {
 	tt := mmio.NewTimer()
-	
-	b := masterDomain.newSubDomain(masterDomain.frc, -1)
+
+	b := masterDomain.newSubDomain(masterDomain.frc, outlet)
 	b.mdldir = mdldir
 	if print {
 		tt.Lap("sub-domain load complete")

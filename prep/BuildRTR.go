@@ -5,11 +5,11 @@ import (
 	"log"
 
 	"github.com/maseology/mmio"
-	"github.com/maseology/rdrr/basin"
+	"github.com/maseology/rdrr/model"
 )
 
 // BuildRTR returns (and saves) the topological routing scheme amongst sub-basins
-func BuildRTR(gobDir, topoFP string, strc *basin.STRC, sws map[int]int, nsws int) *basin.RTR {
+func BuildRTR(gobDir, topoFP string, strc *model.STRC, sws map[int]int, nsws int) *model.RTR {
 
 	cids, _ := strc.TEM.DownslopeContributingAreaIDs(-1)
 
@@ -30,7 +30,7 @@ func BuildRTR(gobDir, topoFP string, strc *basin.STRC, sws map[int]int, nsws int
 	}
 
 	// collect stream cells
-	strms, _ := basin.BuildStreams(strc, cids)
+	strms, _ := model.BuildStreams(strc, cids)
 	sst := make(map[int][]int, nsws)
 	for _, c := range strms {
 		if s, ok := sws[c]; ok {
@@ -91,7 +91,7 @@ func BuildRTR(gobDir, topoFP string, strc *basin.STRC, sws map[int]int, nsws int
 	}
 	close(ch)
 
-	rtr := basin.RTR{
+	rtr := model.RTR{
 		SwsCidXR:  swscidxr,  // ordered cids, per sws
 		SwsStrmXR: swsstrmxr, // stream cells per sws
 		Sws:       sws,       // [cid]sws mapping

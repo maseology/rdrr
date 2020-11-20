@@ -1,4 +1,4 @@
-package basin
+package model
 
 import (
 	"log"

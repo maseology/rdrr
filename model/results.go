@@ -1,4 +1,4 @@
-package basin
+package model
 
 import (
 	"fmt"
@@ -50,6 +50,10 @@ func (r *results) report(print bool) []float64 {
 		// r.sim[k] *= r.h2cms / r.fncid
 		// r.obs[k] *= r.h2cms
 		// r.bf[k] *= r.h2cms / r.fncid / r.fnstrm
+	}
+	if len(r.obs) < warmup {
+		sumPlotSto("wb.png", r.hsto, r.gsto)
+		return []float64{-1.}
 	}
 	rmse := objfunc.RMSE(r.obs[warmup:], r.sim[warmup:])
 	if print {

@@ -7,8 +7,8 @@ import (
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
-	"github.com/maseology/rdrr/basin"
 	"github.com/maseology/rdrr/lusg"
+	"github.com/maseology/rdrr/model"
 )
 
 const (
@@ -28,7 +28,7 @@ const ( // canopy types
 )
 
 // BuildMAPR returns (and saves) the parameter mapping scheme
-func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *basin.MAPR {
+func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
 	var wg sync.WaitGroup
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
@@ -150,7 +150,7 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *basin.MAPR {
 	go readSG()
 	wg.Wait()
 
-	mpr := basin.MAPR{
+	mpr := model.MAPR{
 		LU:   lu,
 		SG:   sg,
 		LUx:  ilu,

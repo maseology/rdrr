@@ -16,7 +16,7 @@ const (
 	Meadow
 	Wetland
 	Swamp
-	Marsh
+	Marsh // 10
 	Channel
 	Lake
 	Barren

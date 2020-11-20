@@ -1,4 +1,4 @@
-package basin
+package model
 
 import (
 	"encoding/gob"
@@ -59,7 +59,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 		sws, dsws = make(map[int]int, len(cids)), make(map[int]int, len(r.Dsws))
 		if len(r.Sws) > 0 {
 			if _, ok := r.Sws[outlet]; !ok {
-				log.Fatalf(" RTR.subset error: outlet cell not belonging to a sws")
+				log.Fatalf(" RTR.subset error: outlet cell not belonging to a sws (outlet cid = %d)", outlet)
 			}
 			sct := make(map[int][]int, len(r.SwsCidXR))
 			osws := r.Sws[outlet] // outlet sws (the original sws the outlet cell existed in)

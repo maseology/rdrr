@@ -1,4 +1,4 @@
-package basin
+package model
 
 import (
 	"fmt"
@@ -10,23 +10,23 @@ import (
 )
 
 type subsample struct {
-	cxr               map[int]int // mapping of cell to index
-	strm              map[int]float64
-	ws                []hru.HRU
-	in                map[int][]float64
-	t                 []time.Time
-	y, ep             [][]float64
-	drel, p0          []float64
-	cids, ds, mxr, mt []int
-	fncid, dm, s0s    float64
-	nstep             int
+	cxr                   map[int]int // mapping of cell to index
+	strm                  map[int]float64
+	ws                    []hru.HRU
+	in                    map[int][]float64
+	t                     []time.Time
+	y, ep                 [][]float64
+	drel, p0              []float64
+	cids, ds, mxr, mt     []int
+	intvl, fncid, dm, s0s float64
+	nstep                 int
 	// f              [][]float64 // solar irradiation coefficient/(adjusted) potential evaporation
 }
 
 func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) subsample {
 	var pp subsample
 	if sid < 0 {
-		pp.cids, pp.fncid = b.cids, b.fncid
+		pp.cids, pp.fncid, pp.intvl = b.cids, b.fncid, b.frc.IntervalSec
 		pp.dehash(b, p, b.ncid, b.nstrm)
 		pp.initialize(b.frc.q0, Ds, m, print)
 		return pp

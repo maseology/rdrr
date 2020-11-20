@@ -11,7 +11,7 @@ import (
 	"github.com/maseology/goHydro/pet"
 	"github.com/maseology/mmaths"
 	"github.com/maseology/mmio"
-	"github.com/maseology/rdrr/basin"
+	"github.com/maseology/rdrr/model"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 // (2) returns sorted dates
 // (2) computes basin
 // (3) parses precipitation into rainfall by optimizing t_crit
-func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *basin.FORC {
+func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *model.FORC {
 	dts, ys, eao, mxr, _ := collectMeteoData(ncfp, dtb, dte)
 
 	cmxr := make(map[int]int, len(cells))
@@ -35,7 +35,7 @@ func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *basin.FOR
 		cmxr[c.Cid] = mxr[c.Mid]
 	}
 
-	frc := basin.FORC{
+	frc := model.FORC{
 		T:           dts,
 		D:           [][][]float64{ys, eao},
 		XR:          cmxr,

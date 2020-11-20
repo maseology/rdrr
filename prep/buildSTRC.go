@@ -7,7 +7,7 @@ import (
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/goHydro/tem"
-	"github.com/maseology/rdrr/basin"
+	"github.com/maseology/rdrr/model"
 )
 
 // Cell collects cell cross-referencing
@@ -17,7 +17,7 @@ type Cell struct {
 }
 
 // BuildSTRC builds the structural (static) form of the model
-func BuildSTRC(gd *grid.Definition, gobDir, demFP, swsFP string) (strc *basin.STRC, cells []Cell, sws map[int]int, nsws int) {
+func BuildSTRC(gd *grid.Definition, gobDir, demFP, swsFP string) (strc *model.STRC, cells []Cell, sws map[int]int, nsws int) {
 
 	var dem tem.TEM
 	if err := dem.New(demFP); err != nil {
@@ -30,7 +30,7 @@ func BuildSTRC(gd *grid.Definition, gobDir, demFP, swsFP string) (strc *basin.ST
 		}
 	}
 
-	strc = &basin.STRC{
+	strc = &model.STRC{
 		TEM:   &dem,
 		UpCnt: dem.ContributingCellMap(),
 		Acell: gd.Cw * gd.Cw,

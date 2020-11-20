@@ -7,18 +7,18 @@ import (
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
-	"github.com/maseology/rdrr/basin"
+	"github.com/maseology/rdrr/model"
 	"github.com/maseology/rdrr/prep"
 )
 
 const (
-	gobDir = "S:/OWRC-RDRR/prep/owrc."
+	gobDir = "S:/OWRC-RDRR/owrc."
 	gdefFP = "S:/OWRC-RDRR/prep/owrc20-50a.uhdem.gdef"
 	demFP  = "S:/OWRC-RDRR/prep/owrc20-50a.uhdem"
 	swsFP  = "S:/OWRC-RDRR/prep/owrc20-50a_SWS10.indx"
 	topoFP = "S:/OWRC-RDRR/prep/owrc20-50a_SWS10.topo"
 	ncfp   = "S:/OWRC-RDRR/prep/met/202010010100.nc.bin" // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
-	lufp   = "S:/OWRC-RDRR/prep/solrisv3_10.bil"
+	lufp   = "S:/OWRC-RDRR/prep/solrisv3_10_infilled.bil"
 	sgfp   = "S:/OWRC-RDRR/prep/OGSsurfGeo_50.bil"
 )
 
@@ -42,12 +42,12 @@ func main() {
 		log.Fatalf("error: grid definition requires active cells")
 	}
 
-	var strc *basin.STRC
+	var strc *model.STRC
 	var cells []prep.Cell
 	var sws map[int]int
 	var nsws int
 
-	if _, ok := mmio.FileExists(gobDir + "FORC.gob"); !ok {
+	if _, ok := mmio.FileExists(gobDir + "STRC.gob"); !ok {
 		fmt.Println("\ncollecting DEM..")
 		strc, cells, sws, nsws = prep.BuildSTRC(gd, gobDir, demFP, swsFP)
 	}

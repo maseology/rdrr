@@ -1,4 +1,4 @@
-package basin
+package model
 
 const (
 	nearzero   = 1e-8

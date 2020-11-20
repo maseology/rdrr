@@ -1,4 +1,4 @@
-package basin
+package model
 
 import (
 	"fmt"
@@ -77,7 +77,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 		}
 		g := gmonitor{gy, ga, gr, gg, gb}
 		gwg.Add(1)
-		go g.print(p.ws, p.in, p.cxr, p.ds, float64(p.nstep))
+		go g.print(p.ws, p.in, p.cxr, p.ds, p.intvl, p.fncid) // float64(p.nstep))
 	}()
 
 	for _, c := range monid {

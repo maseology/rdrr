@@ -5,7 +5,7 @@ import (
 	"runtime"
 
 	"github.com/maseology/mmio"
-	"github.com/maseology/rdrr/basin"
+	"github.com/maseology/rdrr/model"
 )
 
 const (
@@ -20,17 +20,17 @@ func main() {
 	defer tt.Lap(fmt.Sprintf("\nRun complete. n processes: %v", runtime.GOMAXPROCS(0)))
 
 	// load data
-	basin.LoadMasterDomain(mdlPrfx, obsfp)
+	model.LoadMasterDomain(mdlPrfx, obsfp)
 	tt.Print("Master Domain Load complete\n")
 
 	// run model
-	basin.DeleteMonitors(mdlPrfx + "out/") // also sets-up the output folder
-	topm, smax, dinc, soildepth, kfact := .045394, .004987, .116692, .073995, 1.
-	basin.RunDefault(mdlPrfx, mdlPrfx+"check/", topm, smax, dinc, soildepth, kfact, true)
+	model.DeleteMonitors(mdlPrfx + "out/") // also sets-up the output folder
+	// topm, smax, dinc, soildepth, kfact := .045394, .004987, .116692, .073995, 1.
+	// model.RunDefault(mdlPrfx, mdlPrfx+"check/", topm, smax, dinc, soildepth, kfact, 21806078, true)
 
-	// basin.OptimizeDefault("")
+	// model.OptimizeDefault("")
 
 	// // sample models
-	// basin.PrepMC(mdlPrfx + "MC/")
-	// basin.SampleMaster(mdlPrfx, 500)
+	// model.PrepMC(mdlPrfx + "MC/")
+	model.SampleMaster(mdlPrfx, 10)
 }
