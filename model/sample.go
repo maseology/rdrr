@@ -16,17 +16,18 @@ import (
 	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
+// sample is a parameterized subdomain
 type sample struct {
-	ws hru.WtrShd        // hru watershed
-	gw map[int]*gwru.TMQ // topmodel
-	p0 map[int]float64
+	ws    hru.WtrShd        // hru watershed
+	gw    map[int]*gwru.TMQ // topmodel
+	cascf map[int]float64   // cascade fraction
 	// swsr, celr, p0, p1 map[int]float64
 }
 
 func (s *sample) copy() sample {
 	return sample{
-		ws: hru.CopyWtrShd(s.ws),
-		p0: mmio.CopyMapif(s.p0),
+		ws:    hru.CopyWtrShd(s.ws),
+		cascf: mmio.CopyMapif(s.cascf),
 		gw: func(origTMQ map[int]*gwru.TMQ) map[int]*gwru.TMQ {
 			newTMQ := make(map[int]*gwru.TMQ, len(origTMQ))
 			for k, v := range origTMQ {
@@ -39,7 +40,7 @@ func (s *sample) copy() sample {
 }
 
 func (s *sample) print(dir string) error {
-	mmio.WriteRMAP(dir+"s.p0.rmap", s.p0, false)
+	mmio.WriteRMAP(dir+"s.cascf.rmap", s.cascf, false)
 	mmio.DeleteFile(dir + "s.gw.Qs.rmap")
 	mmio.DeleteFile(dir + "s.gw.g-ti.rmap")
 	for _, v := range s.gw {
@@ -119,7 +120,7 @@ func SampleMaster(outdir string, nsmpl int) {
 	}
 
 	b = masterDomain.newSubDomain(masterDomain.frc, -1)
-	b.mdldir = outdir
+	// b.mdldir = outdir
 	b.cid0 = -1
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
 	if len(b.rtr.SwsCidXR) == 1 {

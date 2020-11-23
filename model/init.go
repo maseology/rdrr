@@ -11,7 +11,7 @@ import (
 	"github.com/maseology/rdrr/lusg"
 )
 
-func (b *subdomain) buildSfrac(smax float64) map[int]float64 {
+func (b *subdomain) buildCascadeFraction(smax float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
 		s := b.strc.TEM.TEC[c].G
@@ -147,13 +147,13 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 	go buildTopmodel()
 	wg.Wait()
 
-	p0 := b.buildSfrac(smax)
+	cascf := b.buildCascadeFraction(smax)
 
 	finalAdjustments := func() {
 		defer wg.Done()
 		for _, g := range gw {
 			for c := range g.Qs {
-				p0[c] = 1. // set streams to 100% cascade
+				cascf[c] = 1. // set streams to 100% cascade
 			}
 			minD := math.MaxFloat64
 			for _, v := range g.D {
@@ -168,7 +168,7 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 			}
 		}
 		for c := range b.mpr.LKx {
-			p0[c] = 1. // set open water to 100% cascade
+			cascf[c] = 1. // set open water to 100% cascade
 		}
 	}
 
@@ -177,8 +177,8 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 	wg.Wait()
 
 	return sample{
-		ws: ws,
-		gw: gw,
-		p0: p0,
+		ws:    ws,
+		gw:    gw,
+		cascf: cascf,
 	}
 }

@@ -9,25 +9,26 @@ import (
 	"github.com/maseology/goHydro/hru"
 )
 
-type subsample struct {
-	cxr                   map[int]int // mapping of cell to index
-	strm                  map[int]float64
-	ws                    []hru.HRU
-	in                    map[int][]float64
-	t                     []time.Time
-	y, ep                 [][]float64
-	drel, p0              []float64
-	cids, ds, mxr, mt     []int
-	intvl, fncid, dm, s0s float64
-	nstep                 int
-	// f              [][]float64 // solar irradiation coefficient/(adjusted) potential evaporation
+// evaluation is a dehashed model run built from a sample
+// this is what gets evaluated
+type evaluation struct {
+	cxr                   map[int]int       // cellID to slice id cross-reference; mapping of cell id to (de-hashed) array index
+	strmQs                map[int]float64   // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
+	sources               map[int][]float64 // inflow from up sws
+	ws                    []hru.HRU         // watershed: collection of HRUs
+	t                     []time.Time       // timesteps
+	y, ep                 [][]float64       // yeild; demand
+	drel, cascf           []float64         // relative depth to WT; cascade fraction
+	ds, mxr, mt           []int             // downslope cell ID; meteo to cell xr; consecutive month index
+	intvl, fncid, dm, s0s float64           // mean depth to WT; initial storage
+	nstep                 int               // n timesteps
 }
 
-func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) subsample {
-	var pp subsample
+func newEvaluation(b *subdomain, p *sample, Ds, m float64, sid int, print bool) evaluation {
+	var pp evaluation
 	if sid < 0 {
-		pp.cids, pp.fncid, pp.intvl = b.cids, b.fncid, b.frc.IntervalSec
-		pp.dehash(b, p, b.ncid, b.nstrm)
+		pp.fncid, pp.intvl = b.fncid, b.frc.IntervalSec
+		pp.dehash(b, p, sid, b.ncid, b.nstrm)
 		pp.initialize(b.frc.q0, Ds, m, print)
 		return pp
 	}
@@ -39,8 +40,9 @@ func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) s
 	}
 	pp.t = b.frc.T
 	pp.mt = b.frc.mt
-	pp.cids, pp.fncid = b.rtr.SwsCidXR[sid], float64(len(b.rtr.SwsCidXR[sid]))
-	pp.dehash(b, p, len(b.rtr.SwsCidXR[sid]), len(p.gw[sid].Qs))
+	// pp.cids, pp.fncid = b.rtr.SwsCidXR[sid], float64(len(b.rtr.SwsCidXR[sid]))
+	pp.fncid = float64(len(b.rtr.SwsCidXR[sid]))
+	pp.dehash(b, p, sid, len(b.rtr.SwsCidXR[sid]), len(p.gw[sid].Qs))
 
 	// cktopo := make(map[int]bool, len(pp.cids))
 	// for _, i := range pp.cids {
@@ -62,18 +64,18 @@ func newSubsample(b *subdomain, p *sample, Ds, m float64, sid int, print bool) s
 	return pp
 }
 
-func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
+func (pp *evaluation) dehash(b *subdomain, p *sample, sid, ncid, nstrm int) {
 	pp.drel = make([]float64, ncid) // initialize mean TOPMODEL deficit
-	pp.ws, pp.p0, pp.ds = make([]hru.HRU, ncid), make([]float64, ncid), make([]int, ncid)
+	pp.ws, pp.cascf, pp.ds = make([]hru.HRU, ncid), make([]float64, ncid), make([]int, ncid)
 	// pp.f = make([][]float64, ncid)
-	pp.cxr = make(map[int]int, ncid) // cellID to slice id cross-reference
-	pp.mxr = make([]int, ncid)       // met cellID to slice id cross-reference
-	pp.strm = make(map[int]float64, nstrm)
-	for i, c := range pp.cids {
+	pp.cxr = make(map[int]int, ncid)         // cellID to slice id cross-reference
+	pp.mxr = make([]int, ncid)               // met cellID to slice id cross-reference
+	pp.strmQs = make(map[int]float64, nstrm) // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
+	for i, c := range b.rtr.SwsCidXR[sid] {
 		sid := b.rtr.Sws[c] // groundwatershed id
 		pp.drel[i] = p.gw[sid].D[c]
 		pp.ws[i] = *p.ws[c]
-		pp.p0[i] = p.p0[c]
+		pp.cascf[i] = p.cascf[c]
 		if d, ok := b.ds[c]; ok {
 			pp.ds[i] = d
 		} else {
@@ -83,7 +85,7 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 		pp.cxr[c] = i
 		pp.mxr[i] = b.frc.XR[c]
 		if v, ok := p.gw[sid].Qs[c]; ok {
-			pp.strm[i] = v
+			pp.strmQs[i] = v
 		}
 	}
 	return
@@ -95,7 +97,7 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 // 	}
 // 	opt := func(u []float64) float64 {
 // 		q0t, dm := 0., smpl(u[0])
-// 		for c, v := range pp.strm {
+// 		for c, v := range pp.strmQs {
 // 			q0t += v * math.Exp((Ds-dm-pp.drel[pp.xr[c]])/m)
 // 		}
 // 		// for i := range pp.cids {
@@ -115,15 +117,15 @@ func (pp *subsample) dehash(b *subdomain, p *sample, ncid, nstrm int) {
 // 	}
 // }
 
-func (pp *subsample) initialize(q0, Ds, m float64, print bool) {
+func (pp *evaluation) initialize(q0, Ds, m float64, print bool) {
 	pp.dm = func() (dm float64) {
 		dm = 0. //-m * math.Log(q0/Qs)
-		if len(pp.strm) == 0 {
+		if len(pp.strmQs) == 0 {
 			return
 		}
 		q0t, n := 0., 0
 		for {
-			for i, v := range pp.strm {
+			for i, v := range pp.strmQs {
 				q0t += v * math.Exp((Ds-dm-pp.drel[i])/m)
 			}
 			q0t /= pp.fncid
@@ -144,7 +146,7 @@ func (pp *subsample) initialize(q0, Ds, m float64, print bool) {
 		return
 	}()
 	pp.s0s = 0.
-	for i := range pp.cids {
-		pp.s0s += pp.ws[i].Storage()
+	for i := 0; i < int(pp.fncid); i++ {
+		pp.s0s += pp.ws[i].Storage() // initial subsample storage
 	}
 }

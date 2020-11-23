@@ -10,7 +10,7 @@ const (
 	fe = 1.
 )
 
-func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
+func eval(p *evaluation, Ds, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -24,12 +24,12 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 	dm := p.dm
 	for k := 0; k < p.nstep; k++ {
 		rs, gs, s1s, bs := 0., 0., 0., 0.
-		for i, v := range p.in {
+		for i, v := range p.sources {
 			p.ws[i].Srf.Sto += v[k] // inflow from up sws
 		}
 		for i := 0; i < ncid; i++ {
 			_, r, g := p.ws[i].UpdateWT(p.y[p.mxr[i]][k], p.ep[p.mxr[i]][k], dm+p.drel[i])
-			x := r * (1. - p.p0[i])
+			x := r * (1. - p.cascf[i])
 			if x > hx {
 				x = hx
 			}
@@ -38,7 +38,7 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 			s1s += p.ws[i].Storage()
 
 			hb := 0.
-			if v, ok := p.strm[i]; ok {
+			if v, ok := p.strmQs[i]; ok {
 				hb = v * math.Exp((Ds-dm-p.drel[i])/m)
 				bs += hb
 				r += hb
@@ -61,7 +61,7 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 	return
 }
 
-func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
+func evalWB(p *evaluation, Ds, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -77,7 +77,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 		}
 		g := gmonitor{gy, ga, gr, gg, gb}
 		gwg.Add(1)
-		go g.print(p.ws, p.in, p.cxr, p.ds, p.intvl, p.fncid) // float64(p.nstep))
+		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, p.fncid) // float64(p.nstep))
 	}()
 
 	for _, c := range monid {
@@ -88,7 +88,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 	for k := 0; k < p.nstep; k++ {
 		// doy := p.t[k].doy // day of year
 		ys, ins, as, rs, gs, s1s, bs, dm0 := 0., 0., 0., 0., 0., 0., 0., dm
-		for i, v := range p.in {
+		for i, v := range p.sources {
 			p.ws[i].Srf.Sto += v[k] // inflow from up sws
 			ins += v[k]
 		}
@@ -97,7 +97,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 			y := p.y[p.mxr[i]][k]
 			ep := p.ep[p.mxr[i]][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
 			drel := p.drel[i]
-			p0 := p.p0[i]
+			p0 := p.cascf[i]
 			a, r, g := p.ws[i].UpdateWT(y, ep, dm+drel)
 			x := r * (1. - p0)
 			if x > hx {
@@ -119,7 +119,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 			gy[i] += y
 			ga[i] += a
 			hb := 0.
-			if v, ok := p.strm[i]; ok {
+			if v, ok := p.strmQs[i]; ok {
 				hb = v * math.Exp((Ds-dm-drel)/m)
 				bs += hb
 				r += hb
@@ -165,7 +165,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 	return
 }
 
-func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
+func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -182,7 +182,7 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 		}
 		g := mcmonitor{gy, ga, gr, gg, gb}
 		gwg.Add(1)
-		go g.print(p.in, p.cxr, p.ds, float64(p.nstep))
+		go g.print(p.sources, p.cxr, p.ds, float64(p.nstep))
 	}()
 
 	// defer func() { res.getTotals(sim, hsto, gsto) }()
@@ -195,13 +195,13 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 	for k := 0; k < p.nstep; k++ {
 		mt := p.mt[k] - 1
 		rs, gs, s1s, bs := 0., 0., 0., 0.
-		for i, v := range p.in {
+		for i, v := range p.sources {
 			p.ws[i].Srf.Sto += v[k] // inflow from up sws
 		}
 		for i := 0; i < ncid; i++ {
 			y := p.y[p.mxr[i]][k]
 			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i])
-			x := r * (1. - p.p0[i])
+			x := r * (1. - p.cascf[i])
 			if x > hx {
 				x = hx
 			}
@@ -212,7 +212,7 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 			gy[mt][i] += y
 			ga[mt][i] += a
 			hb := 0.
-			if v, ok := p.strm[i]; ok {
+			if v, ok := p.strmQs[i]; ok {
 				hb = v * math.Exp((Ds-dm-p.drel[i])/m)
 				bs += hb
 				r += hb

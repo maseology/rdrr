@@ -11,7 +11,7 @@ func RunDefault(mdldir, chkdir string, topm, smax, dinc, soildepth, kfact float6
 	tt := mmio.NewTimer()
 
 	b := masterDomain.newSubDomain(masterDomain.frc, outlet)
-	b.mdldir = mdldir
+	// b.mdldir = mdldir
 	if print {
 		tt.Lap("sub-domain load complete")
 		fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))

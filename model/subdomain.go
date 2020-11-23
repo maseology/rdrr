@@ -9,20 +9,21 @@ import (
 	mmio "github.com/maseology/mmio"
 )
 
-// subdomain carries all non-parameter data for a particular region (eg a catchment).
+// subdomain carries all structural (non-parameter) data for a particular region (e.g. a catchment).
 // Forcing variables are collected and held to be run independently for each sample.
 type subdomain struct {
-	frc                             *FORC         // forcing data
-	strc                            *STRC         // structural data
-	mpr                             *MAPR         // land use/surficial geology mapping
-	rtr                             *RTR          // subwatershed topology and mapping
-	obs                             map[int][]int // sws{[]obs-cid}
-	ds                              map[int]int   // downslope cell ID
-	swsord                          [][]int       // sws IDs (topologically ordered, concurrent safe)
-	cids, strms                     []int         // cell IDs (topologically ordered); stream cell IDs
-	contarea, fncid, fnstrm, gwsink float64       // contributing area [m²], (float) number of cells
-	ncid, nstrm, cid0               int           // number of cells, number of stream cells, outlet cell ID
-	mdldir                          string        // model directory
+	frc    *FORC         // forcing data
+	strc   *STRC         // structural data
+	mpr    *MAPR         // land use/surficial geology mapping
+	rtr    *RTR          // subwatershed topology and mapping
+	obs    map[int][]int // sws{[]obs-cid}
+	ds     map[int]int   // downslope cell ID
+	swsord [][]int       // sws IDs (topologically ordered, concurrent safe)
+	cids   []int         // cell IDs (topologically ordered)
+	// cids, strms                     []int         // cell IDs (topologically ordered); stream cell IDs
+	contarea, fncid, fnstrm, gwsink float64 // contributing area [m²], (float) number of cells
+	ncid, nstrm, cid0               int     // number of cells, number of stream cells, outlet cell ID
+	// mdldir                          string        // model directory
 }
 
 func (b *subdomain) print() {
@@ -125,12 +126,12 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	}
 
 	b := subdomain{
-		frc:      frc,
-		strc:     d.strc,
-		mpr:      d.mpr,
-		rtr:      newRTR,
-		cids:     cids,
-		strms:    strms,
+		frc:  frc,
+		strc: d.strc,
+		mpr:  d.mpr,
+		rtr:  newRTR,
+		cids: cids,
+		// strms:    strms,
 		swsord:   swsord,
 		ds:       ds,
 		obs:      buildObs(d, newRTR),

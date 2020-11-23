@@ -35,7 +35,7 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 			rs := newResults(b, intvl, nstep)
 			rs.dt, rs.obs = dt, obs
 			var res resulter = &rs
-			pp := newSubsample(b, p, Ds, m, -1, print)
+			pp := newEvaluation(b, p, Ds, m, -1, print)
 			pp.y, pp.ep, pp.nstep = y, ep, nstep
 			ver(&pp, Ds, m, res, b.obs[-1])
 			of = res.report(print)[0]
@@ -57,18 +57,18 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 				wg.Add(1)
 				go func(sid int, t []itran) {
 					defer wg.Done()
-					pp := newSubsample(b, p, Ds, m, sid, print)
+					pp := newEvaluation(b, p, Ds, m, sid, print)
 					pp.y, pp.ep, pp.nstep = y, ep, nstep
 					if len(t) > 0 {
-						pp.in = make(map[int][]float64, len(t)) // upstream inputs
+						pp.sources = make(map[int][]float64, len(t)) // upstream inputs
 						for _, v := range t {
-							if _, ok := pp.in[pp.cxr[v.c]]; ok {
+							if _, ok := pp.sources[pp.cxr[v.c]]; ok {
 								for i, vv := range v.v {
-									pp.in[pp.cxr[v.c]][i] += vv
+									pp.sources[pp.cxr[v.c]][i] += vv
 								}
-								// log.Fatalf("TODO (subdomain.eval): more than one inputs transferred to the same cell: sid: %d, cell: %d\n", sid, v.c)
+								// log.Fatalf("TODO (subdomain.eval): more than one sources transferred to the same cell: sid: %d, cell: %d\n", sid, v.c)
 							} else {
-								pp.in[pp.cxr[v.c]] = v.v
+								pp.sources[pp.cxr[v.c]] = v.v
 							}
 						}
 					}
