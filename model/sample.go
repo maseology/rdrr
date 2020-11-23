@@ -48,7 +48,7 @@ func (s *sample) print(dir string) error {
 	}
 	perc, fimp, smacap, srfcap := make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws))
 	for c, h := range s.ws {
-		perc[c], fimp[c], smacap[c], srfcap[c] = h.PercFimpCap()
+		perc[c], fimp[c], smacap[c], srfcap[c] = h.Perc, h.Fimp, h.Sma.Cap, h.Srf.Cap
 	}
 	mmio.WriteRMAP(dir+"s.ws.perc.rmap", perc, false)
 	mmio.WriteRMAP(dir+"s.ws.fimp.rmap", fimp, false)

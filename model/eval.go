@@ -25,7 +25,7 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 	for k := 0; k < p.nstep; k++ {
 		rs, gs, s1s, bs := 0., 0., 0., 0.
 		for i, v := range p.in {
-			p.ws[i].AddToStorage(v[k]) // inflow from up sws
+			p.ws[i].Srf.Sto += v[k] // inflow from up sws
 		}
 		for i := 0; i < ncid; i++ {
 			_, r, g := p.ws[i].UpdateWT(p.y[p.mxr[i]][k], p.ep[p.mxr[i]][k], dm+p.drel[i])
@@ -33,7 +33,7 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 			if x > hx {
 				x = hx
 			}
-			p.ws[i].AddToStorage(x)
+			p.ws[i].Srf.Sto += x
 			r -= x
 			s1s += p.ws[i].Storage()
 
@@ -49,7 +49,7 @@ func eval(p *subsample, Ds, m float64, res resulter, monid []int) {
 			if p.ds[i] == -1 { // outlet cell
 				rs += r
 			} else {
-				p.ws[p.cxr[p.ds[i]]].AddToStorage(r)
+				p.ws[p.cxr[p.ds[i]]].Srf.Sto += r
 			}
 			gs += g
 		}
@@ -89,7 +89,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 		// doy := p.t[k].doy // day of year
 		ys, ins, as, rs, gs, s1s, bs, dm0 := 0., 0., 0., 0., 0., 0., 0., dm
 		for i, v := range p.in {
-			p.ws[i].AddToStorage(v[k]) // inflow from up sws
+			p.ws[i].Srf.Sto += v[k] // inflow from up sws
 			ins += v[k]
 		}
 		for i := 0; i < ncid; i++ {
@@ -103,7 +103,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 			if x > hx {
 				x = hx
 			}
-			p.ws[i].AddToStorage(x)
+			p.ws[i].Srf.Sto += x
 			r -= x
 			s1 := p.ws[i].Storage()
 			s1s += s1
@@ -131,7 +131,7 @@ func evalWB(p *subsample, Ds, m float64, res resulter, monid []int) {
 			if p.ds[i] == -1 { // outlet cell
 				rs += r
 			} else {
-				p.ws[p.cxr[p.ds[i]]].AddToStorage(r)
+				p.ws[p.cxr[p.ds[i]]].Srf.Sto += r
 			}
 			gs += g
 			gr[i] += r
@@ -196,7 +196,7 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 		mt := p.mt[k] - 1
 		rs, gs, s1s, bs := 0., 0., 0., 0.
 		for i, v := range p.in {
-			p.ws[i].AddToStorage(v[k]) // inflow from up sws
+			p.ws[i].Srf.Sto += v[k] // inflow from up sws
 		}
 		for i := 0; i < ncid; i++ {
 			y := p.y[p.mxr[i]][k]
@@ -205,7 +205,7 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 			if x > hx {
 				x = hx
 			}
-			p.ws[i].AddToStorage(x)
+			p.ws[i].Srf.Sto += x
 			r -= x
 			s1s += p.ws[i].Storage()
 
@@ -224,7 +224,7 @@ func evalMC(p *subsample, Ds, m float64, res resulter, monid []int) {
 			if p.ds[i] == -1 { // outlet cell
 				rs += r
 			} else {
-				p.ws[p.cxr[p.ds[i]]].AddToStorage(r)
+				p.ws[p.cxr[p.ds[i]]].Srf.Sto += r
 			}
 			gs += g
 			gr[mt][i] += r

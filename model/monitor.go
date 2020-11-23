@@ -41,7 +41,7 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, d
 		mr[c] = g.gr[i] * f
 		mg[c] = (g.gg[i] - g.gb[i]) * f
 		// ms[c] = ws[i].Storage() * f
-		sma, srf := ws[i].Storage2()
+		sma, srf := ws[i].Sma.Sto, ws[i].Srf.Sto
 		msma[c] = sma * f
 		msrf[c] = srf * f
 		ms[c] = (sma + srf) * f
