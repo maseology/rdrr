@@ -16,6 +16,7 @@
 *.bak*
 *.old
 *.rar
+*.tar.gz
 *.png
 *.csv
 *.Rhistory

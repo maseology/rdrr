@@ -26,11 +26,12 @@ func main() {
 	// run model
 	model.DeleteMonitors(mdlPrfx + "out/") // also sets-up the output folder
 	// topm, smax, dinc, soildepth, kfact := .045394, .004987, .116692, .073995, 1.
-	// model.RunDefault(mdlPrfx, mdlPrfx+"check/", topm, smax, dinc, soildepth, kfact, 21806078, true)
+	topm, smax, dinc, soildepth, kfact := 0.001153, 2.287310, 0.104665, 1.435206, 33.153130
+	model.RunDefault(mdlPrfx, mdlPrfx+"check/", topm, smax, dinc, soildepth, kfact, -1, true)
 
 	// model.OptimizeDefault("")
 
 	// // sample models
 	// model.PrepMC(mdlPrfx + "MC/")
-	model.SampleMaster(mdlPrfx, 10)
+	// model.SampleMaster(mdlPrfx, 10)
 }
