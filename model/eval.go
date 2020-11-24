@@ -110,9 +110,6 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 			p.ws[i].Srf.Sto += r * (1. - cascf)
 			r *= cascf
 			s1 := p.ws[i].Storage()
-			// if math.Abs(s0-s1) > 10000. {
-			// 	println()
-			// }
 			s1s += s1
 
 			hruwbal := y + s0 - (a + r + g + s1)
