@@ -89,7 +89,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
 	if outlet >= 0 {
-		fmt.Println("subsetting master model")
+		fmt.Println(" subsetting master model")
 	}
 	cids, ds := d.strc.TEM.DownslopeContributingAreaIDs(outlet)
 	// cids := make([]int, d.gd.Na)

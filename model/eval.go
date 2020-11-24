@@ -5,10 +5,7 @@ import (
 	"math"
 )
 
-const (
-	hx = 0.01
-	fe = 1.
-)
+const hx = 0.01
 
 func eval(p *evaluation, Ds, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
@@ -28,7 +25,7 @@ func eval(p *evaluation, Ds, m float64, res resulter, monid []int) {
 			p.ws[i].Srf.Sto += v[k] // inflow from up sws
 		}
 		for i := 0; i < ncid; i++ {
-			_, r, g := p.ws[i].UpdateWT(p.y[p.mxr[i]][k], p.ep[p.mxr[i]][k], dm+p.drel[i])
+			_, r, g := p.ws[i].UpdateWT(p.y[p.mxr[i]][k], p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
 			x := r * (1. - p.cascf[i])
 			if x > hx {
 				x = hx
@@ -61,7 +58,10 @@ func eval(p *evaluation, Ds, m float64, res resulter, monid []int) {
 	return
 }
 
-func evalWB(p *evaluation, Ds, m float64, res resulter, monid []int) {
+// evalWB is the main model routine, the others are derriviatives to this
+// Dinc: depth of channel incision/depth of channel relative to cell elevation
+// m: TOPMODEL parameter
+func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -97,15 +97,20 @@ func evalWB(p *evaluation, Ds, m float64, res resulter, monid []int) {
 			y := p.y[p.mxr[i]][k]
 			ep := p.ep[p.mxr[i]][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
 			drel := p.drel[i]
-			p0 := p.cascf[i]
-			a, r, g := p.ws[i].UpdateWT(y, ep, dm+drel)
-			x := r * (1. - p0)
-			if x > hx {
-				x = hx
-			}
-			p.ws[i].Srf.Sto += x
-			r -= x
+			cascf := p.cascf[i]
+			a, r, g := p.ws[i].UpdateWT(y, ep, dm+drel < 0.)
+			// x := r * (1. - cascf)
+			// if x > hx {
+			// 	x = hx
+			// }
+			// p.ws[i].Srf.Sto += x
+			// r -= x
+			p.ws[i].Srf.Sto += r * (1. - cascf)
+			r *= cascf
 			s1 := p.ws[i].Storage()
+			// if math.Abs(s0-s1) > 10000. {
+			// 	println()
+			// }
 			s1s += s1
 
 			hruwbal := y + s0 - (a + r + g + s1)
@@ -120,9 +125,16 @@ func evalWB(p *evaluation, Ds, m float64, res resulter, monid []int) {
 			ga[i] += a
 			hb := 0.
 			if v, ok := p.strmQs[i]; ok {
-				hb = v * math.Exp((Ds-dm-drel)/m)
+				// dadj := Dinc - dm - drel
+				// if dadj > 0. { // only discharging to streams where upward gradients exist
+				// 	hb = v * math.Exp(dadj/m)
+				// }
+				hb = v * math.Exp((Dinc-dm-drel)/m)
 				bs += hb
 				r += hb
+				// if r > 1e6 {
+				// 	println()
+				// }
 				gb[i] += hb
 			}
 			if _, ok := obs[i]; ok {
@@ -200,7 +212,7 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 		}
 		for i := 0; i < ncid; i++ {
 			y := p.y[p.mxr[i]][k]
-			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i])
+			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
 			x := r * (1. - p.cascf[i])
 			if x > hx {
 				x = hx

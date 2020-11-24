@@ -51,7 +51,7 @@ func compressMC() {
 	if err := mmio.CompressTarGZ(mondir[:len(mondir)-1]); err != nil {
 		log.Fatalln("monitorMC.go compressMC() mmio.CompressTarGZ failed:", err)
 	}
-	mmio.DeleteFile(mondir) // didn't delete so that I can test tar.gz
+	mmio.DeleteFile(mondir)
 }
 
 type mcmonitor struct{ gy, ga, gr, gg, gb [][]float64 }

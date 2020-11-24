@@ -14,23 +14,24 @@ import (
 type evaluation struct {
 	cxr                   map[int]int       // cellID to slice id cross-reference; mapping of cell id to (de-hashed) array index
 	strmQs                map[int]float64   // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
-	sources               map[int][]float64 // inflow from up sws
+	sources               map[int][]float64 // currently: inflow from up sws
 	ws                    []hru.HRU         // watershed: collection of HRUs
 	t                     []time.Time       // timesteps
-	y, ep                 [][]float64       // yeild; demand
+	y, ep                 [][]float64       // yield; demand
 	drel, cascf           []float64         // relative depth to WT; cascade fraction
 	ds, mxr, mt           []int             // downslope cell ID; meteo to cell xr; consecutive month index
-	intvl, fncid, dm, s0s float64           // mean depth to WT; initial storage
+	intvl, fncid, dm, s0s float64           // timestep interval (sec); float number cells; mean depth to WT; initial storage
 	nstep                 int               // n timesteps
 }
 
 func newEvaluation(b *subdomain, p *sample, Ds, m float64, sid int, print bool) evaluation {
 	var pp evaluation
-	if sid < 0 {
-		pp.fncid, pp.intvl = b.fncid, b.frc.IntervalSec
-		pp.dehash(b, p, sid, b.ncid, b.nstrm)
-		pp.initialize(b.frc.q0, Ds, m, print)
-		return pp
+	if sid < 0 { // no subwatersheds
+		log.Fatalln("evaluation.newEvaluation: legacy code, should no longer occur")
+		// pp.fncid, pp.intvl = b.fncid, b.frc.IntervalSec
+		// pp.dehash(b, p, sid, b.ncid, b.nstrm)
+		// pp.initialize(b.frc.q0, Ds, m, print)
+		// return pp
 	}
 	if _, ok := b.rtr.SwsCidXR[sid]; !ok {
 		log.Fatalf("subsample.newSubsample error: subwatershed id %d cannot be found.", sid)
@@ -117,7 +118,7 @@ func (pp *evaluation) dehash(b *subdomain, p *sample, sid, ncid, nstrm int) {
 // 	}
 // }
 
-func (pp *evaluation) initialize(q0, Ds, m float64, print bool) {
+func (pp *evaluation) initialize(q0, Dinc, m float64, print bool) {
 	pp.dm = func() (dm float64) {
 		dm = 0. //-m * math.Log(q0/Qs)
 		if len(pp.strmQs) == 0 {
@@ -126,7 +127,7 @@ func (pp *evaluation) initialize(q0, Ds, m float64, print bool) {
 		q0t, n := 0., 0
 		for {
 			for i, v := range pp.strmQs {
-				q0t += v * math.Exp((Ds-dm-pp.drel[i])/m)
+				q0t += v * math.Exp((Dinc-dm-pp.drel[i])/m)
 			}
 			q0t /= pp.fncid
 			if q0t <= q0 {

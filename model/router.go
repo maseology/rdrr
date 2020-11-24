@@ -122,12 +122,11 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 		}
 	}
 
-	getSWSord := func() { // build a concurrent-safe ordering of sws
+	getSWSord := func() { // build a concurrent-safe topological ordering of sws
 		defer wg.Done()
-		// compute sws topology
-		tt := mmio.NewTimer()
-		defer tt.Print("sws topology build complete")
-		// ord = mmaths.OrderedForest(dsws, -1)
+		// tt := mmio.NewTimer()
+		// defer tt.Print("sws topology build complete")
+		// // ord = mmaths.OrderedForest(dsws, -1)
 
 		// Top heavy
 		cnt := make(map[int]int, len(sids))

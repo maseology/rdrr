@@ -121,16 +121,16 @@ func SampleMaster(outdir string, nsmpl int) {
 
 	b = masterDomain.newSubDomain(masterDomain.frc, -1)
 	// b.mdldir = outdir
-	b.cid0 = -1
 	dt, y, ep, obs, intvl, nstep := b.getForcings()
-	if len(b.rtr.SwsCidXR) == 1 {
-		b.rtr.SwsCidXR = map[int][]int{-1: b.cids}
-		b.rtr.Sws = make(map[int]int, b.ncid)
-		for _, c := range b.cids {
-			b.rtr.Sws[c] = -1
-		}
-	}
-	fmt.Printf(" catchment area: %.1f km²\n\n", b.contarea/1000./1000.)
+	// b.cid0 = -1
+	// if len(b.rtr.SwsCidXR) == 1 {
+	// 	b.rtr.SwsCidXR = map[int][]int{-1: b.cids}
+	// 	b.rtr.Sws = make(map[int]int, b.ncid)
+	// 	for _, c := range b.cids {
+	// 		b.rtr.Sws[c] = -1
+	// 	}
+	// }
+	fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
@@ -162,6 +162,7 @@ func SampleMaster(outdir string, nsmpl int) {
 	}
 
 	tt := mmio.NewTimer()
+	fmt.Printf(" number of subwatersheds: %d\n", len(b.rtr.SwsCidXR))
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
 
 	for k := 0; k < nsmpl; k++ {

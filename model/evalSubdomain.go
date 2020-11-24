@@ -35,9 +35,9 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 			rs := newResults(b, intvl, nstep)
 			rs.dt, rs.obs = dt, obs
 			var res resulter = &rs
-			pp := newEvaluation(b, p, Ds, m, -1, print)
+			pp := newEvaluation(b, p, Ds, m, b.cid0, print)
 			pp.y, pp.ep, pp.nstep = y, ep, nstep
-			ver(&pp, Ds, m, res, b.obs[-1])
+			ver(&pp, Ds, m, res, b.obs[b.cid0])
 			of = res.report(print)[0]
 		} else {
 			log.Fatalf("TODO (subdomain.eval): unordered set of subwatersheds.")
