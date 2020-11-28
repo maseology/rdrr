@@ -2,6 +2,7 @@ package model
 
 const (
 	nearzero   = 1e-8
+	fatalzero  = 1e-3
 	steadyiter = 500
 	secperday  = 86400.
 	minslope   = 0.001

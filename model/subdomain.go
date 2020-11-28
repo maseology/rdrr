@@ -3,7 +3,6 @@ package model
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/maseology/mmaths"
 	mmio "github.com/maseology/mmio"
@@ -62,13 +61,19 @@ func (b *subdomain) write(dir string) error {
 	b.rtr.write(dir + "b.rtr.")
 	b.mpr.writeSubset(dir+"b.mpr.", b.cids)
 	ucnt, strm := make(map[int]float64, b.ncid), make(map[int]bool, b.nstrm)
+	slp := make(map[int]float64, b.ncid)
+	mxr := make(map[int]int, b.ncid)
 	for _, c := range b.cids {
 		ucnt[c] = float64(b.strc.UpCnt[c])
+		slp[c] = b.strc.TEM.TEC[c].G
+		mxr[c] = b.frc.XR[c]
 		if b.strc.UpCnt[c] > 400 {
 			strm[c] = true
 		}
 	}
 	mmio.WriteRMAP(dir+"b.strc.t.upcnt.rmap", ucnt, false)
+	mmio.WriteRMAP(dir+"b.strc.t.grad.rmap", slp, false)
+	mmio.WriteIMAP(dir+"b.frc.mxr.imap", mxr)
 	strmca := make(map[int]int, b.ncid)
 	for k := range strm {
 		strmca[k] = k
@@ -81,6 +86,25 @@ func (b *subdomain) write(dir string) error {
 		}
 	}
 	mmio.WriteIMAP(dir+"b.strc.t.strmca.imap", strmca)
+
+	// func() { // print summary
+	// 	// revxr, _ := mmio.InvertMap(b.frc.XR)
+	// 	y, ep := b.frc.D[0], b.frc.D[1]
+	// 	nsta := len(y)
+	// 	if nsta != len(ep) {
+	// 		log.Fatalln(" subdomain.write print summary error 1")
+	// 	}
+	// 	f := 86400. / b.frc.IntervalSec * 365.24 * 1000. / float64(len(b.frc.T))
+	// 	for i := 0; i < nsta; i++ {
+	// 		ss, ee := 0., 0.
+	// 		for k := range b.frc.T {
+	// 			ss += y[i][k]
+	// 			ee += ep[i][k]
+	// 		}
+	// 		fmt.Printf("%d: sy: %.1f  se: %.1f\n", i, ss*f, ee*f) // mm/yr
+	// 	}
+	// }()
+
 	return nil
 }
 
@@ -91,6 +115,20 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	if outlet >= 0 {
 		fmt.Println(" subsetting master model")
 	}
+
+	// // for k, v := range d.rtr.Dsws {
+	// // 	fmt.Println(k, v)
+	// // }
+	// pprr := func(i int) {
+	// 	fmt.Println(i, d.rtr.Dsws[i])
+	// }
+	// pprr(554020)
+	// pprr(485901)
+	// pprr(622297)
+	// pprr(654920)
+	// pprr(582518)
+	// pprr(515832)
+
 	cids, ds := d.strc.TEM.DownslopeContributingAreaIDs(outlet)
 	// cids := make([]int, d.gd.Na)
 	// icid := 0
@@ -126,21 +164,21 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	}
 
 	b := subdomain{
-		frc:  frc,
-		strc: d.strc,
-		mpr:  d.mpr,
-		rtr:  newRTR,
-		cids: cids,
-		// strms:    strms,
+		frc:      frc,
+		strc:     d.strc,
+		mpr:      d.mpr,
+		rtr:      newRTR,
+		cids:     cids,
 		swsord:   swsord,
 		ds:       ds,
-		obs:      buildObs(d, newRTR),
+		obs:      sortObsSWS(d, newRTR),
 		ncid:     ncid,
 		fncid:    fncid,
 		nstrm:    len(strms),
 		fnstrm:   float64(len(strms)),
 		contarea: d.strc.Acell * fncid, // basin contributing area [m²]
 		cid0:     outlet,
+		// strms:    strms,
 	}
 	return b
 }
@@ -158,7 +196,8 @@ func BuildStreams(strc *STRC, cids []int) ([]int, int) {
 	return strms, nstrm
 }
 
-func buildObs(d *domain, r *RTR) map[int][]int {
+// sortObsSWS sorts observation cell IDs by SWS, where d.obs ([]int{cellID}) --> b.obs (map[sid][]int{cellID})
+func sortObsSWS(d *domain, r *RTR) map[int][]int {
 	obs := make(map[int][]int, len(d.obs))
 	for _, o := range d.obs {
 		if s, ok := r.Sws[o]; ok {
@@ -172,12 +211,12 @@ func buildObs(d *domain, r *RTR) map[int][]int {
 	return obs
 }
 
-func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int) {
-	dt = b.frc.T
-	y = b.frc.D[0]
-	ep = b.frc.D[1]
-	obs = []float64{}
-	intvl = int64(b.frc.IntervalSec)
-	nstep = len(b.frc.T)
-	return
-}
+// func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int) {
+// 	dt = b.frc.T
+// 	y = b.frc.D[0]
+// 	ep = b.frc.D[1]
+// 	obs = []float64{}
+// 	intvl = int64(b.frc.IntervalSec)
+// 	nstep = len(b.frc.T)
+// 	return
+// }

@@ -36,7 +36,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			if s, ok := r.Sws[cid]; ok {
 				sws[cid] = s
 			} else {
-				log.Fatalf(" RTR.subset error: cell not belonging to a sws")
+				log.Fatalf(" RTR.subset error: cell not belonging to a sws; %d", cid)
 			}
 			if _, ok := dsws[sws[cid]]; !ok {
 				dsws[sws[cid]] = -1

@@ -28,7 +28,14 @@ const (
 // (2) computes basin
 // (3) parses precipitation into rainfall by optimizing t_crit
 func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *model.FORC {
-	dts, ys, eao, mxr, _ := collectMeteoData(ncfp, dtb, dte)
+	smid := make(map[int]bool)
+	for _, c := range cells {
+		if _, ok := smid[c.Mid]; !ok {
+			smid[c.Mid] = true
+		}
+	}
+
+	dts, ys, eao, mxr, _ := collectMeteoData(ncfp, smid, dtb, dte)
 
 	cmxr := make(map[int]int, len(cells))
 	for _, c := range cells {
@@ -49,10 +56,10 @@ func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *model.FOR
 	return &frc
 }
 
-func collectMeteoData(ncfp string, dtb, dte time.Time) (dts []time.Time, y, ea [][]float64, xr map[int]int, ndat int) {
+func collectMeteoData(ncfp string, smid map[int]bool, dtb, dte time.Time) (dts []time.Time, y, ea [][]float64, xr map[int]int, ndat int) {
 	fmt.Println(" loading data exported from FEWS:", ncfp, "...")
 
-	ndat, nsta, nvar, dat := loadNC(ncfp) //[station_id][datetime][ precipitation_amount, surface_snow_and_ice_melt_flux, air_temperature, air_pressure, relative_humidity, wind_speed ]
+	ndat, nsta, nvar, dat := loadNC(ncfp, smid) //[station_id][datetime][ precipitation_amount, surface_snow_and_ice_melt_flux, air_temperature, air_pressure, relative_humidity, wind_speed ]
 	fmt.Printf("  %6d stations\n %6d timesteps\n %6d variables\n\n parsing precipitation form..\n", nsta, ndat, nvar)
 
 	// yield, temperature and pressure is acquired on a sws basis
@@ -119,10 +126,24 @@ func collectMeteoData(ncfp string, dtb, dte time.Time) (dts []time.Time, y, ea [
 		ea[k] = eao
 		k++
 	}
+	// func() { // print summary
+	// 	revxr, _ := mmio.InvertMap(xr)
+	// 	for k, yy := range y {
+	// 		ss, ee, f := 0., 0., 4.*365.24*1000./float64(len(yy))
+	// 		for kk, v := range yy {
+	// 			ss += v
+	// 			ee += ea[k][kk]
+	// 		}
+	// 		if len(revxr[k]) != 1 {
+	// 			log.Fatalln(" collectMeteoData print summary error")
+	// 		}
+	// 		fmt.Printf("%d: mid: %d  sy: %.1f  se: %.1f\n", k, revxr[k][0], ss*f, ee*f) // mm/yr
+	// 	}
+	// }()
 	return
 }
 
-func loadNC(ncfp string) (int, int, int, map[int]map[time.Time][]float32) {
+func loadNC(ncfp string, smid map[int]bool) (int, int, int, map[int]map[time.Time][]float32) {
 	switch ext := mmio.GetExtension(ncfp); ext {
 	case ".bin": // created using /@dev/python/src/FEWS/netcdf/ncToMet.py
 		b := mmio.OpenBinary(ncfp)
@@ -134,24 +155,32 @@ func loadNC(ncfp string) (int, int, int, map[int]map[time.Time][]float32) {
 
 		nsta := int(mmio.ReadInt32(b))
 		nvar := int(mmio.ReadInt32(b))
+		stacnt := 0
 
 		dcol := make(map[int]map[time.Time][]float32, nsta)
 		for i := 0; i < nsta; i++ {
 			d := make(map[time.Time][]float32, nt)
-			sid := int(mmio.ReadInt32(b))
-			// fmt.Println(sid)
+			mid := int(mmio.ReadInt32(b))
 			for j := 0; j < nt; j++ {
 				a := make([]float32, nvar)
 				for iv := 0; iv < nvar; iv++ {
 					a[iv] = mmio.ReadFloat32(b)
 				}
-				// copy(d[times[j]], a)
 				d[times[j]] = a
 			}
-			dcol[sid] = d
-			// break
+			if _, ok := smid[mid]; ok {
+				dcol[mid] = d
+				stacnt++
+			}
 		}
 
+		if stacnt != nsta {
+			dcol2 := make(map[int]map[time.Time][]float32, stacnt)
+			for k, v := range dcol {
+				dcol2[k] = v
+			}
+			return nt, stacnt, nvar, dcol2
+		}
 		return nt, nsta, nvar, dcol
 	case ".nc":
 		log.Fatalln("ERROR: current not supporting NetCDF files. Convert to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py.")
@@ -193,6 +222,16 @@ func getAtomsYieldByStation(sid int, dts []time.Time, p, m, t []float64) (y []fl
 	spp := sm + sr
 	dd := float64(len(dts)) / 365.24 / 4. / 1000.
 	fmt.Printf("%10d: %10.1f %10.1f (m%.1f r%.1f) %20.5f %20.5f\n", sid, sp/dd, spp/dd, sm/dd, sr/dd, (spp-sp)/sp, tc) // mm/yr
+
+	func() { // check
+		s := 0.
+		for _, v := range y {
+			s += v
+		}
+		if math.Abs(s-spp)/spp > 0.00001 {
+			log.Fatalf(" parseRainMelt accumulation error sum(y):%.1f  sp:%.1f  spp:%.1f  sr:%.1f  sm:%.1f", s/dd, sp/dd, spp/dd, sr/dd, sm/dd)
+		}
+	}()
 
 	return
 }
@@ -305,5 +344,6 @@ func parseRainMelt(orderedDatetimeList []time.Time, precip, snowmelt, temp []flo
 
 		y[k] = yy + smk*smDist[dt] // [m/6hour]
 	}
+
 	return y, sp, sm, sr
 }

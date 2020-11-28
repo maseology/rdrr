@@ -135,8 +135,15 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
 			}
 			fmt.Printf(" loading: %s\n", fp)
 			var g grid.Indx
-			g.LoadGDef(gd)
-			g.NewShort(fp, true)
+			switch mmio.GetExtension(fp) {
+			case ".bil":
+				g.LoadGDef(gd)
+				g.NewShort(fp, true)
+			case ".indx":
+				g.New(fp, true)
+			default:
+				log.Fatalf("unrecognized file format: " + fp)
+			}
 			return g.Values(), g.UniqueValues()
 		}
 		var usg []int

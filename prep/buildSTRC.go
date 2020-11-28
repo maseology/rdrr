@@ -17,18 +17,37 @@ type Cell struct {
 }
 
 // BuildSTRC builds the structural (static) form of the model
-func BuildSTRC(gd *grid.Definition, gobDir, demFP, swsFP string) (strc *model.STRC, cells []Cell, sws map[int]int, nsws int) {
+func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc *model.STRC, cells []Cell) {
 
-	var dem tem.TEM
-	if err := dem.New(demFP); err != nil {
-		log.Fatalf(" tem.New() error: %v", err)
-	}
-	for _, i := range gd.Sactives {
-		if dem.TEC[i].Z == -9999. {
-			// log.Fatalf("no elevation assigned to cell %d", i)
-			fmt.Printf(" WARNING no elevation assigned to meteo cell %d\n", i)
+	dem := func() tem.TEM {
+		var dem tem.TEM
+		if err := dem.New(demFP); err != nil {
+			log.Fatalf(" tem.New() error: %v", err)
 		}
-	}
+		for _, i := range gd.Sactives {
+			if _, ok := dem.TEC[i]; !ok {
+				log.Fatalf(" BuildSTRC error, cell id %d not found in %s", i, demFP)
+			}
+			if dem.TEC[i].Z == -9999. {
+				// log.Fatalf("no elevation assigned to cell %d", i)
+				fmt.Printf(" WARNING no elevation assigned to meteo cell %d\n", i)
+			}
+		}
+		if gd.Na != len(dem.TEC) {
+			d := make(map[int]tem.TEC, gd.Na)
+			for _, i := range gd.Sactives {
+				d[i] = dem.TEC[i]
+				if !gd.IsActive(d[i].Ds) {
+					t := d[i]
+					t.Ds = -1
+					d[i] = t
+				}
+			}
+			dem.TEC = d
+			dem.BuildUpslopes()
+		}
+		return dem
+	}()
 
 	strc = &model.STRC{
 		TEM:   &dem,
@@ -36,14 +55,6 @@ func BuildSTRC(gd *grid.Definition, gobDir, demFP, swsFP string) (strc *model.ST
 		Acell: gd.Cw * gd.Cw,
 		Wcell: gd.Cw,
 	}
-
-	fmt.Println(" collecting SWSs..")
-	sws, nsws = func() (map[int]int, int) {
-		var gsws grid.Indx
-		gsws.LoadGDef(gd)
-		gsws.New(swsFP, false)
-		return gsws.Values(), len(gsws.UniqueValues())
-	}()
 
 	fmt.Println(" building cell geometry (skipping solirrad calculations)..")
 	type in1 struct {
@@ -90,6 +101,7 @@ func BuildSTRC(gd *grid.Definition, gobDir, demFP, swsFP string) (strc *model.ST
 	go generateInput(inputStream)
 
 	cells = make([]Cell, gd.Na)
+
 	for k := 0; k < gd.Na; k++ {
 		c := <-outputStream
 		cells[c.Ki] = c

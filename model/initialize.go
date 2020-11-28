@@ -26,7 +26,7 @@ func (b *subdomain) buildCascadeFraction(smax float64) map[int]float64 {
 	return fc
 }
 
-func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
+func (b *subdomain) toDefaultSample(m, slpx, soildepth, kfact float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.IntervalSec // [s/ts]
@@ -147,7 +147,7 @@ func (b *subdomain) toDefaultSample(m, smax, soildepth, kfact float64) sample {
 	go buildTopmodel()
 	wg.Wait()
 
-	cascf := b.buildCascadeFraction(smax)
+	cascf := b.buildCascadeFraction(slpx)
 
 	finalAdjustments := func() {
 		defer wg.Done()

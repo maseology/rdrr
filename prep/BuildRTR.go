@@ -9,20 +9,29 @@ import (
 )
 
 // BuildRTR returns (and saves) the topological routing scheme amongst sub-basins
-func BuildRTR(gobDir, topoFP string, strc *model.STRC, sws map[int]int, nsws int) *model.RTR {
+func BuildRTR(gobDir, topoFP string, strc *model.STRC, swsc map[int][]int, csws map[int]int) *model.RTR {
 
 	cids, _ := strc.TEM.DownslopeContributingAreaIDs(-1)
 
 	// collect topology
 	var dsws map[int]int
+	nsws := len(swsc)
 	if _, ok := mmio.FileExists(topoFP); ok {
 		d, err := mmio.ReadCSV(topoFP)
 		if err != nil {
 			log.Fatalf(" Loader.readSWS: error reading %s: %v\n", topoFP, err)
 		}
-		dsws = make(map[int]int, len(d)) // note: swsids not contained within dsws drain to farfield
+		// dsws = make(map[int]int, len(d)) // note: swsids not contained within dsws drain to farfield
+		// for _, ln := range d {
+		// 	dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
+		// }
+		dsws = make(map[int]int, nsws) // note: swsids not contained within dsws drain to farfield
 		for _, ln := range d {
-			dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
+			if _, ok := swsc[int(ln[1])]; ok {
+				if _, ok := swsc[int(ln[2])]; ok {
+					dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
+				}
+			}
 		}
 	} else {
 		// fmt.Printf(" warning: sws topology (*.topo) not found\n")
@@ -33,7 +42,7 @@ func BuildRTR(gobDir, topoFP string, strc *model.STRC, sws map[int]int, nsws int
 	strms, _ := model.BuildStreams(strc, cids)
 	sst := make(map[int][]int, nsws)
 	for _, c := range strms {
-		if s, ok := sws[c]; ok {
+		if s, ok := csws[c]; ok {
 			if _, ok := sst[s]; !ok {
 				sst[s] = []int{c}
 			} else {
@@ -49,8 +58,8 @@ func BuildRTR(gobDir, topoFP string, strc *model.STRC, sws map[int]int, nsws int
 	}
 
 	// compute unit contributing areas
-	sct := make(map[int][]int, len(sws))
-	for c, s := range sws {
+	sct := make(map[int][]int, len(csws))
+	for c, s := range csws {
 		if _, ok := sct[s]; ok {
 			sct[s] = append(sct[s], c)
 		} else {
@@ -76,7 +85,7 @@ func BuildRTR(gobDir, topoFP string, strc *model.STRC, sws map[int]int, nsws int
 			for _, c := range cids {
 				m[c] = 1
 				for _, u := range strc.TEM.UpIDs(c) {
-					if sws[u] == s { // to be kept within sws
+					if csws[u] == s { // to be kept within sws
 						m[c] += strc.TEM.UnitContributingArea(u)
 					}
 				}
@@ -94,7 +103,7 @@ func BuildRTR(gobDir, topoFP string, strc *model.STRC, sws map[int]int, nsws int
 	rtr := model.RTR{
 		SwsCidXR:  swscidxr,  // ordered cids, per sws
 		SwsStrmXR: swsstrmxr, // stream cells per sws
-		Sws:       sws,       // [cid]sws mapping
+		Sws:       csws,      // [cid]sws mapping
 		Dsws:      dsws,      // downslope topological watershed routing
 		UCA:       uca,       // unit contributing areas per sws: swsid{cid{upcnt}}
 	}

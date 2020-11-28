@@ -17,7 +17,7 @@ type domain struct {
 	strc *STRC  // structural (unchanging) data (eg, topography, solar irradiation fractions)
 	rtr  *RTR   // subwatershed topology
 	mpr  *MAPR  // land use/surficial geology mapping for parameter assignment
-	obs  []int  // observation cell IDs
+	obs  []int  // observation/monitor cell IDs
 	dir  string // model directory/prefix
 }
 

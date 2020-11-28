@@ -10,7 +10,7 @@ import (
 // FORC holds forcing data
 type FORC struct {
 	T           []time.Time   // [date ID]
-	D           [][][]float64 // D [date ID][location ID][type ID] or [cell ID][date ID][type ID]
+	D           [][][]float64 // [0:yield;1:Ep][staID][DateID]
 	XR          map[int]int   // mapping of model grid cell to met grid cell
 	IntervalSec float64
 	mt          []int

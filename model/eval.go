@@ -2,12 +2,11 @@ package model
 
 import (
 	"fmt"
+	"log"
 	"math"
 )
 
-// const hx = 0.01
-
-func eval(p *evaluation, Dinc, m float64, res resulter, monid []int) {
+func eval(p *evaluation, Dinc, hmax, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -26,14 +25,14 @@ func eval(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 		}
 		for i := 0; i < ncid; i++ {
 			_, r, g := p.ws[i].UpdateWT(p.y[p.mxr[i]][k], p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
-			// x := r * (1. - p.cascf[i])
-			// if x > hx {
-			// 	x = hx
-			// }
-			// p.ws[i].Srf.Sto += x
-			// r -= x
-			p.ws[i].Srf.Sto += r * (1. - p.cascf[i])
-			r *= p.cascf[i]
+			x := r * (1. - p.cascf[i])
+			if x > hmax {
+				x = hmax
+			}
+			p.ws[i].Srf.Sto += x
+			r -= x
+			// p.ws[i].Srf.Sto += r * (1. - p.cascf[i])
+			// r *= p.cascf[i]
 			s1s += p.ws[i].Storage()
 
 			hb := 0.
@@ -63,7 +62,7 @@ func eval(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 // evalWB is the main model routine, the others are derivatives to this
 // Dinc: depth of channel incision/depth of channel relative to cell elevation
 // m: TOPMODEL parameter
-func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
+func evalWB(p *evaluation, Dinc, hmax, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -79,7 +78,7 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 		}
 		g := gmonitor{gy, ga, gr, gg, gb}
 		gwg.Add(1)
-		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, p.fncid) // float64(p.nstep))
+		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, float64(p.nstep))
 	}()
 
 	for _, c := range monid {
@@ -101,14 +100,14 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 			drel := p.drel[i]
 			cascf := p.cascf[i]
 			a, r, g := p.ws[i].UpdateWT(y, ep, dm+drel < 0.)
-			// x := r * (1. - cascf)
-			// if x > hx {
-			// 	x = hx
-			// }
-			// p.ws[i].Srf.Sto += x
-			// r -= x
-			p.ws[i].Srf.Sto += r * (1. - cascf)
-			r *= cascf
+			x := r * (1. - cascf)
+			if x > hmax {
+				x = hmax
+			}
+			p.ws[i].Srf.Sto += x
+			r -= x
+			// p.ws[i].Srf.Sto += r * (1. - cascf)
+			// r *= cascf
 			s1 := p.ws[i].Storage()
 			s1s += s1
 
@@ -161,6 +160,9 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 		basinwbal := ys + ins + (dm-dm0)*p.fncid + s0s - (as + rs + s1s)
 		// basinwbal := (dm - dm0) + (gs-bs)/p.fncid // gwbal
 		if math.Abs(basinwbal) > nearzero {
+			if math.Abs(basinwbal) > fatalzero {
+				log.Fatalf("waterbalance error |basinwbal| = %e, step %d", basinwbal, k)
+			}
 			// fmt.Printf("|basinwbal| = %e\n", basinwbal)
 			fmt.Print("+")
 		}
@@ -169,77 +171,77 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	return
 }
 
-func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
-	ncid := int(p.fncid)
-	obs := make(map[int]monitor, len(monid))
-	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
-	gy, ga, gr, gg, gb := make([][]float64, 12), make([][]float64, 12), make([][]float64, 12), make([][]float64, 12), make([][]float64, 12)
-	for i := 0; i < 12; i++ {
-		gy[i], ga[i], gr[i], gg[i], gb[i] = make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
-	}
+// func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
+// 	ncid := int(p.fncid)
+// 	obs := make(map[int]monitor, len(monid))
+// 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
+// 	gy, ga, gr, gg, gb := make([][]float64, 12), make([][]float64, 12), make([][]float64, 12), make([][]float64, 12), make([][]float64, 12)
+// 	for i := 0; i < 12; i++ {
+// 		gy[i], ga[i], gr[i], gg[i], gb[i] = make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
+// 	}
 
-	defer func() {
-		res.getTotals(sim, hsto, gsto)
-		for _, v := range obs {
-			gwg.Add(1)
-			go v.print()
-		}
-		g := mcmonitor{gy, ga, gr, gg, gb}
-		gwg.Add(1)
-		go g.print(p.sources, p.cxr, p.ds, float64(p.nstep))
-	}()
+// 	defer func() {
+// 		res.getTotals(sim, hsto, gsto)
+// 		for _, v := range obs {
+// 			gwg.Add(1)
+// 			go v.print()
+// 		}
+// 		g := mcmonitor{gy, ga, gr, gg, gb}
+// 		gwg.Add(1)
+// 		go g.print(p.sources, p.cxr, p.ds, float64(p.nstep))
+// 	}()
 
-	// defer func() { res.getTotals(sim, hsto, gsto) }()
+// 	// defer func() { res.getTotals(sim, hsto, gsto) }()
 
-	for _, c := range monid {
-		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
-	}
+// 	for _, c := range monid {
+// 		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
+// 	}
 
-	dm := p.dm
-	for k := 0; k < p.nstep; k++ {
-		mt := p.mt[k] - 1
-		rs, gs, s1s, bs := 0., 0., 0., 0.
-		for i, v := range p.sources {
-			p.ws[i].Srf.Sto += v[k] // inflow from up sws
-		}
-		for i := 0; i < ncid; i++ {
-			y := p.y[p.mxr[i]][k]
-			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
-			// x := r * (1. - p.cascf[i])
-			// if x > hx {
-			// 	x = hx
-			// }
-			// p.ws[i].Srf.Sto += x
-			// r -= x
-			p.ws[i].Srf.Sto += r * (1. - p.cascf[i])
-			r *= p.cascf[i]
-			s1s += p.ws[i].Storage()
+// 	dm := p.dm
+// 	for k := 0; k < p.nstep; k++ {
+// 		mt := p.mt[k] - 1
+// 		rs, gs, s1s, bs := 0., 0., 0., 0.
+// 		for i, v := range p.sources {
+// 			p.ws[i].Srf.Sto += v[k] // inflow from up sws
+// 		}
+// 		for i := 0; i < ncid; i++ {
+// 			y := p.y[p.mxr[i]][k]
+// 			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
+// 			// x := r * (1. - p.cascf[i])
+// 			// if x > hx {
+// 			// 	x = hx
+// 			// }
+// 			// p.ws[i].Srf.Sto += x
+// 			// r -= x
+// 			p.ws[i].Srf.Sto += r * (1. - p.cascf[i])
+// 			r *= p.cascf[i]
+// 			s1s += p.ws[i].Storage()
 
-			gy[mt][i] += y
-			ga[mt][i] += a
-			hb := 0.
-			if v, ok := p.strmQs[i]; ok {
-				hb = v * math.Exp((Ds-dm-p.drel[i])/m)
-				bs += hb
-				r += hb
-				gb[mt][i] += hb
-			}
-			if _, ok := obs[i]; ok {
-				obs[i].v[k] = r
-			}
-			if p.ds[i] == -1 { // outlet cell
-				rs += r
-			} else {
-				p.ws[p.cxr[p.ds[i]]].Srf.Sto += r
-			}
-			gs += g
-			gr[mt][i] += r
-			gg[mt][i] += g
-		}
-		dm += (bs - gs) / p.fncid
-		sim[k] = rs
-		hsto[k] = s1s / p.fncid
-		gsto[k] = bs / p.fncid
-	}
-	return
-}
+// 			gy[mt][i] += y
+// 			ga[mt][i] += a
+// 			hb := 0.
+// 			if v, ok := p.strmQs[i]; ok {
+// 				hb = v * math.Exp((Ds-dm-p.drel[i])/m)
+// 				bs += hb
+// 				r += hb
+// 				gb[mt][i] += hb
+// 			}
+// 			if _, ok := obs[i]; ok {
+// 				obs[i].v[k] = r
+// 			}
+// 			if p.ds[i] == -1 { // outlet cell
+// 				rs += r
+// 			} else {
+// 				p.ws[p.cxr[p.ds[i]]].Srf.Sto += r
+// 			}
+// 			gs += g
+// 			gr[mt][i] += r
+// 			gg[mt][i] += g
+// 		}
+// 		dm += (bs - gs) / p.fncid
+// 		sim[k] = rs
+// 		hsto[k] = s1s / p.fncid
+// 		gsto[k] = bs / p.fncid
+// 	}
+// 	return
+// }

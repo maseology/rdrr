@@ -25,13 +25,13 @@ func (m *monitor) print() {
 
 type gmonitor struct{ gy, ga, gr, gg, gb []float64 }
 
-func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, ds []int, intvl, fnstep float64) {
+func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, ds []int, intvlSec, fnstep float64) {
 	gmu.Lock()
 	defer gmu.Unlock()
 	defer gwg.Done()
 	my, ma, mr, mron, mrgen, mg := make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy))
 	ms, msma, msrf := make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy))
-	f := 365.24 * 4. * 1000. / fnstep // [mm/yr]
+	f := 86400. / intvlSec * 365.24 * 1000. / fnstep // [mm/yr]
 	for c := range cxr {
 		mron[c] = 0.
 	}

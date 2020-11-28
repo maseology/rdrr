@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
 	"github.com/maseology/mmio"
 )
@@ -18,13 +17,14 @@ type stran struct {
 	s int
 }
 
-// type frc struct {
-// }
-
-// eval evaluates a subdomain
-func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int, Ds, m float64, print bool) (of float64) {
+// evaluate evaluates a subdomain
+func (b *subdomain) evaluate(p *sample, Ds, hmax, m float64, print bool) (of float64) {
 
 	ver := evalWB
+
+	obs := []float64{}
+	intvl := int64(b.frc.IntervalSec)
+	nstep := len(b.frc.T)
 
 	if print {
 		tt := mmio.NewTimer()
@@ -35,11 +35,11 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 	if len(b.swsord) == 1 {
 		if len(b.rtr.SwsCidXR) == 1 {
 			rs := newResults(b, intvl, nstep)
-			rs.dt, rs.obs = dt, obs
+			rs.dt, rs.obs = b.frc.T, obs
 			var res resulter = &rs
 			pp := newEvaluation(b, p, Ds, m, b.cid0, print)
-			pp.y, pp.ep, pp.nstep = y, ep, nstep
-			ver(&pp, Ds, m, res, b.obs[b.cid0])
+			pp.y, pp.ep, pp.nstep, pp.intvl = b.frc.D[0], b.frc.D[1], nstep, b.frc.IntervalSec
+			ver(&pp, Ds, hmax, m, res, b.obs[b.cid0])
 			of = res.report(print)[0]
 		} else {
 			log.Fatalf("TODO (subdomain.eval): unordered set of subwatersheds.")
@@ -60,7 +60,7 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 				go func(sid int, t []itran) {
 					defer wg.Done()
 					pp := newEvaluation(b, p, Ds, m, sid, print)
-					pp.y, pp.ep, pp.nstep = y, ep, nstep
+					pp.y, pp.ep, pp.nstep, pp.intvl = b.frc.D[0], b.frc.D[1], nstep, b.frc.IntervalSec
 					if len(t) > 0 {
 						pp.sources = make(map[int][]float64, len(t)) // upstream inputs
 						for _, v := range t {
@@ -76,12 +76,12 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 					}
 					if sid == b.cid0 { // outlet
 						rs := newResults(b, intvl, nstep)
-						rs.dt, rs.obs = dt, obs
+						rs.dt, rs.obs = b.frc.T, obs
 						var res resulter = &rs
 						if print {
 							fmt.Printf(" printing SWS %d\n\n", sid)
 						}
-						ver(&pp, Ds, m, res, b.obs[sid])
+						ver(&pp, Ds, hmax, m, res, b.obs[sid])
 						of = res.report(print)[0]
 						// outflw = rs.sim
 					} else {
@@ -89,7 +89,7 @@ func (b *subdomain) eval(p *sample, dt []time.Time, y, ep [][]float64, obs []flo
 						if print {
 							fmt.Printf(" running SWS %d\n", sid)
 						}
-						ver(&pp, Ds, m, res, b.obs[sid])
+						ver(&pp, Ds, hmax, m, res, b.obs[sid])
 						dsid := -1
 						if d, ok := b.rtr.Dsws[sid]; ok {
 							// if _, ok := transfers[d]; !ok {

@@ -39,7 +39,7 @@ func (s *sample) copy() sample {
 	}
 }
 
-func (s *sample) print(dir string) error {
+func (s *sample) write(dir string) error {
 	mmio.WriteRMAP(dir+"s.cascf.rmap", s.cascf, false)
 	mmio.DeleteFile(dir + "s.gw.Qs.rmap")
 	mmio.DeleteFile(dir + "s.gw.g-ti.rmap")
@@ -62,7 +62,8 @@ func (s *sample) print(dir string) error {
 func SampleDefault(metfp, outprfx string, nsmpl int) {
 	b := masterDomain.newSubDomain(masterDomain.frc, -1)
 	fmt.Printf(" catchment area: %.1f km²\n\n", b.contarea/1000./1000.)
-	dt, y, ep, obs, intvl, nstep := b.getForcings()
+	// dt, y, ep, obs, intvl, nstep := b.getForcings()
+	obs := []float64{} // as was in  b.getForcings()
 	v := func() float64 {
 		// h2cms := b.contarea / b.frc.h.IntervalSec() // [m/ts] to [m³/s] conversion factor
 		m, n, c := 0., 0., 0.
@@ -82,11 +83,13 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 		return n / c // population variance
 	}()
 
+	const hmax = .01
+
 	gen := func(u []float64) float64 {
 		m, smax, dinc, soildepth, kfact := par5(u)
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
 		fmt.Print(".")
-		return b.eval(&smpl, dt, y, ep, obs, intvl, nstep, dinc, m, false)
+		return b.evaluate(&smpl, dinc, hmax, m, false)
 	}
 
 	tt := mmio.NewTimer()
@@ -120,16 +123,16 @@ func SampleMaster(outdir string, nsmpl int) {
 	}
 
 	b = masterDomain.newSubDomain(masterDomain.frc, -1)
-	// b.mdldir = outdir
-	dt, y, ep, obs, intvl, nstep := b.getForcings()
-	// b.cid0 = -1
-	// if len(b.rtr.SwsCidXR) == 1 {
-	// 	b.rtr.SwsCidXR = map[int][]int{-1: b.cids}
-	// 	b.rtr.Sws = make(map[int]int, b.ncid)
-	// 	for _, c := range b.cids {
-	// 		b.rtr.Sws[c] = -1
-	// 	}
-	// }
+	// // b.mdldir = outdir
+	// dt, y, ep, obs, intvl, nstep := b.getForcings()
+	// // b.cid0 = -1
+	// // if len(b.rtr.SwsCidXR) == 1 {
+	// // 	b.rtr.SwsCidXR = map[int][]int{-1: b.cids}
+	// // 	b.rtr.Sws = make(map[int]int, b.ncid)
+	// // 	for _, c := range b.cids {
+	// // 		b.rtr.Sws[c] = -1
+	// // 	}
+	// // }
 	fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
 
 	rng := rand.New(mrg63k3a.New())
@@ -151,12 +154,14 @@ func SampleMaster(outdir string, nsmpl int) {
 		tw.WriteLine(fmt.Sprintf("kfact\t%f", kfact))
 	}
 
+	const hmax = .01
+
 	gen := func(u []float64) {
 		setMCdir()
 		m, smax, dinc, soildepth, kfact := par5(u)
 		go printParams(m, smax, dinc, soildepth, kfact)
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
-		b.eval(&smpl, dt, y, ep, obs, intvl, nstep, dinc, m, false)
+		b.evaluate(&smpl, dinc, hmax, m, false)
 		WaitMonitors()
 		compressMC()
 	}
