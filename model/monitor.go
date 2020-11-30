@@ -23,28 +23,30 @@ func (m *monitor) print() {
 	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), m.v)
 }
 
-type gmonitor struct{ gy, ga, gr, gg, gb []float64 }
+type gmonitor struct{ gy, ge, ga, gr, gg, gb []float64 }
 
 func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, ds []int, intvlSec, fnstep float64) {
 	gmu.Lock()
 	defer gmu.Unlock()
 	defer gwg.Done()
-	my, ma, mr, mron, mrgen, mg := make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy))
-	ms, msma, msrf := make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy)), make(map[int]float64, len(g.gy))
+	n := len(g.gy)
+	my, me, ma, mr, mron, mrgen, mg := make(map[int]float64, n), make(map[int]float64, n), make(map[int]float64, n), make(map[int]float64, n), make(map[int]float64, n), make(map[int]float64, n), make(map[int]float64, n)
+	ms, msma, msrf := make(map[int]float64, n), make(map[int]float64, n), make(map[int]float64, n)
 	f := 86400. / intvlSec * 365.24 * 1000. / fnstep // [mm/yr]
 	for c := range cxr {
 		mron[c] = 0.
 	}
 	for c, i := range cxr {
 		my[c] = g.gy[i] * f
+		me[c] = g.ge[i] * f
 		ma[c] = g.ga[i] * f
 		mr[c] = g.gr[i] * f
 		mg[c] = (g.gg[i] - g.gb[i]) * f
 		// ms[c] = ws[i].Storage() * f
 		sma, srf := ws[i].Sma.Sto, ws[i].Srf.Sto
-		msma[c] = sma * f
-		msrf[c] = srf * f
-		ms[c] = (sma + srf) * f
+		msma[c] = sma       //* f
+		msrf[c] = srf       //* f
+		ms[c] = (sma + srf) //* f
 		if ds[i] > -1 {
 			mron[ds[i]] += g.gr[i] * f
 		}
@@ -77,6 +79,7 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, d
 
 	// NOTE: wbal = yield + ron - (aet + gwe + olf + s)
 	mmio.WriteRMAP(mondir+"g.yield.rmap", my, true)
+	mmio.WriteRMAP(mondir+"g.ep.rmap", me, true)
 	mmio.WriteRMAP(mondir+"g.aet.rmap", ma, true)
 	mmio.WriteRMAP(mondir+"g.olf.rmap", mr, true)
 	mmio.WriteRMAP(mondir+"g.ron.rmap", mron, true)
@@ -93,6 +96,7 @@ func DeleteMonitors(mdldir string) {
 	mondir = mdldir
 	mmio.MakeDir(mdldir)
 	mmio.DeleteFile(mondir + "g.yield.rmap")
+	mmio.DeleteFile(mondir + "g.ep.rmap")
 	mmio.DeleteFile(mondir + "g.aet.rmap")
 	mmio.DeleteFile(mondir + "g.olf.rmap")
 	mmio.DeleteFile(mondir + "g.ron.rmap")

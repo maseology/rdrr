@@ -5,8 +5,13 @@ const (
 	fatalzero  = 1e-3
 	steadyiter = 500
 	secperday  = 86400.
-	minslope   = 0.001
-	strmkm2    = 1. // total drainage area [km²] required to deem a cell a "stream cell"
+
+	// cascfrac parameters
+	sill   = 1.
+	nugget = .001
+	a      = .2
+
+	strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"
 
 	avgRch = .1 / 366. // annual average groundwater recharge/initial groundwater discharge [m/day]
 	// avgEp  = .6 / 366. // annual average potential evaporation [m/day]

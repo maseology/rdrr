@@ -33,16 +33,15 @@ func main() {
 	// topm, smax, dinc, soildepth, kfact := .045394, .004987, .116692, .073995, 1.
 	// topm, slpmx, dinc, soildepth, kfact, hmax := 0.01153, 2.287310, 0.104665, 1.435206, 33.153130, .01
 
-	topm := .1
-	slpx := .1
-	dinc := 0.
-	soildepth := 1.
-	kfact := 1.
-	hmax := 1. // maximum mobile stor depth
+	// topm := .1
+	// slpx := .1
+	// dinc := 0.
+	// soildepth := 1.
+	// kfact := 1.
+	// hmax := 1. // maximum mobile stor depth
+	// model.RunDefault(mdlPrfx, mdlPrfx+"check/", topm, hmax, slpx, dinc, soildepth, kfact, -1, true) //897926
 
-	model.RunDefault(mdlPrfx, mdlPrfx+"check/", topm, hmax, slpx, dinc, soildepth, kfact, -1, true)
-
-	// model.OptimizeDefault("")
+	model.OptimizeDefault("", -1)
 
 	// // sample models
 	// model.PrepMC(mdlPrfx + "MC/")

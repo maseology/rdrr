@@ -11,19 +11,26 @@ import (
 	"github.com/maseology/rdrr/lusg"
 )
 
-func (b *subdomain) buildCascadeFraction(smax float64) map[int]float64 {
+func (b *subdomain) buildCascadeFraction(rng float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
-		s := b.strc.TEM.TEC[c].G
-		if s <= minslope {
-			fc[c] = 0.
-		} else if s >= smax {
-			fc[c] = 1.
-		} else {
-			fc[c] = math.Log(minslope/s) / math.Log(minslope/smax) // see: fuzzy_slope.xlsx
-		}
+		h := math.Pow(b.strc.TEM.TEC[c].G, 2)
+		r := math.Pow(rng, 2)
+		fc[c] = (sill-nugget)*(1.-math.Exp(-h/r/a)) + nugget // Gaussian variogram model
 	}
 	return fc
+	// fc := make(map[int]float64, len(b.cids))
+	// for _, c := range b.cids {
+	// 	s := b.strc.TEM.TEC[c].G
+	// 	if s <= minslope {
+	// 		fc[c] = 0.
+	// 	} else if s >= smax {
+	// 		fc[c] = 1.
+	// 	} else {
+	// 		fc[c] = math.Log(minslope/s) / math.Log(minslope/smax) // see: fuzzy_slope.xlsx
+	// 	}
+	// }
+	// return fc
 }
 
 func (b *subdomain) toDefaultSample(m, slpx, soildepth, kfact float64) sample {
@@ -60,8 +67,8 @@ func (b *subdomain) toDefaultSample(m, slpx, soildepth, kfact float64) sample {
 			}
 
 			var h hru.HRU
-			drnsto, srfsto := lu.Rebuild1(soildepth, b.mpr.Fimp[cid], b.mpr.Ifct[cid])
-			h.Initialize(drnsto, srfsto, b.mpr.Fimp[cid], sg.Ksat*kfact*ts)
+			drnsto, srfsto, sma0, srf0 := lu.Rebuild1(soildepth, b.mpr.Fimp[cid], b.mpr.Ifct[cid])
+			h.Initialize(drnsto, srfsto, b.mpr.Fimp[cid], sg.Ksat*kfact*ts, sma0, srf0)
 			ws[cid] = &h
 		}
 
@@ -155,21 +162,22 @@ func (b *subdomain) toDefaultSample(m, slpx, soildepth, kfact float64) sample {
 			for c := range g.Qs {
 				cascf[c] = 1. // set streams to 100% cascade
 			}
-			minD := math.MaxFloat64
-			for _, v := range g.D {
-				if v < minD {
-					minD = v
-				}
-			}
-			for c := range g.D {
-				if _, ok := b.mpr.LKx[c]; ok {
-					g.D[c] = minD // pressume lakes relative deficits to be equivalent to the SWS min
-				}
-			}
+			// minDrel := math.MaxFloat64
+			// for _, v := range g.D {
+			// 	if v < minDrel {
+			// 		minDrel = v
+			// 	}
+			// }
+			// for c := range g.D {
+			// 	if _, ok := b.mpr.LKx[c]; ok {
+			// 		g.D[c] = minDrel // presume lakes relative deficits to be equivalent to the SWS min
+			// 	}
+			// }
 		}
-		for c := range b.mpr.LKx {
-			cascf[c] = 1. // set open water to 100% cascade
-		}
+		// for c := range b.mpr.LKx {
+		// 	fmt.Println(c)
+		// 	cascf[c] = 1. // set open water to 100% cascade
+		// }
 	}
 
 	wg.Add(1)

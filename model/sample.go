@@ -41,11 +41,13 @@ func (s *sample) copy() sample {
 
 func (s *sample) write(dir string) error {
 	mmio.WriteRMAP(dir+"s.cascf.rmap", s.cascf, false)
+	// mmio.DeleteFile(dir + "s.gw.drel.rmap")
 	mmio.DeleteFile(dir + "s.gw.Qs.rmap")
 	mmio.DeleteFile(dir + "s.gw.g-ti.rmap")
 	for _, v := range s.gw {
+		// mmio.WriteRMAP(dir+"s.gw.drel.rmap", v.D, true)
 		mmio.WriteRMAP(dir+"s.gw.Qs.rmap", v.Qs, true)
-		mmio.WriteRMAP(dir+"s.gw.g-ti.rmap", v.RelTi(), true)
+		mmio.WriteRMAP(dir+"s.gw.g-ti.rmap", v.RelTi(), true) // = drel/m
 	}
 	perc, fimp, smacap, srfcap := make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws))
 	for c, h := range s.ws {
@@ -83,10 +85,8 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 		return n / c // population variance
 	}()
 
-	const hmax = .01
-
 	gen := func(u []float64) float64 {
-		m, smax, dinc, soildepth, kfact := par5(u)
+		m, hmax, smax, dinc, soildepth, kfact := par6(u)
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
 		fmt.Print(".")
 		return b.evaluate(&smpl, dinc, hmax, m, false)
@@ -103,8 +103,8 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,smax,dinc,soildepth,kfact", nsmpl))
 	for i, dd := range d {
 		nse := math.Max(1.-math.Pow(f[dd], 2.)/v, -4.) // converting to nash-sutcliffe
-		m, smax, dinc, soildepth, kfact := par5(u[dd])
-		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f,%f", i+1, nse, m, smax, dinc, soildepth, kfact))
+		m, hmax, smax, dinc, soildepth, kfact := par6(u[dd])
+		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f,%f,%f", i+1, nse, m, hmax, smax, dinc, soildepth, kfact))
 	}
 	t.Close()
 	runtime.GC()
@@ -154,11 +154,9 @@ func SampleMaster(outdir string, nsmpl int) {
 		tw.WriteLine(fmt.Sprintf("kfact\t%f", kfact))
 	}
 
-	const hmax = .01
-
 	gen := func(u []float64) {
 		setMCdir()
-		m, smax, dinc, soildepth, kfact := par5(u)
+		m, hmax, smax, dinc, soildepth, kfact := par6(u)
 		go printParams(m, smax, dinc, soildepth, kfact)
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
 		b.evaluate(&smpl, dinc, hmax, m, false)

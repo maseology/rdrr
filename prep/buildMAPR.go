@@ -32,7 +32,8 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
 	var wg sync.WaitGroup
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
-	var ilu, isg, ilk map[int]int
+	// var ilu, isg, ilk map[int]int
+	var ilu, isg map[int]int
 	var fimp, fcov map[int]float64
 
 	readLU := func() {
@@ -87,21 +88,21 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
 			}
 		}
 
-		getLakes := func(ilu map[int]int) map[int]int {
-			c := 0
-			for _, v := range ilu {
-				if v == lusg.Lake {
-					c++
-				}
-			}
-			out := make(map[int]int, c)
-			for k, v := range ilu {
-				if v == lusg.Lake {
-					out[k] = -1
-				}
-			}
-			return out
-		}
+		// getLUtypes := func(ilu map[int]int, LUtype int) map[int]int {
+		// 	c := 0
+		// 	for _, v := range ilu {
+		// 		if v == LUtype {
+		// 			c++
+		// 		}
+		// 	}
+		// 	out := make(map[int]int, c)
+		// 	for k, v := range ilu {
+		// 		if v == LUtype {
+		// 			out[k] = -1
+		// 		}
+		// 	}
+		// 	return out
+		// }
 
 		loadLandUseDefaults := func(UniqueValues []int) lusg.LandUseColl {
 			// create LandUse collection
@@ -113,7 +114,7 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
 		}
 
 		lu = loadLandUseDefaults(ulu)
-		ilk = getLakes(ilu) // collect open water cells
+		// ilk = getLakes(ilu, lusg.Waterbody) // collect open water cells
 		tt.Lap("LU loaded")
 	}
 
@@ -158,11 +159,11 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
 	wg.Wait()
 
 	mpr := model.MAPR{
-		LU:   lu,
-		SG:   sg,
-		LUx:  ilu,
-		SGx:  isg,
-		LKx:  ilk,
+		LU:  lu,
+		SG:  sg,
+		LUx: ilu,
+		SGx: isg,
+		// LKx:  ilk,
 		Fimp: fimp,
 		Ifct: fcov,
 	}

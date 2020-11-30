@@ -43,7 +43,7 @@ import (
 
 // OptimizeDefault solves a default-parameter model to a given basin outlet
 // changes only 3 basin-wide parameters (Qo, topm, fcasc); freeboard set to 0.
-func OptimizeDefault(metfp string) (float64, []float64) {
+func OptimizeDefault(metfp string, outlet int) (float64, []float64) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
 	}
@@ -52,7 +52,7 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 		if masterDomain.frc == nil {
 			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
 		}
-		b = masterDomain.newSubDomain(masterDomain.frc, -1) // gauge outlet cell id found in .met file
+		b = masterDomain.newSubDomain(masterDomain.frc, outlet) // gauge outlet cell id found in .met file
 	} else {
 		log.Fatalf(" to fix")
 		// b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
@@ -68,10 +68,8 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
 
-	const hmax = .01
-
 	gen := func(u []float64) float64 {
-		m, smax, dinc, soildepth, kfact := par5(u)
+		m, hmax, smax, dinc, soildepth, kfact := par6(u)
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
 		// Qo *= b.frc.h.IntervalSec() / 1000. / 365.24 / 86400. // [mm/yr] to [m/ts]
 		return b.evaluate(&smpl, dinc, hmax, m, false)
@@ -81,8 +79,8 @@ func OptimizeDefault(metfp string) (float64, []float64) {
 	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nSmplDim, rng, gen, true)
 	// uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
 
-	m, smax, dinc, soildepth, kfact := par5(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\tsmax:\t\t%v\n\tdinc:\t\t%v\n\tsoildepth:\t%v\n\tkfact:\t\t%v\n\n", m, smax, dinc, soildepth, kfact)
+	m, hmax, smax, dinc, soildepth, kfact := par6(uFinal)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\thmax:\t\t%v\n\tsmax:\t\t%v\n\tdinc:\t\t%v\n\tsoildepth:\t%v\n\tkfact:\t\t%v\n\n", m, hmax, smax, dinc, soildepth, kfact)
 	final := b.toDefaultSample(m, smax, soildepth, kfact)
 	return b.evaluate(&final, dinc, hmax, m, true), []float64{m, smax, dinc, soildepth, kfact}
 }

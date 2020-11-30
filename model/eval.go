@@ -68,7 +68,7 @@ func evalWB(p *evaluation, Dinc, hmax, m float64, res resulter, monid []int) {
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 	// yss, ass, rss, gss, bss := 0., 0., 0., 0., 0.
 	// distributed monitors [mm/yr]
-	gy, ga, gr, gg, gb := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
+	gy, ge, ga, gr, gg, gb := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
 
 	defer func() {
 		res.getTotals(sim, hsto, gsto)
@@ -76,7 +76,7 @@ func evalWB(p *evaluation, Dinc, hmax, m float64, res resulter, monid []int) {
 			gwg.Add(1)
 			go v.print()
 		}
-		g := gmonitor{gy, ga, gr, gg, gb}
+		g := gmonitor{gy, ge, ga, gr, gg, gb}
 		gwg.Add(1)
 		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, float64(p.nstep))
 	}()
@@ -120,6 +120,7 @@ func evalWB(p *evaluation, Dinc, hmax, m float64, res resulter, monid []int) {
 			ys += y
 			as += a
 			gy[i] += y
+			ge[i] += ep
 			ga[i] += a
 			hb := 0.
 			if v, ok := p.strmQs[i]; ok {

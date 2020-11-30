@@ -2,6 +2,7 @@ package lusg
 
 import (
 	"log"
+	"math"
 )
 
 // surface types
@@ -38,17 +39,19 @@ type LandUse struct {
 
 // Rebuild1 returns default landuse properties, but with soildepth specified
 // from a given LandUse struct. (rootzone/drainable storage, surface storage)
-func (l *LandUse) Rebuild1(soildepth, fimp, ifct float64) (rzsto, surfsto float64) {
-	return func() (rzsto, surfsto float64) {
+func (l *LandUse) Rebuild1(soildepth, fimp, ifct float64) (rzsto, surfsto, sma0, srf0 float64) {
+	return func() (rzsto, surfsto, sma0, srf0 float64) {
+		sma0, srf0 = 0., 0.
 		rzsto = soildepth * l.Porosity * (1. - l.Fc)
 		surfsto = soildepth*l.Porosity*l.Fc + fimp*l.DepSto + l.IntSto*ifct
 		switch l.ID {
 		case Waterbody, Channel, Lake: // Open water
-			rzsto = soildepth
-			surfsto = 0.
+			rzsto = 0.
+			surfsto = soildepth
+			srf0 = soildepth
 		case Noflow:
 			rzsto = 0.
-			surfsto = 1000.
+			surfsto = math.MaxFloat64
 		case ShortVegetation, TallVegetation, Forest, Swamp, Wetland, SparseVegetation, DenseVegetation, Agriculture, Meadow, Marsh, Urban, Barren:
 			// do nothing
 		default:
