@@ -15,9 +15,14 @@ func main() {
 	// 	obsfp   = "S:/OWRC-RDRR/owrc20-50-obs.obs"
 	// )
 
+	// const (
+	// 	mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."
+	// 	obsfp   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.obs"
+	// )
+
 	const (
-		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."
-		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.obs"
+		mdlPrfx = "S:/Peel/PWRMM21."
+		obsfp   = "S:/Peel/elevation.real.uhdem.gauges_final.obs"
 	)
 
 	fmt.Println("")
@@ -38,7 +43,7 @@ func main() {
 	// dinc := 0.
 	// soildepth := 1.
 	// kfact := 1.
-	// hmax := 1. // maximum mobile stor depth
+	// hmax := 1.                                                                                      // maximum mobile stor depth
 	// model.RunDefault(mdlPrfx, mdlPrfx+"check/", topm, hmax, slpx, dinc, soildepth, kfact, -1, true) //897926
 
 	model.OptimizeDefault("", -1)

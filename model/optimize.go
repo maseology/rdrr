@@ -60,8 +60,7 @@ func OptimizeDefault(metfp string, outlet int) (float64, []float64) {
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
 
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
-	fmt.Printf(" building sample HRUs and TOPMODEL\n\n")
-
+	fmt.Printf(" building sample HRUs and TOPMODEL\n")
 	b.print()
 	// return 0., []float64{0.}
 

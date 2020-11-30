@@ -26,7 +26,7 @@ type subdomain struct {
 }
 
 func (b *subdomain) print() {
-	fmt.Println("Land Use proportions")
+	fmt.Println("\nLand Use proportions")
 	mLU := make(map[int]int, 10)
 	for _, i := range b.cids {
 		v := b.mpr.LUx[i]
@@ -41,7 +41,7 @@ func (b *subdomain) print() {
 		fmt.Printf("%10d %10.1f%%\n", k[i], float64(v[i])*100./float64(len(b.cids)))
 	}
 
-	fmt.Println("\nSurficial Geology proportions")
+	fmt.Println("Surficial Geology proportions")
 	mSG := make(map[int]int, 10)
 	for _, i := range b.cids {
 		v := b.mpr.SGx[i]
@@ -55,6 +55,7 @@ func (b *subdomain) print() {
 	for i := len(k) - 1; i >= 0; i-- {
 		fmt.Printf("%10d %10.1f%%\n", k[i], float64(v[i])*100./float64(len(b.cids)))
 	}
+	println()
 }
 
 func (b *subdomain) write(dir string) error {

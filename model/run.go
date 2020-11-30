@@ -17,6 +17,7 @@ func RunDefault(mdldir, chkdir string, topm, hmax, slpmx, dinc, soildepth, kfact
 		tt.Lap("sub-domain load complete")
 		fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
 		fmt.Printf(" building sample HRUs and TOPMODEL\n")
+		// b.print()
 	}
 
 	// add parameterization

@@ -69,7 +69,7 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, d
 
 	mw := make(map[int]float64, len(cxr))
 	for c, i := range cxr {
-		y, a, g, r, o, s := my[c], ma[c], mg[c], mr[c], mron[c], ms[c]
+		y, a, g, r, o, s := my[c], ma[c], mg[c], mr[c], mron[c], ms[c]*f
 		wbal := y + o - (a + g + r + s)
 		if math.Abs(wbal) > .01*y {
 			fmt.Printf("cell id %d (index %d) wbal error: (wbal = %.1fmm  delSto = %.3fmm)\n", c, i, wbal, s)
