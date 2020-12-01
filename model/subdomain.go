@@ -9,15 +9,15 @@ import (
 )
 
 // subdomain carries all structural (non-parameter) data for a particular region (e.g. a catchment).
-// Forcing variables are collected and held to be run independently for each sample.
 type subdomain struct {
 	frc    *FORC         // forcing data
 	strc   *STRC         // structural data
 	mpr    *MAPR         // land use/surficial geology mapping
 	rtr    *RTR          // subwatershed topology and mapping
-	obs    map[int][]int // sws{[]obs-cid}
+	mon    map[int][]int // monitor locations: sws{[]obs-cid}
 	ds     map[int]int   // downslope cell ID
 	swsord [][]int       // sws IDs (topologically ordered, concurrent safe)
+	obs    []float64     // observed data set used for optimization
 	cids   []int         // cell IDs (topologically ordered)
 	// cids, strms                     []int         // cell IDs (topologically ordered); stream cell IDs
 	contarea, fncid, fnstrm, gwsink float64 // contributing area [m²], (float) number of cells
@@ -117,19 +117,6 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		fmt.Println(" subsetting master model")
 	}
 
-	// // for k, v := range d.rtr.Dsws {
-	// // 	fmt.Println(k, v)
-	// // }
-	// pprr := func(i int) {
-	// 	fmt.Println(i, d.rtr.Dsws[i])
-	// }
-	// pprr(554020)
-	// pprr(485901)
-	// pprr(622297)
-	// pprr(654920)
-	// pprr(582518)
-	// pprr(515832)
-
 	cids, ds := d.strc.TEM.DownslopeContributingAreaIDs(outlet)
 	// cids := make([]int, d.gd.Na)
 	// icid := 0
@@ -172,7 +159,8 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		cids:     cids,
 		swsord:   swsord,
 		ds:       ds,
-		obs:      sortObsSWS(d, newRTR),
+		mon:      sortMonitorsSWS(d, newRTR),
+		obs:      []float64{},
 		ncid:     ncid,
 		fncid:    fncid,
 		nstrm:    len(strms),
@@ -197,19 +185,19 @@ func BuildStreams(strc *STRC, cids []int) ([]int, int) {
 	return strms, nstrm
 }
 
-// sortObsSWS sorts observation cell IDs by SWS, where d.obs ([]int{cellID}) --> b.obs (map[sid][]int{cellID})
-func sortObsSWS(d *domain, r *RTR) map[int][]int {
-	obs := make(map[int][]int, len(d.obs))
-	for _, o := range d.obs {
+// sortMonitorsSWS sorts observation cell IDs by SWS, where d.obs ([]int{cellID}) --> b.obs (map[sid][]int{cellID})
+func sortMonitorsSWS(d *domain, r *RTR) map[int][]int {
+	m := make(map[int][]int, len(d.mons))
+	for _, o := range d.mons {
 		if s, ok := r.Sws[o]; ok {
-			if _, ok := obs[s]; ok {
-				obs[s] = append(obs[s], o)
+			if _, ok := m[s]; ok {
+				m[s] = append(m[s], o)
 			} else {
-				obs[s] = []int{o}
+				m[s] = []int{o}
 			}
 		}
 	}
-	return obs
+	return m
 }
 
 // func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int) {

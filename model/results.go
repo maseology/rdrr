@@ -25,16 +25,16 @@ type results struct {
 	mon                             []monitor
 	obs, sim, hsto, gsto            []float64
 	ytot, atot, rtot, gtot, btot    float64
-	fncid, fnstrm, contarea, gwsink float64 // h2cms,
+	fncid, fnstrm, contarea, gwsink float64
 	nstep, intvl, ncid, nstrm       int
 }
 
-func newResults(b *subdomain, intvl int64, nstep int) results {
+func newResults(b *subdomain, nstep int) results {
 	var r results
 	r.contarea = b.contarea
-	// r.h2cms = b.contarea / float64(intvl) // [m/ts] to [m³/s] conversion factor for subdomain outlet cell
+	// r.h2cms = b.contarea / b.frc.IntervalSec // [m/ts] to [m³/s] conversion factor for subdomain outlet cell
 	r.fncid, r.fnstrm, r.gwsink = b.fncid, b.fnstrm, b.gwsink
-	r.nstep, r.intvl, r.ncid, r.nstrm = nstep, int(intvl), b.ncid, b.nstrm
+	r.nstep, r.intvl, r.ncid, r.nstrm = nstep, int(b.frc.IntervalSec), b.ncid, b.nstrm
 	return r
 }
 
@@ -45,8 +45,9 @@ func (r *results) getTotals(sim, hsto, gsto []float64) {
 
 func (r *results) report(print bool) []float64 {
 	for k := 0; k < r.nstep; k++ {
-		r.sim[k] /= r.fncid
-		r.sim[k] += r.gwsink
+		// r.sim[k] /= r.fncid
+		// r.sim[k] += r.gwsink
+		r.sim[k] *= 50. * 50. / 21600. ////////////////////////////////////////////////////////////////////////////////////////////////////
 		// r.sim[k] *= r.h2cms / r.fncid
 		// r.obs[k] *= r.h2cms
 		// r.bf[k] *= r.h2cms / r.fncid / r.fnstrm

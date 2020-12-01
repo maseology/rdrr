@@ -42,13 +42,12 @@ import (
 // }
 
 // OptimizeDefault solves a default-parameter model to a given basin outlet
-// changes only 3 basin-wide parameters (Qo, topm, fcasc); freeboard set to 0.
-func OptimizeDefault(metfp string, outlet int) (float64, []float64) {
+func OptimizeDefault(frc *FORC, obsFP string, outlet int) (float64, []float64) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
 	}
 	var b subdomain
-	if len(metfp) == 0 {
+	if frc == nil {
 		if masterDomain.frc == nil {
 			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
 		}
@@ -57,7 +56,9 @@ func OptimizeDefault(metfp string, outlet int) (float64, []float64) {
 		log.Fatalf(" to fix")
 		// b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
 	}
-	// dt, y, ep, obs, intvl, nstep := b.getForcings()
+	if err := b.getObs(obsFP); err != nil {
+		log.Fatalf("OptimizeDefault: %v", err)
+	}
 
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n")
@@ -70,7 +71,6 @@ func OptimizeDefault(metfp string, outlet int) (float64, []float64) {
 	gen := func(u []float64) float64 {
 		m, hmax, smax, dinc, soildepth, kfact := par6(u)
 		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
-		// Qo *= b.frc.h.IntervalSec() / 1000. / 365.24 / 86400. // [mm/yr] to [m/ts]
 		return b.evaluate(&smpl, dinc, hmax, m, false)
 	}
 

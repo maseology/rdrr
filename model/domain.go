@@ -17,15 +17,15 @@ type domain struct {
 	strc *STRC  // structural (unchanging) data (eg, topography, solar irradiation fractions)
 	rtr  *RTR   // subwatershed topology
 	mpr  *MAPR  // land use/surficial geology mapping for parameter assignment
-	obs  []int  // observation/monitor cell IDs
+	mons []int  // monitor cell IDs
 	dir  string // model directory/prefix
 }
 
 // LoadMasterDomain loads all data from which sub-domain scale models can be derived
-func LoadMasterDomain(mdlprfx, obsfp string) {
+func LoadMasterDomain(mdlprfx, monfp string) {
 	fmt.Println("Loading Master Domain..")
 	masterDomain = func() domain {
-		frc, strc, rtr, mpr, obs := func() (*FORC, *STRC, *RTR, *MAPR, []int) {
+		frc, strc, rtr, mpr, mons := func() (*FORC, *STRC, *RTR, *MAPR, []int) {
 			var wg sync.WaitGroup
 			wg.Add(5)
 			var frc *FORC
@@ -68,7 +68,7 @@ func LoadMasterDomain(mdlprfx, obsfp string) {
 			go func() {
 				defer wg.Done()
 				var err error
-				if obs, err = mmio.ReadInts(obsfp); err != nil {
+				if obs, err = mmio.ReadInts(monfp); err != nil {
 					log.Fatalf("%v", err)
 				}
 			}()
@@ -81,7 +81,7 @@ func LoadMasterDomain(mdlprfx, obsfp string) {
 			strc: strc,
 			rtr:  rtr,
 			mpr:  mpr,
-			obs:  obs,
+			mons: mons,
 			dir:  mdlprfx,
 		}
 	}()

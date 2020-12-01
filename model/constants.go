@@ -6,10 +6,10 @@ const (
 	steadyiter = 500
 	secperday  = 86400.
 
-	// cascfrac parameters
+	// cascade fraction parameters
 	sill   = 1.
 	nugget = .001
-	a      = .2
+	a      = .2 // scaling factor such that the "range" parameter looks representative (see fuzzy_slope.xlsx)
 
 	strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"
 

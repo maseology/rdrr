@@ -22,8 +22,6 @@ func (b *subdomain) evaluate(p *sample, Ds, hmax, m float64, print bool) (of flo
 
 	ver := evalWB
 
-	obs := []float64{}
-	intvl := int64(b.frc.IntervalSec)
 	nstep := len(b.frc.T)
 
 	if print {
@@ -34,12 +32,12 @@ func (b *subdomain) evaluate(p *sample, Ds, hmax, m float64, print bool) (of flo
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
 	if len(b.swsord) == 1 {
 		if len(b.rtr.SwsCidXR) == 1 {
-			rs := newResults(b, intvl, nstep)
-			rs.dt, rs.obs = b.frc.T, obs
+			rs := newResults(b, nstep)
+			rs.dt, rs.obs = b.frc.T, b.obs
 			var res resulter = &rs
 			pp := newEvaluation(b, p, Ds, m, b.cid0, print)
 			pp.y, pp.ep, pp.nstep, pp.intvl = b.frc.D[0], b.frc.D[1], nstep, b.frc.IntervalSec
-			ver(&pp, Ds, hmax, m, res, b.obs[b.cid0])
+			ver(&pp, Ds, hmax, m, res, b.mon[b.cid0])
 			of = res.report(print)[0]
 		} else {
 			log.Fatalf("TODO (subdomain.eval): unordered set of subwatersheds.")
@@ -75,13 +73,13 @@ func (b *subdomain) evaluate(p *sample, Ds, hmax, m float64, print bool) (of flo
 						}
 					}
 					if sid == b.cid0 { // outlet
-						rs := newResults(b, intvl, nstep)
-						rs.dt, rs.obs = b.frc.T, obs
+						rs := newResults(b, nstep)
+						rs.dt, rs.obs = b.frc.T, b.obs
 						var res resulter = &rs
 						if print {
 							fmt.Printf(" printing SWS %d\n\n", sid)
 						}
-						ver(&pp, Ds, hmax, m, res, b.obs[sid])
+						ver(&pp, Ds, hmax, m, res, b.mon[sid])
 						of = res.report(print)[0]
 						// outflw = rs.sim
 					} else {
@@ -89,7 +87,7 @@ func (b *subdomain) evaluate(p *sample, Ds, hmax, m float64, print bool) (of flo
 						if print {
 							fmt.Printf(" running SWS %d\n", sid)
 						}
-						ver(&pp, Ds, hmax, m, res, b.obs[sid])
+						ver(&pp, Ds, hmax, m, res, b.mon[sid])
 						dsid := -1
 						if d, ok := b.rtr.Dsws[sid]; ok {
 							// if _, ok := transfers[d]; !ok {
