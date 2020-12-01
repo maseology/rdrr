@@ -141,6 +141,9 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
 				g.LoadGDef(gd)
 				g.NewShort(fp, true)
 			case ".indx":
+				if _, b := mmio.FileExists(fp + ".gdef"); !b {
+					g.LoadGDef(gd)
+				}
 				g.New(fp, true)
 			default:
 				log.Fatalf("unrecognized file format: " + fp)

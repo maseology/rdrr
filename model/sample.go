@@ -86,10 +86,11 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 	}()
 
 	gen := func(u []float64) float64 {
-		m, hmax, smax, dinc, soildepth, kfact := par6(u)
-		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
+		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
+		m, grng, soildepth, kfact := par4(u)
+		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
 		fmt.Print(".")
-		return b.evaluate(&smpl, dinc, hmax, m, false)
+		return b.evaluate(&smpl, 0., math.MaxFloat64, m, false)
 	}
 
 	tt := mmio.NewTimer()
@@ -103,8 +104,10 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,smax,dinc,soildepth,kfact", nsmpl))
 	for i, dd := range d {
 		nse := math.Max(1.-math.Pow(f[dd], 2.)/v, -4.) // converting to nash-sutcliffe
-		m, hmax, smax, dinc, soildepth, kfact := par6(u[dd])
-		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f,%f,%f", i+1, nse, m, hmax, smax, dinc, soildepth, kfact))
+		// m, hmax, smax, dinc, soildepth, kfact := par6(u[dd])
+		// t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f,%f,%f", i+1, nse, m, hmax, smax, dinc, soildepth, kfact))
+		m, grng, soildepth, kfact := par4(u[dd])
+		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f", i+1, nse, m, grng, soildepth, kfact))
 	}
 	t.Close()
 	runtime.GC()
@@ -112,7 +115,7 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 }
 
 // SampleMaster samples a default-parameter full-domain model
-func SampleMaster(outdir string, nsmpl int) {
+func SampleMaster(outdir string, nsmpl, outlet int) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
 	}
@@ -122,7 +125,7 @@ func SampleMaster(outdir string, nsmpl int) {
 		log.Fatalf(" basin.RunMaster error: no forcings made available\n")
 	}
 
-	b = masterDomain.newSubDomain(masterDomain.frc, -1)
+	b = masterDomain.newSubDomain(masterDomain.frc, outlet)
 	// // b.mdldir = outdir
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
 	// // b.cid0 = -1
@@ -139,7 +142,7 @@ func SampleMaster(outdir string, nsmpl int) {
 	rng.Seed(time.Now().UnixNano())
 	sp := smpln.NewLHC(rng, nsmpl, nSmplDim, false)
 
-	printParams := func(m, smax, dinc, soildepth, kfact float64) {
+	printParams := func(m, grng, soildepth, kfact float64) {
 		tw, err := mmio.NewTXTwriter(mondir + "params.txt")
 		defer tw.Close()
 		if err != nil {
@@ -148,18 +151,21 @@ func SampleMaster(outdir string, nsmpl int) {
 		tw.WriteLine(mmio.MMtime(time.Now()))
 		tw.WriteLine(mondir)
 		tw.WriteLine(fmt.Sprintf("m\t%f", m))
-		tw.WriteLine(fmt.Sprintf("smax\t%f", smax))
-		tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
+		tw.WriteLine(fmt.Sprintf("grange\t%f", grng))
+		// tw.WriteLine(fmt.Sprintf("hmax\t%f", hmax))
+		// tw.WriteLine(fmt.Sprintf("smax\t%f", smax))
+		// tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
 		tw.WriteLine(fmt.Sprintf("soildepth\t%f", soildepth))
 		tw.WriteLine(fmt.Sprintf("kfact\t%f", kfact))
 	}
 
 	gen := func(u []float64) {
 		setMCdir()
-		m, hmax, smax, dinc, soildepth, kfact := par6(u)
-		go printParams(m, smax, dinc, soildepth, kfact)
-		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
-		b.evaluate(&smpl, dinc, hmax, m, false)
+		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
+		m, grng, soildepth, kfact := par4(u)
+		go printParams(m, grng, soildepth, kfact)
+		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
+		b.evaluate(&smpl, 0., math.MaxFloat64, m, false)
 		WaitMonitors()
 		compressMC()
 	}

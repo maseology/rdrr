@@ -10,6 +10,18 @@ import (
 	"github.com/maseology/rdrr/prep"
 )
 
+const (
+	gobDir  = "M:/RDRR-02HJ005/02HJ005."
+	gdefFP  = "M:/RDRR-02HJ005/dat/02HJ005.gdef"
+	demFP   = "M:/RDRR-02HJ005/dat/owrc20-50a-elevation_resmpl.uhdem"
+	swsFP   = "M:/RDRR-02HJ005/dat/owrc20-50a-elevation_resmpl.real_SWS10.indx"
+	topoFP  = "M:/RDRR-02HJ005/dat/owrc20-50a-elevation_resmpl.real_SWS10.topo"
+	lufprfx = "M:/RDRR-02HJ005/dat/solrisv3_10_infilled.bil"
+	sgfp    = "M:/RDRR-02HJ005/dat/OGSsurfGeo_50_resmpl.indx"
+	midFP   = "M:/RDRR-02HJ005/dat/owrc20-50a_SWS10_resmpl.indx" // index meteo timeseries
+	ncfp    = "M:/OWRC-RDRR/met/202010010100.nc.bin"             // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
+)
+
 // const (
 // 	gobDir = "S:/OWRC-RDRR/owrc."
 // 	gdefFP = "S:/OWRC-RDRR/prep/owrc20-50a.uhdem.gdef"
@@ -21,17 +33,17 @@ import (
 // 	sgfp   = "S:/OWRC-RDRR/prep/OGSsurfGeo_50.bil"
 // )
 
-const (
-	gobDir  = "M:/Peel/RDRR-PWRMM21/PWRMM21."
-	gdefFP  = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.indx.gdef"
-	demFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem"
-	swsFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.indx"
-	topoFP  = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.topo"
-	midFP   = "M:/Peel/RDRR-PWRMM21/dat/owrc20-50a_SWS10_resmpl.indx" // index meteo timeseries
-	ncfp    = "M:/OWRC-RDRR/met/202010010100.nc.bin"                  // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
-	lufprfx = "M:/Peel/RDRR-PWRMM21/dat/solrisv3_10_infilled.bil"
-	sgfp    = "M:/Peel/RDRR-PWRMM21/dat/OGSsurfGeo_50_resmpl.indx"
-)
+// const (
+// 	gobDir  = "M:/Peel/RDRR-PWRMM21/PWRMM21."
+// 	gdefFP  = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.indx.gdef"
+// 	demFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem"
+// 	swsFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.indx"
+// 	topoFP  = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.topo"
+// 	midFP   = "M:/Peel/RDRR-PWRMM21/dat/owrc20-50a_SWS10_resmpl.indx" // index meteo timeseries
+// 	ncfp    = "M:/OWRC-RDRR/met/202010010100.nc.bin"                  // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
+// 	lufprfx = "M:/Peel/RDRR-PWRMM21/dat/solrisv3_10_infilled.bil"
+// 	sgfp    = "M:/Peel/RDRR-PWRMM21/dat/OGSsurfGeo_50_resmpl.indx"
+// )
 
 var (
 	dtb = time.Date(2010, 10, 1, 0, 0, 0, 0, time.UTC)

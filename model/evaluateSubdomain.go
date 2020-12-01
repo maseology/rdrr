@@ -20,7 +20,7 @@ type stran struct {
 // evaluate evaluates a subdomain
 func (b *subdomain) evaluate(p *sample, Ds, hmax, m float64, print bool) (of float64) {
 
-	ver := evalWB
+	ver := eval
 
 	nstep := len(b.frc.T)
 
@@ -36,7 +36,7 @@ func (b *subdomain) evaluate(p *sample, Ds, hmax, m float64, print bool) (of flo
 			rs.dt, rs.obs = b.frc.T, b.obs
 			var res resulter = &rs
 			pp := newEvaluation(b, p, Ds, m, b.cid0, print)
-			pp.y, pp.ep, pp.nstep, pp.intvl = b.frc.D[0], b.frc.D[1], nstep, b.frc.IntervalSec
+			// pp.y, pp.ep, pp.nstep, pp.intvl = b.frc.D[0], b.frc.D[1], nstep, b.frc.IntervalSec
 			ver(&pp, Ds, hmax, m, res, b.mon[b.cid0])
 			of = res.report(print)[0]
 		} else {
@@ -58,7 +58,6 @@ func (b *subdomain) evaluate(p *sample, Ds, hmax, m float64, print bool) (of flo
 				go func(sid int, t []itran) {
 					defer wg.Done()
 					pp := newEvaluation(b, p, Ds, m, sid, print)
-					pp.y, pp.ep, pp.nstep, pp.intvl = b.frc.D[0], b.frc.D[1], nstep, b.frc.IntervalSec
 					if len(t) > 0 {
 						pp.sources = make(map[int][]float64, len(t)) // upstream inputs
 						for _, v := range t {

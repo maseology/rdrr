@@ -16,10 +16,17 @@ func main() {
 	// )
 
 	const (
-		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."
-		monFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.obs"
-		obsFP   = "M:/Peel/RDRR-PWRMM21/dat/obs/02HB029.csv" // outlet=1750373
+		mdlPrfx = "M:/RDRR-02HJ005/02HJ005."
+		monFP   = "M:/RDRR-02HJ005/dat/02HJ005.obs"
+		obsFP   = "M:/RDRR-02HJ005/dat/02HJ005.csv"
+		outlet  = 757
 	)
+
+	// const (
+	// 	mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."
+	// 	monFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.obs"
+	// 	obsFP   = "M:/Peel/RDRR-PWRMM21/dat/obs/02HB029.csv" // outlet=1750373
+	// )
 	// const (
 	// 	mdlPrfx = "S:/Peel/PWRMM21."
 	// 	monFP   = "S:/Peel/elevation.real.uhdem.gauges_final.obs"
@@ -36,21 +43,29 @@ func main() {
 
 	// run model
 	model.DeleteMonitors(mdlPrfx + "out/") // also sets-up the output folder
+
 	// topm, smax, dinc, soildepth, kfact := .045394, .004987, .116692, .073995, 1.
 	// topm, slpmx, dinc, soildepth, kfact, hmax := 0.01153, 2.287310, 0.104665, 1.435206, 33.153130, .01
 
-	topm := .1
-	slpx := .1
-	dinc := 0.
-	soildepth := 1.
-	kfact := 1.
-	hmax := 1.                                                                                                      // maximum mobile stor depth
-	fmt.Println(model.RunDefault(mdlPrfx+"check/", obsFP, topm, hmax, slpx, dinc, soildepth, kfact, 1750373, true)) //897926
+	// topm := 0.4916659571673048
+	// slpx := 2.972979439448385
+	// dinc := 1.453685873127324
+	// soildepth := 1.4883742350168916
+	// kfact := 0.08895857370510861
+	// hmax := 6.770830781270232
+	// topm := .5
+	// slpx := .2297
+	// dinc := 0.
+	// soildepth := 1.
+	// kfact := 0.1
+	// hmax := .01
+	// model.RunDefault(mdlPrfx+"check/", obsFP, topm, hmax, slpx, dinc, soildepth, kfact, outlet, true)
 
-	// model.OptimizeDefault(nil, obsFP, 1750373)
+	// // sample model
+	// model.OptimizeDefault(nil, obsFP, outlet)
 
-	// // sample models
-	// model.PrepMC(mdlPrfx + "MC/")
-	// model.SampleMaster(mdlPrfx, 100)
+	// sample models
+	model.PrepMC(mdlPrfx + "MC/")
+	model.SampleMaster(mdlPrfx, 200, outlet)
 
 }

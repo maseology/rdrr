@@ -20,12 +20,12 @@ type monitor struct {
 
 func (m *monitor) print() {
 	defer gwg.Done()
-	// mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), m.v)
-	vv := make([]float64, len(m.v))
-	for k, v := range m.v {
-		vv[k] = v * 50. * 50. / 21600. ////////////////////////////////////////////////////////////////////////////////////////////////////
-	}
-	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), vv)
+	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), m.v)
+	// vv := make([]float64, len(m.v))
+	// for k, v := range m.v {
+	// 	vv[k] = v * h2cms
+	// }
+	// mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), vv)
 }
 
 type gmonitor struct{ gy, ge, ga, gr, gg, gb []float64 }

@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"runtime"
 	"time"
@@ -69,19 +70,22 @@ func OptimizeDefault(frc *FORC, obsFP string, outlet int) (float64, []float64) {
 	rng.Seed(time.Now().UnixNano())
 
 	gen := func(u []float64) float64 {
-		m, hmax, smax, dinc, soildepth, kfact := par6(u)
-		smpl := b.toDefaultSample(m, smax, soildepth, kfact)
-		return b.evaluate(&smpl, dinc, hmax, m, false)
+		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
+		m, grng, soildepth, kfact := par4(u)
+		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
+		return b.evaluate(&smpl, 0., math.MaxFloat64, m, false)
 	}
 
 	fmt.Println(" optimizing..")
 	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nSmplDim, rng, gen, true)
 	// uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
 
-	m, hmax, smax, dinc, soildepth, kfact := par6(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tTMQm:\t\t%v\n\thmax:\t\t%v\n\tsmax:\t\t%v\n\tdinc:\t\t%v\n\tsoildepth:\t%v\n\tkfact:\t\t%v\n\n", m, hmax, smax, dinc, soildepth, kfact)
-	final := b.toDefaultSample(m, smax, soildepth, kfact)
-	return b.evaluate(&final, dinc, hmax, m, true), []float64{m, smax, dinc, soildepth, kfact}
+	// m, hmax, smax, dinc, soildepth, kfact := par6(uFinal)
+	// fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\thmax:=\t\t%v\n\tsmax:=\t\t%v\n\tdinc:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, hmax, smax, dinc, soildepth, kfact)
+	m, grng, soildepth, kfact := par4(uFinal)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\tgrng:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, grng, soildepth, kfact)
+	final := b.toDefaultSample(m, grng, soildepth, kfact)
+	return b.evaluate(&final, 0., math.MaxFloat64, m, true), []float64{m, grng, 0., soildepth, kfact}
 }
 
 // // OptimizeDefault1 solves a default-parameter model to a given basin outlet

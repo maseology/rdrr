@@ -9,19 +9,18 @@ import (
 	"github.com/maseology/goHydro/hru"
 )
 
-// evaluation is a dehashed model run built from a sample
-// this is what gets evaluated
+// evaluation is a dehashed model run built from a sample (this is what gets evaluated)
 type evaluation struct {
-	cxr                   map[int]int       // cellID to slice id cross-reference; mapping of cell id to (de-hashed) array index
-	strmQs                map[int]float64   // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
-	sources               map[int][]float64 // currently: inflow from up sws
-	ws                    []hru.HRU         // watershed: collection of HRUs
-	t                     []time.Time       // timesteps
-	y, ep                 [][]float64       // yield; demand
-	drel, cascf           []float64         // relative depth to WT; cascade fraction
-	ds, mxr, mt           []int             // downslope cell ID; meteo to cell xr; consecutive month index
-	intvl, fncid, dm, s0s float64           // timestep interval (sec); float number cells; mean depth to WT; initial storage
-	nstep                 int               // n timesteps
+	cxr                          map[int]int       // cellID to slice id cross-reference; mapping of cell id to (de-hashed) array index
+	strmQs                       map[int]float64   // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
+	sources                      map[int][]float64 // currently: inflow from up sws
+	ws                           []hru.HRU         // watershed: collection of HRUs
+	t                            []time.Time       // timesteps
+	y, ep                        [][]float64       // yield; demand
+	drel, cascf                  []float64         // relative depth to WT; cascade fraction
+	ds, mxr, mt                  []int             // downslope cell ID; meteo to cell xr; consecutive month index
+	carea, intvl, fncid, dm, s0s float64           // catchment area (m²); timestep interval (sec); float number cells; mean depth to WT; initial storage
+	nstep                        int               // n timesteps
 }
 
 func newEvaluation(b *subdomain, p *sample, Ds, m float64, sid int, print bool) evaluation {
@@ -41,6 +40,7 @@ func newEvaluation(b *subdomain, p *sample, Ds, m float64, sid int, print bool) 
 	}
 	pp.t = b.frc.T
 	pp.mt = b.frc.mt
+	pp.y, pp.ep, pp.nstep, pp.intvl, pp.carea = b.frc.D[0], b.frc.D[1], len(b.frc.T), b.frc.IntervalSec, b.contarea
 	// pp.cids, pp.fncid = b.rtr.SwsCidXR[sid], float64(len(b.rtr.SwsCidXR[sid]))
 	pp.fncid = float64(len(b.rtr.SwsCidXR[sid]))
 	pp.dehash(b, p, sid, len(b.rtr.SwsCidXR[sid]), len(p.gw[sid].Qs))

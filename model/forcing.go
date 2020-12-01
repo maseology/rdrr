@@ -46,17 +46,3 @@ func LoadGobFORC(fp string) (*FORC, error) {
 	}
 	return &frc, nil
 }
-
-func gwsink(sta string) float64 {
-	d := map[string]float64{
-		"02EC021": .0005,
-		"02ED030": .00025,
-		"02HB020": .0005,
-		"02HC056": .0005,
-		"02HC005": .00025,
-	}
-	if v, ok := d[sta]; ok {
-		return v
-	}
-	return 0.
-}

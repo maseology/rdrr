@@ -60,8 +60,7 @@ func eval(p *evaluation, Dinc, hmax, m float64, res resulter, monid []int) {
 }
 
 // evalWB is the main model routine, the others are derivatives to this
-// Dinc: depth of channel incision/depth of channel relative to cell elevation
-// m: TOPMODEL parameter
+// Dinc: depth of channel incision/depth of channel relative to cell elevation; m: TOPMODEL parameter
 func evalWB(p *evaluation, Dinc, hmax, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs := make(map[int]monitor, len(monid))
