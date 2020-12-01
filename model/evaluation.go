@@ -23,7 +23,7 @@ type evaluation struct {
 	nstep                        int               // n timesteps
 }
 
-func newEvaluation(b *subdomain, p *sample, Ds, m float64, sid int, print bool) evaluation {
+func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool) evaluation {
 	var pp evaluation
 	if sid < 0 { // no subwatersheds
 		log.Fatalln("evaluation.newEvaluation: legacy code, should no longer occur")
@@ -59,7 +59,7 @@ func newEvaluation(b *subdomain, p *sample, Ds, m float64, sid int, print bool) 
 	// 	cktopo[i] = true
 	// }
 
-	pp.initialize(b.frc.q0, Ds, m, print)
+	pp.initialize(b.frc.q0, Dinc, m, print)
 	// fmt.Printf(" **** sid: %d;  Dm0: %f;  s0: %f\n", sid, pp.dm, pp.s0s)
 	pp.ds[pp.cxr[sid]] = -1 // new outlet
 	return pp
@@ -132,7 +132,7 @@ func (pp *evaluation) initialize(q0, Dinc, m float64, print bool) {
 			q0t /= pp.fncid
 			if q0t <= q0 {
 				if print && dm <= 0. {
-					fmt.Println("  subsample.initialize: steady reached without iterations")
+					fmt.Println("  evaluation.initialize: steady reached without iterations")
 				}
 				break
 			}
@@ -140,7 +140,9 @@ func (pp *evaluation) initialize(q0, Dinc, m float64, print bool) {
 			q0t = 0.
 			n++
 			if n > steadyiter {
-				fmt.Println("  subsample.initialize: steady reached max iterations")
+				if print {
+					fmt.Println("  evaluation.initialize: steady reached max iterations")
+				}
 				break
 			}
 		}
