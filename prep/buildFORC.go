@@ -2,9 +2,12 @@ package prep
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"math"
+	"os"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/maseology/glbopt"
@@ -22,12 +25,9 @@ const (
 	penmanWFa, penmanWFb = 0.009, 0.26 // calibrated ep parameters
 )
 
-// BuildFORC builds the gob containing forcing data.
-// (1) loads FEWS NetCDF (bin) output
-// (2) returns sorted dates
-// (2) computes basin
-// (3) parses precipitation into rainfall by optimizing t_crit
-func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *model.FORC {
+// BuildFORC builds the gob containing forcing data: 1) loads FEWS NetCDF (bin) output; 2) returns sorted dates; 3) computes basin; 4) parses precipitation into rainfall by optimizing t_crit
+func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time, outlets []int, carea float64) *model.FORC {
+
 	smid := make(map[int]bool)
 	for _, c := range cells {
 		if _, ok := smid[c.Mid]; !ok {
@@ -35,7 +35,22 @@ func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *model.FOR
 		}
 	}
 
-	dts, ys, eao, mxr, _ := collectMeteoData(ncfp, smid, dtb, dte)
+	dts, ys, eao, mxr, intvl, _ := collectMeteoData(ncfp, smid, dtb, dte)
+
+	// currently only collecting 1 observation
+	obs, oxr := func() ([][]float64, []int) {
+		var err error
+		var obs []float64
+		if len(outlets) != 1 {
+			fmt.Println(" multiple outlets currently not supported")
+			return nil, nil
+		}
+		if obs, err = getObs(gobDir+"csv", dtb, dte, intvl, carea, len(dts)); err != nil {
+			fmt.Println(" no observation data found")
+			return nil, nil
+		}
+		return [][]float64{obs}, []int{outlets[0]}
+	}()
 
 	cmxr := make(map[int]int, len(cells))
 	for _, c := range cells {
@@ -45,8 +60,10 @@ func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *model.FOR
 	frc := model.FORC{
 		T:           dts,
 		D:           [][][]float64{ys, eao},
+		O:           obs,
 		XR:          cmxr,
-		IntervalSec: 86400 / 4,
+		Oxr:         oxr,
+		IntervalSec: intvl,
 	}
 
 	if err := frc.SaveGob(gobDir + "FORC.gob"); err != nil {
@@ -56,7 +73,7 @@ func BuildFORC(gobDir, ncfp string, cells []Cell, dtb, dte time.Time) *model.FOR
 	return &frc
 }
 
-func collectMeteoData(ncfp string, smid map[int]bool, dtb, dte time.Time) (dts []time.Time, y, ea [][]float64, xr map[int]int, ndat int) {
+func collectMeteoData(ncfp string, smid map[int]bool, dtb, dte time.Time) (dts []time.Time, y, ea [][]float64, xr map[int]int, intvl float64, ndat int) {
 	fmt.Println(" loading data exported from FEWS:", ncfp, "...")
 
 	ndat, nsta, nvar, dat := loadNC(ncfp, smid) //[station_id][datetime][ precipitation_amount, surface_snow_and_ice_melt_flux, air_temperature, air_pressure, relative_humidity, wind_speed ]
@@ -70,7 +87,7 @@ func collectMeteoData(ncfp string, smid map[int]bool, dtb, dte time.Time) (dts [
 
 	for sid, d := range dat {
 		if dts == nil {
-			dts = sequentialDates(d, dtb, dte)
+			dts, intvl = sequentialDates(d, dtb, dte)
 		}
 		prec, smlt, temp, eao := make([]float64, len(dts)), make([]float64, len(dts)), make([]float64, len(dts)), make([]float64, len(dts))
 		tl, pl, rhl := 10., 101.3, .85
@@ -111,7 +128,7 @@ func collectMeteoData(ncfp string, smid map[int]bool, dtb, dte time.Time) (dts [
 				u = 0.
 			}
 
-			eaoo := pet.PenmanWind(temp[i], p, rh, u, penmanWFa, penmanWFb) * 60. * 60. * 6. // [m/6hr]
+			eaoo := pet.PenmanWind(temp[i], p, rh, u, penmanWFa, penmanWFb) * intvl // [m/6hr]
 			if math.IsNaN(eaoo) {
 				log.Fatalf("eaoo error 1 NaN")
 			} else if eaoo < 0. || eaoo*86.4*365.24 > 2000. {
@@ -190,7 +207,7 @@ func loadNC(ncfp string, smid map[int]bool) (int, int, int, map[int]map[time.Tim
 	return -1, -1, -1, nil
 }
 
-func sequentialDates(d map[time.Time][]float32, dtb, dte time.Time) []time.Time {
+func sequentialDates(d map[time.Time][]float32, dtb, dte time.Time) ([]time.Time, float64) {
 	var dts []time.Time
 	for k := range d {
 		if k.Before(dtb) {
@@ -202,7 +219,17 @@ func sequentialDates(d map[time.Time][]float32, dtb, dte time.Time) []time.Time 
 		dts = append(dts, k)
 	}
 	sort.Slice(dts, func(i, j int) bool { return dts[i].Before(dts[j]) })
-	return dts
+	intvl := -1.
+	for i, t := range dts {
+		if i > 0 {
+			if i == 1 {
+				intvl = t.Sub(dts[0]).Seconds()
+			} else if intvl != t.Sub(dts[i-1]).Seconds() {
+				log.Fatalf(" buildFORC.seqentialDate error: nonequidistant time steps found: %v to %v", t, dts[i-1])
+			}
+		}
+	}
+	return dts, intvl
 }
 
 func getAtomsYieldByStation(sid int, dts []time.Time, p, m, t []float64) (y []float64) {
@@ -346,4 +373,45 @@ func parseRainMelt(orderedDatetimeList []time.Time, precip, snowmelt, temp []flo
 	}
 
 	return y, sp, sm, sr
+}
+
+func getObs(obsFP string, dtb, dte time.Time, intvl, carea float64, nstp int) ([]float64, error) {
+	if _, ok := mmio.FileExists(obsFP); !ok {
+		return nil, fmt.Errorf("subdomain.getObs() error: file %s does not exist", obsFP)
+	}
+	f, err := os.Open(obsFP)
+	if err != nil {
+		return nil, fmt.Errorf("subdomain.getObs() failed: %v", err)
+	}
+	defer f.Close()
+
+	if math.Mod(86400., intvl) != 0. {
+		return nil, fmt.Errorf("subdomain.getObs() failed: forcing interval frequency = %f timesteps per day; needs to be an even divisor", 86400./intvl)
+	}
+	nsstp := int(86400. / intvl) // assumes the use of daily data
+	dateToDay := func(dt time.Time) time.Time {
+		return time.Date(dt.Year(), dt.Month(), dt.Day(), 0, 0, 0, 0, dt.Location())
+	}
+	dtbD, dteD := dateToDay(dtb), dateToDay(dte)
+
+	vs, ii := make([]float64, nstp), 0
+	cms2h := intvl / carea
+	for rec := range mmio.LoadCSV(io.Reader(f)) {
+		var dt time.Time
+		var v float64
+		if dt, err = time.Parse("2006-01-02", rec[0]); err != nil {
+			return nil, fmt.Errorf("subdomain.getObs() failed: %v", err)
+		}
+		if dt.Before(dtbD) || dt.After(dteD) {
+			continue
+		}
+		if v, err = strconv.ParseFloat(rec[1], 64); err != nil {
+			return nil, fmt.Errorf("subdomain.getObs() failed: %v", err)
+		}
+		for i := 0; i < nsstp; i++ {
+			vs[ii] = v * cms2h
+			ii++
+		}
+	}
+	return vs, nil
 }

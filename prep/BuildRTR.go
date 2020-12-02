@@ -4,39 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/maseology/mmio"
 	"github.com/maseology/rdrr/model"
 )
 
 // BuildRTR returns (and saves) the topological routing scheme amongst sub-basins
-func BuildRTR(gobDir, topoFP string, strc *model.STRC, swsc map[int][]int, csws map[int]int) *model.RTR {
+func BuildRTR(gobDir string, strc *model.STRC, csws, dsws map[int]int, nsws int) *model.RTR {
 
 	cids, _ := strc.TEM.DownslopeContributingAreaIDs(-1)
-
-	// collect topology
-	var dsws map[int]int
-	nsws := len(swsc)
-	if _, ok := mmio.FileExists(topoFP); ok {
-		d, err := mmio.ReadCSV(topoFP)
-		if err != nil {
-			log.Fatalf(" Loader.readSWS: error reading %s: %v\n", topoFP, err)
-		}
-		// dsws = make(map[int]int, len(d)) // note: swsids not contained within dsws drain to farfield
-		// for _, ln := range d {
-		// 	dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
-		// }
-		dsws = make(map[int]int, nsws) // note: swsids not contained within dsws drain to farfield
-		for _, ln := range d {
-			if _, ok := swsc[int(ln[1])]; ok {
-				if _, ok := swsc[int(ln[2])]; ok {
-					dsws[int(ln[1])] = int(ln[2]) // linkID,upstream_swsID,downstream_swsID
-				}
-			}
-		}
-	} else {
-		// fmt.Printf(" warning: sws topology (*.topo) not found\n")
-		log.Fatalf(" BuildRTR error: sws topology (*.topo) not found: %s", topoFP)
-	}
 
 	// collect stream cells
 	strms, _ := model.BuildStreams(strc, cids)

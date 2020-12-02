@@ -41,13 +41,13 @@ func (s *sample) copy() sample {
 
 func (s *sample) write(dir string) error {
 	mmio.WriteRMAP(dir+"s.cascf.rmap", s.cascf, false)
-	// mmio.DeleteFile(dir + "s.gw.drel.rmap")
+	mmio.DeleteFile(dir + "s.gw.drel.rmap")
 	mmio.DeleteFile(dir + "s.gw.Qs.rmap")
-	mmio.DeleteFile(dir + "s.gw.g-ti.rmap")
+	// mmio.DeleteFile(dir + "s.gw.g-ti.rmap")
 	for _, v := range s.gw {
-		// mmio.WriteRMAP(dir+"s.gw.drel.rmap", v.D, true)
+		mmio.WriteRMAP(dir+"s.gw.drel.rmap", v.D, true)
 		mmio.WriteRMAP(dir+"s.gw.Qs.rmap", v.Qs, true)
-		mmio.WriteRMAP(dir+"s.gw.g-ti.rmap", v.RelTi(), true) // = drel/m
+		// mmio.WriteRMAP(dir+"s.gw.g-ti.rmap", v.RelTi(), true) // = drel/m
 	}
 	perc, fimp, smacap, srfcap := make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws))
 	for c, h := range s.ws {
@@ -90,7 +90,7 @@ func SampleDefault(metfp, outprfx string, nsmpl int) {
 		m, grng, soildepth, kfact := par4(u)
 		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
 		fmt.Print(".")
-		return b.evaluate(&smpl, 0., math.MaxFloat64, m, false)
+		return b.evaluate(&smpl, 0., m, false)
 	}
 
 	tt := mmio.NewTimer()
@@ -165,7 +165,7 @@ func SampleMaster(outdir string, nsmpl, outlet int) {
 		m, grng, soildepth, kfact := par4(u)
 		go printParams(m, grng, soildepth, kfact)
 		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
-		b.evaluate(&smpl, 0., math.MaxFloat64, m, false)
+		b.evaluate(&smpl, 0., m, false)
 		WaitMonitors()
 		compressMC()
 	}

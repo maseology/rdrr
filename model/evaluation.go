@@ -11,16 +11,17 @@ import (
 
 // evaluation is a dehashed model run built from a sample (this is what gets evaluated)
 type evaluation struct {
-	cxr                          map[int]int       // cellID to slice id cross-reference; mapping of cell id to (de-hashed) array index
-	strmQs                       map[int]float64   // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
-	sources                      map[int][]float64 // currently: inflow from up sws
-	ws                           []hru.HRU         // watershed: collection of HRUs
-	t                            []time.Time       // timesteps
-	y, ep                        [][]float64       // yield; demand
-	drel, cascf                  []float64         // relative depth to WT; cascade fraction
-	ds, mxr, mt                  []int             // downslope cell ID; meteo to cell xr; consecutive month index
-	carea, intvl, fncid, dm, s0s float64           // catchment area (m²); timestep interval (sec); float number cells; mean depth to WT; initial storage
-	nstep                        int               // n timesteps
+	cxr         map[int]int       // cellID to slice id cross-reference; mapping of cell id to (de-hashed) array index
+	strmQs      map[int]float64   // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
+	sources     map[int][]float64 // currently: inflow from up sws
+	ws          []hru.HRU         // watershed: collection of HRUs
+	t           []time.Time       // timesteps
+	y, ep       [][]float64       // yield; demand
+	drel, cascf []float64         // relative depth to WT; cascade fraction
+	// ds, mxr, mt                 []int             // downslope cell ID; meteo to cell xr; consecutive month index
+	ds, mxr                      []int   // downslope cell ID; meteo to cell xr
+	carea, intvl, fncid, dm, s0s float64 // catchment area (m²); timestep interval (sec); float number cells; mean depth to WT; initial storage
+	nstep                        int     // n timesteps
 }
 
 func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool) evaluation {
@@ -39,7 +40,7 @@ func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool
 		log.Fatalf("subsample.newSubsample error: subwatershed id %d cannot be found as a groundwater reservoir.", sid)
 	}
 	pp.t = b.frc.T
-	pp.mt = b.frc.mt
+	// pp.mt = b.frc.mt
 	pp.y, pp.ep, pp.nstep, pp.intvl, pp.carea = b.frc.D[0], b.frc.D[1], len(b.frc.T), b.frc.IntervalSec, b.contarea
 	// pp.cids, pp.fncid = b.rtr.SwsCidXR[sid], float64(len(b.rtr.SwsCidXR[sid]))
 	pp.fncid = float64(len(b.rtr.SwsCidXR[sid]))
@@ -59,7 +60,7 @@ func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool
 	// 	cktopo[i] = true
 	// }
 
-	pp.initialize(b.frc.q0, Dinc, m, print)
+	pp.initialize(Dinc, m, print)
 	// fmt.Printf(" **** sid: %d;  Dm0: %f;  s0: %f\n", sid, pp.dm, pp.s0s)
 	pp.ds[pp.cxr[sid]] = -1 // new outlet
 	return pp
@@ -118,9 +119,9 @@ func (pp *evaluation) dehash(b *subdomain, p *sample, sid, ncid, nstrm int) {
 // 	}
 // }
 
-func (pp *evaluation) initialize(q0, Dinc, m float64, print bool) {
+func (pp *evaluation) initialize(Dinc, m float64, print bool) {
 	pp.dm = func() (dm float64) {
-		dm = 0. //-m * math.Log(q0/Qs)
+		dm = 0. //-m * math.Log(q0/Qs) // q0 = avgRch // default discharge for warm-up
 		if len(pp.strmQs) == 0 {
 			return
 		}
@@ -130,7 +131,7 @@ func (pp *evaluation) initialize(q0, Dinc, m float64, print bool) {
 				q0t += v * math.Exp((Dinc-dm-pp.drel[i])/m)
 			}
 			q0t /= pp.fncid
-			if q0t <= q0 {
+			if q0t <= avgRch {
 				if print && dm <= 0. {
 					fmt.Println("  evaluation.initialize: steady reached without iterations")
 				}

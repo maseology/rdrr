@@ -117,7 +117,6 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			}
 			sids = []int{outlet}
 			swscidxr = map[int][]int{outlet: cids}
-			log.Fatalf(" router.go RTR.subset: to check")
 			uca = r.UCA
 		}
 	}

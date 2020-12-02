@@ -17,10 +17,10 @@ type subdomain struct {
 	mon                             map[int][]int // monitor locations: sws{[]obs-cid}
 	ds                              map[int]int   // downslope cell ID
 	swsord                          [][]int       // sws IDs (topologically ordered, concurrent safe)
-	obs                             []float64     // observed data set used for optimization
 	cids                            []int         // cell IDs (topologically ordered)
 	contarea, fncid, fnstrm, gwsink float64       // contributing area [m²], (float) number of cells
 	ncid, nstrm, cid0               int           // number of cells, number of stream cells, outlet cell ID
+	// obs                             []float64     // observed data set used for optimization
 }
 
 func (b *subdomain) print() {
@@ -112,7 +112,12 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		log.Fatalf(" domain.newSubDomain error: no forcing data provided")
 	}
 	if outlet >= 0 {
-		fmt.Println(" subsetting master model")
+		fmt.Printf(" subsetting master model to cell %d\n", outlet)
+	} else if len(frc.Oxr) > 0 {
+		if len(frc.Oxr) > 1 {
+			fmt.Printf(" multiple outlet cells currently not supported\n")
+		}
+		outlet = frc.Oxr[0]
 	}
 
 	cids, ds := d.strc.TEM.DownslopeContributingAreaIDs(outlet)
@@ -158,7 +163,6 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		swsord:   swsord,
 		ds:       ds,
 		mon:      sortMonitorsSWS(d, newRTR),
-		obs:      []float64{},
 		ncid:     ncid,
 		fncid:    fncid,
 		nstrm:    len(strms),
@@ -206,4 +210,19 @@ func sortMonitorsSWS(d *domain, r *RTR) map[int][]int {
 // 	intvl = int64(b.frc.IntervalSec)
 // 	nstep = len(b.frc.T)
 // 	return
+// }
+
+// func gwsink(sta string) float64 {
+// 	d := map[string]float64{
+// 		"02EC021": .0005,
+// 		"02ED030": .00025,
+// 		"02HB020": .0005,
+// 		"02HC056": .0005,
+// 		"02HC005": .00025, // m/ts
+// 		// "02HJ005": .08,    // m³/s
+// 	}
+// 	if v, ok := d[sta]; ok {
+// 		return v
+// 	}
+// 	return 0.
 // }

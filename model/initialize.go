@@ -91,9 +91,9 @@ func (b *subdomain) toDefaultSample(m, slpx, soildepth, kfact float64) sample {
 	buildTopmodel := func() {
 		// defer fmt.Println("  buildTopmodel complete")
 		defer wg.Done()
-		if b.frc.q0 <= 0. {
-			log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.q0)
-		}
+		// if b.frc.q0 <= 0. {
+		// 	log.Fatalf(" toDefaultSample.buildTopmodel error, initial flow for TOPMODEL (Q0) is set to %v", b.frc.q0)
+		// }
 
 		type kv struct {
 			k int
@@ -104,7 +104,7 @@ func (b *subdomain) toDefaultSample(m, slpx, soildepth, kfact float64) sample {
 		getgw := func(sid int) {
 			ksat := make(map[int]float64)
 			for _, c := range b.rtr.SwsCidXR[sid] {
-				gg := 6 // Unknown (variable)
+				gg := 6 // default: unknown/variable
 				if _, ok := b.mpr.SGx[c]; ok {
 					gg = b.mpr.SGx[c]
 				}

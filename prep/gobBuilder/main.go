@@ -15,13 +15,22 @@ const (
 	gdefFP  = "M:/RDRR-02HJ005/dat/02HJ005.gdef"
 	demFP   = "M:/RDRR-02HJ005/dat/owrc20-50a-elevation_resmpl.uhdem"
 	swsFP   = "M:/RDRR-02HJ005/dat/owrc20-50a-elevation_resmpl.real_SWS10.indx"
-	topoFP  = "M:/RDRR-02HJ005/dat/owrc20-50a-elevation_resmpl.real_SWS10.topo"
 	lufprfx = "M:/RDRR-02HJ005/dat/solrisv3_10_infilled.bil"
 	sgfp    = "M:/RDRR-02HJ005/dat/OGSsurfGeo_50_resmpl.indx"
 	midFP   = "M:/RDRR-02HJ005/dat/owrc20-50a_SWS10_resmpl.indx" // index meteo timeseries
 	ncfp    = "M:/OWRC-RDRR/met/202010010100.nc.bin"             // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
 )
 
+// const (
+// 	gobDir  = "M:/RDRR-02HK016/02HK016."
+// 	gdefFP  = "M:/RDRR-02HK016/dat/02HK016_50.uhdem.gdef"
+// 	demFP   = "M:/RDRR-02HK016/dat/02HK016_50.uhdem"
+// 	swsFP   = "M:/RDRR-02HK016/dat/02HK016_50_SWS10.indx"
+// 	lufprfx = "M:/RDRR-02HK016/dat/solrisv3_10_infilled.bil"
+// 	sgfp    = "M:/RDRR-02HK016/dat/OGSsurfGeo_50_resmpl.indx"
+// 	midFP   = "M:/RDRR-02HK016/dat/owrc20-50a_SWS10_resmpl.indx" // index meteo timeseries
+// 	ncfp    = "M:/OWRC-RDRR/met/202010010100.nc.bin"             // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
+// )
 // const (
 // 	gobDir = "S:/OWRC-RDRR/owrc."
 // 	gdefFP = "S:/OWRC-RDRR/prep/owrc20-50a.uhdem.gdef"
@@ -32,7 +41,6 @@ const (
 // 	lufprfx   = "S:/OWRC-RDRR/prep/solrisv3_10_infilled.bil"
 // 	sgfp   = "S:/OWRC-RDRR/prep/OGSsurfGeo_50.bil"
 // )
-
 // const (
 // 	gobDir  = "M:/Peel/RDRR-PWRMM21/PWRMM21."
 // 	gdefFP  = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.indx.gdef"
@@ -70,25 +78,12 @@ func main() {
 
 	if _, ok := mmio.FileExists(gobDir + "STRC.gob"); !ok {
 		fmt.Println("collecting DEM and subwatersheds..")
-		csws, swsc := func() (map[int]int, map[int][]int) {
-			var gsws grid.Indx
-			gsws.LoadGDef(gd)
-			gsws.New(swsFP, false)
-			cs := gsws.Values()
-			sc := make(map[int][]int, len(gsws.UniqueValues()))
-			for c, s := range cs {
-				if _, ok := sc[s]; ok {
-					sc[s] = append(sc[s], c)
-				} else {
-					sc[s] = []int{c}
-				}
-			}
-			return cs, sc
-		}()
+
+		csws, dsws, swsc := prep.CollectSWS(swsFP, gd)
 
 		strc, cells := prep.BuildSTRC(gd, csws, gobDir, demFP)
 
-		if _, ok := mmio.FileExists(midFP); ok { // else swsID used in place
+		if _, ok := mmio.FileExists(midFP); ok { // else swsID used in place by default
 			var gmid grid.Indx
 			gmid.LoadGDef(gd)
 			gmid.New(midFP, false)
@@ -104,12 +99,13 @@ func main() {
 
 		if _, ok := mmio.FileExists(gobDir + "FORC.gob"); !ok {
 			fmt.Println("\ncollecting station data and computing basin atmospheric yield and Eao..")
-			prep.BuildFORC(gobDir, ncfp, cells, dtb, dte)
+			outlets := strc.TEM.Outlets()
+			prep.BuildFORC(gobDir, ncfp, cells, dtb, dte, outlets, strc.Acell)
 		}
 
 		if _, ok := mmio.FileExists(gobDir + "RTR.gob"); !ok {
 			fmt.Println("\nbuilding subbasin routing scheme..")
-			prep.BuildRTR(gobDir, topoFP, strc, swsc, csws)
+			prep.BuildRTR(gobDir, strc, csws, dsws, len(swsc))
 		}
 	}
 

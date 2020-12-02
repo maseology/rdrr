@@ -7,7 +7,7 @@ import (
 )
 
 // RunDefault runs simulation with default parameters: topm: TOPMODEL m; hmax: max depth of mobile store; slpmax: cell slope above which all cascades; dinc: relative depth of channel incision
-func RunDefault(chkdir, obsFP string, topm, hmax, slpmx, dinc, soildepth, kfact float64, outlet int, print bool) float64 {
+func RunDefault(chkdir string, topm, slpmx, dinc, soildepth, kfact float64, outlet int, print bool) float64 {
 	tt := mmio.NewTimer()
 
 	// build submodel
@@ -17,9 +17,6 @@ func RunDefault(chkdir, obsFP string, topm, hmax, slpmx, dinc, soildepth, kfact 
 		fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
 		fmt.Printf(" building sample HRUs and TOPMODEL\n")
 		// b.print()
-	}
-	if err := b.getObs(obsFP); err != nil {
-		fmt.Println(" no observation data found")
 	}
 
 	// add parameterization
@@ -39,7 +36,7 @@ func RunDefault(chkdir, obsFP string, topm, hmax, slpmx, dinc, soildepth, kfact 
 	}
 
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
-	of := b.evaluate(&smpl, dinc, hmax, topm, print)
+	of := b.evaluate(&smpl, dinc, topm, print)
 	WaitMonitors()
 	return of
 }

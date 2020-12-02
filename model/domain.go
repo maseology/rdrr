@@ -22,7 +22,7 @@ type domain struct {
 }
 
 // LoadMasterDomain loads all data from which sub-domain scale models can be derived
-func LoadMasterDomain(mdlprfx, monfp string) {
+func LoadMasterDomain(mdlprfx string) {
 	fmt.Println("Loading Master Domain..")
 	masterDomain = func() domain {
 		frc, strc, rtr, mpr, mons := func() (*FORC, *STRC, *RTR, *MAPR, []int) {
@@ -67,15 +67,17 @@ func LoadMasterDomain(mdlprfx, monfp string) {
 			var obs []int
 			go func() {
 				defer wg.Done()
-				var err error
-				if obs, err = mmio.ReadInts(monfp); err != nil {
-					log.Fatalf("%v", err)
+				if _, ok := mmio.FileExists(mdlprfx + "obs"); ok {
+					var err error
+					if obs, err = mmio.ReadInts(mdlprfx + "obs"); err != nil {
+						log.Fatalf("%v", err)
+					}
 				}
 			}()
 			wg.Wait()
 			return frc, strc, rtr, mapr, obs
 		}()
-		frc.q0 = avgRch // default discharge for warm-up
+		// frc.q0 = avgRch // default discharge for warm-up
 		return domain{
 			frc:  frc,
 			strc: strc,

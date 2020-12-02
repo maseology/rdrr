@@ -3,7 +3,6 @@ package model
 import (
 	"fmt"
 	"log"
-	"math"
 	"math/rand"
 	"runtime"
 	"time"
@@ -57,9 +56,6 @@ func OptimizeDefault(frc *FORC, obsFP string, outlet int) (float64, []float64) {
 		log.Fatalf(" to fix")
 		// b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
 	}
-	if err := b.getObs(obsFP); err != nil {
-		log.Fatalf("OptimizeDefault: %v", err)
-	}
 
 	fmt.Printf(" catchment area: %.1f km²\n", b.contarea/1000./1000.)
 	fmt.Printf(" building sample HRUs and TOPMODEL\n")
@@ -73,7 +69,7 @@ func OptimizeDefault(frc *FORC, obsFP string, outlet int) (float64, []float64) {
 		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
 		m, grng, soildepth, kfact := par4(u)
 		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
-		return b.evaluate(&smpl, 0., math.MaxFloat64, m, false)
+		return b.evaluate(&smpl, 0., m, false)
 	}
 
 	fmt.Println(" optimizing..")
@@ -85,7 +81,7 @@ func OptimizeDefault(frc *FORC, obsFP string, outlet int) (float64, []float64) {
 	m, grng, soildepth, kfact := par4(uFinal)
 	fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\tgrng:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, grng, soildepth, kfact)
 	final := b.toDefaultSample(m, grng, soildepth, kfact)
-	return b.evaluate(&final, 0., math.MaxFloat64, m, true), []float64{m, grng, 0., soildepth, kfact}
+	return b.evaluate(&final, 0., m, true), []float64{m, grng, 0., soildepth, kfact}
 }
 
 // // OptimizeDefault1 solves a default-parameter model to a given basin outlet
