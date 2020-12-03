@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"runtime"
 	"time"
 
 	"github.com/maseology/glbopt"
@@ -42,7 +41,7 @@ import (
 // }
 
 // OptimizeDefault solves a default-parameter model to a given basin outlet
-func OptimizeDefault(frc *FORC, obsFP string, outlet int) (float64, []float64) {
+func OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
 	if masterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
 	}
@@ -69,11 +68,11 @@ func OptimizeDefault(frc *FORC, obsFP string, outlet int) (float64, []float64) {
 		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
 		m, grng, soildepth, kfact := par4(u)
 		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
-		return b.evaluate(&smpl, 0., m, false)
+		return 1. - b.evaluate(&smpl, 0., m, false)
 	}
 
 	fmt.Println(" optimizing..")
-	uFinal, _ := glbopt.SCE(runtime.GOMAXPROCS(0), nSmplDim, rng, gen, true)
+	uFinal, _ := glbopt.SCE(1, nSmplDim, rng, gen, true) //runtime.GOMAXPROCS(0) //////////////////////////////////////////////////////////////////////////
 	// uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
 
 	// m, hmax, smax, dinc, soildepth, kfact := par6(uFinal)

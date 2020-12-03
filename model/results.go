@@ -66,9 +66,9 @@ func (r *results) report(print bool) []float64 {
 		sumPlotSto("wb.png", r.hsto, r.gsto)
 		return []float64{-1.}
 	}
-	rmse := objfunc.RMSE(r.obs[warmup:], r.sim[warmup:])
+	kge := objfunc.KGE(r.obs[warmup:], r.sim[warmup:])
 	if print {
-		kge := objfunc.KGE(r.obs, r.sim)
+		rmse := objfunc.RMSE(r.obs[warmup:], r.sim[warmup:])
 		mwr2 := objfunc.Krause(computeMonthly(r.dt[warmup:], r.obs[warmup:], r.sim[warmup:], r.intvl, r.contarea))
 		nse := objfunc.NSE(r.obs, r.sim)
 		bias := objfunc.Bias(r.obs, r.sim)
@@ -78,5 +78,5 @@ func (r *results) report(print bool) []float64 {
 		mmio.ObsSim("hyd.png", r.obs, r.sim)
 		sumPlotSto("wb.png", r.hsto, r.gsto)
 	}
-	return []float64{rmse}
+	return []float64{kge}
 }

@@ -15,7 +15,7 @@ func main() {
 	// 	monFP   = "S:/OWRC-RDRR/owrc20-50-obs.obs"
 	// )
 
-	const mdlPrfx = "M:/RDRR-02HJ005/02HJ005."
+	const mdlPrfx = "S:/RDRR-02HK016/02HK016."
 
 	fmt.Println("")
 	tt := mmio.NewTimer()
@@ -34,8 +34,8 @@ func main() {
 	kfact := 1.
 	model.RunDefault(mdlPrfx+"check/", TMQm, grng, 0., soildepth, kfact, -1, true)
 
-	// sample model
-	// model.OptimizeDefault(nil, obsFP, outlet)
+	// // find optimal model
+	// model.OptimizeDefault(nil, -1)
 
 	// // sample models
 	// model.PrepMC(mdlPrfx + "MC/")
