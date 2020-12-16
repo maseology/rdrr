@@ -68,11 +68,14 @@ func OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
 		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
 		m, grng, soildepth, kfact := par4(u)
 		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
-		return 1. - b.evaluate(&smpl, 0., m, false)
+		// of := b.evaluate(&smpl, 0., m, false)
+		// fmt.Print("#")
+		// return of
+		return b.evaluate(&smpl, 0., m, false)
 	}
 
 	fmt.Println(" optimizing..")
-	uFinal, _ := glbopt.SCE(1, nSmplDim, rng, gen, true) //runtime.GOMAXPROCS(0) //////////////////////////////////////////////////////////////////////////
+	uFinal, _ := glbopt.SCE(32, nSmplDim, rng, gen, true) //runtime.GOMAXPROCS(0) //////////////////////////////////////////////////////////////////////////
 	// uFinal, _ := glbopt.SurrogateRBF(500, nSmplDim, rng, gen)
 
 	// m, hmax, smax, dinc, soildepth, kfact := par6(uFinal)

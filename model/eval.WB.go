@@ -19,9 +19,9 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 		res.getTotals(sim, hsto, gsto)
 		for _, v := range obs {
 			gwg.Add(1)
-			go v.print()
+			go v.print(p.dir)
 		}
-		g := gmonitor{gy, ge, ga, gr, gg, gb}
+		g := gmonitor{gy, ge, ga, gr, gg, gb, p.dir}
 		gwg.Add(1)
 		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, float64(p.nstep))
 	}()

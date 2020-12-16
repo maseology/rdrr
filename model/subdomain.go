@@ -154,6 +154,11 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		}
 	}
 
+	mons := sortMonitorsSWS(d, newRTR)
+	if mons == nil {
+		mons = map[int][]int{outlet: []int{outlet}}
+	}
+
 	b := subdomain{
 		frc:      frc,
 		strc:     d.strc,
@@ -162,7 +167,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		cids:     cids,
 		swsord:   swsord,
 		ds:       ds,
-		mon:      sortMonitorsSWS(d, newRTR),
+		mon:      mons,
 		ncid:     ncid,
 		fncid:    fncid,
 		nstrm:    len(strms),
@@ -189,6 +194,9 @@ func BuildStreams(strc *STRC, cids []int) ([]int, int) {
 
 // sortMonitorsSWS sorts observation cell IDs by SWS, where d.obs ([]int{cellID}) --> b.obs (map[sid][]int{cellID})
 func sortMonitorsSWS(d *domain, r *RTR) map[int][]int {
+	if d.mons == nil {
+		return nil
+	}
 	m := make(map[int][]int, len(d.mons))
 	for _, o := range d.mons {
 		if s, ok := r.Sws[o]; ok {

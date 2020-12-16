@@ -35,6 +35,10 @@ func LoadMasterDomain(mdlprfx string) {
 				if frc, err = LoadGobFORC(mdlprfx + "FORC.gob"); err != nil {
 					log.Fatalf("%v", err)
 				}
+				frc.mt = make([]int, len(frc.T))
+				for k, dt := range frc.T {
+					frc.mt[k] = int(dt.Month())
+				}
 			}()
 
 			var strc *STRC

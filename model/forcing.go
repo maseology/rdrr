@@ -13,9 +13,8 @@ type FORC struct {
 	D           [][][]float64 // [ 0:yield; 1:Ep ][staID][DateID]
 	O           [][]float64   // observed discharge (use Oxr for cross-reference)
 	XR          map[int]int   // mapping of model grid cell to met grid cell
-	Oxr         []int         // mapping of outlet cell ID to O[][]
+	Oxr, mt     []int         // mapping of outlet cell ID to O[][]
 	IntervalSec float64
-	// mt          []int
 	// q0, qs      float64
 	// Name   string
 }

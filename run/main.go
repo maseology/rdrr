@@ -10,12 +10,9 @@ import (
 
 func main() {
 
-	// const (
-	// 	mdlPrfx = "S:/OWRC-RDRR/owrc."
-	// 	monFP   = "S:/OWRC-RDRR/owrc20-50-obs.obs"
-	// )
-
-	const mdlPrfx = "S:/RDRR-02HK016/02HK016."
+	// const mdlPrfx = "S:/OWRC-RDRR/owrc."
+	const mdlPrfx = "S:/Peel/PWRMM21."
+	// const mdlPrfx = "S:/RDRR-02HJ005/02HJ005."
 
 	fmt.Println("")
 	tt := mmio.NewTimer()
@@ -28,17 +25,17 @@ func main() {
 	// run model
 	model.DeleteMonitors(mdlPrfx + "out/") // also sets-up the output folder
 
-	TMQm := 0.020565
-	grng := 1.656823
-	soildepth := 0.370598
-	kfact := 1.
-	model.RunDefault(mdlPrfx+"check/", TMQm, grng, 0., soildepth, kfact, -1, true)
+	// TMQm := 0.7750285044038263
+	// grng := 0.07622992793762517
+	// soildepth := 0.4443726415967753
+	// kfact := 0.00010001334948482364
+	// model.RunDefault(mdlPrfx+"check/", TMQm, grng, 0., soildepth, kfact, -1, true)
 
 	// // find optimal model
 	// model.OptimizeDefault(nil, -1)
 
-	// // sample models
-	// model.PrepMC(mdlPrfx + "MC/")
-	// model.SampleMaster(mdlPrfx, 200, outlet)
+	// sample models
+	model.PrepMC(mdlPrfx + "MC/")
+	model.SampleMaster(mdlPrfx, 2000, -1)
 
 }

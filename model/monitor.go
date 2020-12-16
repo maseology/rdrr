@@ -11,16 +11,17 @@ import (
 
 var gwg sync.WaitGroup
 var gmu sync.Mutex
-var mondir string
+
+// var mondir string
 
 type monitor struct {
 	v []float64
 	c int
 }
 
-func (m *monitor) print() {
+func (m *monitor) print(mdir string) {
 	defer gwg.Done()
-	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), m.v)
+	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mdir, m.c), m.v)
 	// vv := make([]float64, len(m.v))
 	// for k, v := range m.v {
 	// 	vv[k] = v * h2cms
@@ -28,7 +29,10 @@ func (m *monitor) print() {
 	// mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), vv)
 }
 
-type gmonitor struct{ gy, ge, ga, gr, gg, gb []float64 }
+type gmonitor struct {
+	gy, ge, ga, gr, gg, gb []float64
+	dir                    string
+}
 
 func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, ds []int, intvlSec, fnstep float64) {
 	gmu.Lock()
@@ -83,35 +87,35 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, d
 	}
 
 	// NOTE: wbal = yield + ron - (aet + gwe + olf + s)
-	mmio.WriteRMAP(mondir+"g.yield.rmap", my, true)
-	mmio.WriteRMAP(mondir+"g.ep.rmap", me, true)
-	mmio.WriteRMAP(mondir+"g.aet.rmap", ma, true)
-	mmio.WriteRMAP(mondir+"g.olf.rmap", mr, true)
-	mmio.WriteRMAP(mondir+"g.ron.rmap", mron, true)
-	mmio.WriteRMAP(mondir+"g.rgen.rmap", mrgen, true)
-	mmio.WriteRMAP(mondir+"g.gwe.rmap", mg, true)
-	mmio.WriteRMAP(mondir+"g.sto.rmap", ms, true)
-	mmio.WriteRMAP(mondir+"g.sma.rmap", msma, true)
-	mmio.WriteRMAP(mondir+"g.srf.rmap", msrf, true)
-	mmio.WriteRMAP(mondir+"g.wbal.rmap", mw, true)
+	mmio.WriteRMAP(g.dir+"g.yield.rmap", my, true)
+	mmio.WriteRMAP(g.dir+"g.ep.rmap", me, true)
+	mmio.WriteRMAP(g.dir+"g.aet.rmap", ma, true)
+	mmio.WriteRMAP(g.dir+"g.olf.rmap", mr, true)
+	mmio.WriteRMAP(g.dir+"g.ron.rmap", mron, true)
+	mmio.WriteRMAP(g.dir+"g.rgen.rmap", mrgen, true)
+	mmio.WriteRMAP(g.dir+"g.gwe.rmap", mg, true)
+	mmio.WriteRMAP(g.dir+"g.sto.rmap", ms, true)
+	mmio.WriteRMAP(g.dir+"g.sma.rmap", msma, true)
+	mmio.WriteRMAP(g.dir+"g.srf.rmap", msrf, true)
+	mmio.WriteRMAP(g.dir+"g.wbal.rmap", mw, true)
 }
 
 // DeleteMonitors deletes monitor output from previous model run
 func DeleteMonitors(mdldir string) {
-	mondir = mdldir
+	// mondir = mdldir
 	mmio.MakeDir(mdldir)
-	mmio.DeleteFile(mondir + "g.yield.rmap")
-	mmio.DeleteFile(mondir + "g.ep.rmap")
-	mmio.DeleteFile(mondir + "g.aet.rmap")
-	mmio.DeleteFile(mondir + "g.olf.rmap")
-	mmio.DeleteFile(mondir + "g.ron.rmap")
-	mmio.DeleteFile(mondir + "g.rgen.rmap")
-	mmio.DeleteFile(mondir + "g.gwe.rmap")
-	mmio.DeleteFile(mondir + "g.sto.rmap")
-	mmio.DeleteFile(mondir + "g.sma.rmap")
-	mmio.DeleteFile(mondir + "g.srf.rmap")
-	mmio.DeleteFile(mondir + "g.wbal.rmap")
-	// mmio.DeleteAllSubdirectories(mondir)
+	mmio.DeleteFile(mdldir + "g.yield.rmap")
+	mmio.DeleteFile(mdldir + "g.ep.rmap")
+	mmio.DeleteFile(mdldir + "g.aet.rmap")
+	mmio.DeleteFile(mdldir + "g.olf.rmap")
+	mmio.DeleteFile(mdldir + "g.ron.rmap")
+	mmio.DeleteFile(mdldir + "g.rgen.rmap")
+	mmio.DeleteFile(mdldir + "g.gwe.rmap")
+	mmio.DeleteFile(mdldir + "g.sto.rmap")
+	mmio.DeleteFile(mdldir + "g.sma.rmap")
+	mmio.DeleteFile(mdldir + "g.srf.rmap")
+	mmio.DeleteFile(mdldir + "g.wbal.rmap")
+	// mmio.DeleteAllSubdirectories(mdldir)
 }
 
 // WaitMonitors waits for all writes to complete

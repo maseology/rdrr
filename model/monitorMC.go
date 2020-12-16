@@ -32,31 +32,50 @@ func PrepMC(path string) {
 // 	mcwg.Wait()
 // }
 
-func setMCdir() {
+// func setMCdir() {
+// 	for {
+// 		mondir = mcdir + fmt.Sprintf("%d/", rand.Uint32())
+// 		if !mmio.IsDir(mondir) {
+// 			if _, ok := mmio.FileExists(mondir[:len(mondir)-1] + ".tar.gz"); !ok {
+// 				break
+// 			}
+// 		}
+// 	}
+// 	mmio.MakeDir(mondir)
+// }
+
+func newMCdir() (m string) {
 	for {
-		mondir = mcdir + fmt.Sprintf("%d/", rand.Uint32())
-		if !mmio.IsDir(mondir) {
-			if _, ok := mmio.FileExists(mondir[:len(mondir)-1] + ".tar.gz"); !ok {
+		m = mcdir + fmt.Sprintf("%d/", rand.Uint32())
+		if !mmio.IsDir(m) {
+			if _, ok := mmio.FileExists(m[:len(m)-1] + ".tar.gz"); !ok {
 				break
 			}
 		}
 	}
-	mmio.MakeDir(mondir)
+	mmio.MakeDir(m)
+	return
 }
 
-func compressMC() {
-	// fmt.Println("reorg")
-	// reorgMC(gd)
-	// fmt.Println("compress")
-	if err := mmio.CompressTarGZ(mondir[:len(mondir)-1]); err != nil {
+// func compressMC() {
+// 	// fmt.Println("reorg")
+// 	// reorgMC(gd)
+// 	// fmt.Println("compress")
+// 	if err := mmio.CompressTarGZ(mondir[:len(mondir)-1]); err != nil {
+// 		log.Fatalln("monitorMC.go compressMC() mmio.CompressTarGZ failed:", err)
+// 	}
+// 	mmio.DeleteFile(mondir)
+// }
+func compressMC2(mdir string) {
+	if err := mmio.CompressTarGZ(mdir[:len(mdir)-1]); err != nil {
 		log.Fatalln("monitorMC.go compressMC() mmio.CompressTarGZ failed:", err)
 	}
-	mmio.DeleteFile(mondir)
+	mmio.DeleteFile(mdir)
 }
 
 type mcmonitor struct{ gy, ga, gr, gg, gb [][]float64 }
 
-func (g *mcmonitor) print(pin map[int][]float64, xr map[int]int, ds []int, fnstep float64) {
+func (g *mcmonitor) print(pin map[int][]float64, xr map[int]int, ds []int, fnstep float64, mdir string) {
 	gmu.Lock()
 	defer gmu.Unlock()
 	defer gwg.Done()
@@ -87,11 +106,11 @@ func (g *mcmonitor) print(pin map[int][]float64, xr map[int]int, ds []int, fnste
 	}
 
 	// NOTE: wbal = yield + ron - (aet + gwe + olf)
-	writeRMAPmcmonitor(mondir+"g.yield.bin", my)
-	writeRMAPmcmonitor(mondir+"g.aet.bin", ma)
-	writeRMAPmcmonitor(mondir+"g.olf.bin", mr)
-	writeRMAPmcmonitor(mondir+"g.ron.bin", mron)
-	writeRMAPmcmonitor(mondir+"g.gwe.bin", mg)
+	writeRMAPmcmonitor(mdir+"g.yield.bin", my)
+	writeRMAPmcmonitor(mdir+"g.aet.bin", ma)
+	writeRMAPmcmonitor(mdir+"g.olf.bin", mr)
+	writeRMAPmcmonitor(mdir+"g.ron.bin", mron)
+	writeRMAPmcmonitor(mdir+"g.gwe.bin", mg)
 }
 
 func writeRMAPmcmonitor(filepath string, data map[int][]float32) error {
@@ -119,10 +138,11 @@ func writeRMAPmcmonitor(filepath string, data map[int][]float32) error {
 	return nil
 }
 
-func reorgMC(gd *grid.Definition) {
+func reorgMC(gd *grid.Definition, mdir string) {
 	var wg sync.WaitGroup
 	nc := gd.Ncells()
-	for _, fp := range mmio.FileListExt(mondir, ".bin") {
+	// for _, fp := range mmio.FileListExt(mondir, ".bin") {
+	for _, fp := range mmio.FileListExt(mdir, ".bin") {
 		wg.Add(1)
 		go func(fp string) {
 			defer wg.Done()
