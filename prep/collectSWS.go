@@ -58,7 +58,7 @@ func CollectSWS(swsFP string, gd *grid.Definition) (map[int]int, map[int]int, ma
 }
 
 func buildOneSWS(gd *grid.Definition) (map[int]int, map[int]int, map[int][]int) {
-	cs := make(map[int]int, gd.Na)
+	cs := make(map[int]int, gd.Nact)
 	for _, c := range gd.Sactives {
 		cs[c] = 0
 	}

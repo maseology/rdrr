@@ -33,8 +33,8 @@ func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc
 				fmt.Printf(" WARNING no elevation assigned to meteo cell %d\n", i)
 			}
 		}
-		if gd.Na != len(dem.TEC) {
-			d := make(map[int]tem.TEC, gd.Na)
+		if gd.Nact != len(dem.TEC) {
+			d := make(map[int]tem.TEC, gd.Nact)
 			for _, i := range gd.Sactives {
 				d[i] = dem.TEC[i]
 				if !gd.IsActive(d[i].Ds) {
@@ -52,8 +52,8 @@ func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc
 	strc = &model.STRC{
 		TEM:   &dem,
 		UpCnt: dem.ContributingCellMap(),
-		Acell: gd.Cw * gd.Cw,
-		Wcell: gd.Cw,
+		Acell: gd.Cwidth * gd.Cwidth,
+		Wcell: gd.Cwidth,
 	}
 
 	fmt.Println(" building cell geometry (skipping solirrad calculations)..")
@@ -100,9 +100,9 @@ func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc
 	}
 	go generateInput(inputStream)
 
-	cells = make([]Cell, gd.Na)
+	cells = make([]Cell, gd.Nact)
 
-	for k := 0; k < gd.Na; k++ {
+	for k := 0; k < gd.Nact; k++ {
 		c := <-outputStream
 		cells[c.Ki] = c
 	}

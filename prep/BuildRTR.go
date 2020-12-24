@@ -58,7 +58,7 @@ func BuildRTR(gobDir string, strc *model.STRC, csws, dsws map[int]int, nsws int)
 			m := make(map[int]int, len(cids))
 			for _, c := range cids {
 				m[c] = 1
-				for _, u := range strc.TEM.UpIDs(c) {
+				for _, u := range strc.TEM.USlp[c] {
 					if csws[u] == s { // to be kept within sws
 						m[c] += strc.TEM.UnitContributingArea(u)
 					}
