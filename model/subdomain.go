@@ -76,7 +76,7 @@ func (b *subdomain) write(dir string) error {
 	strmca := make(map[int]int, b.ncid)
 	for k := range strm {
 		strmca[k] = k
-		for _, c := range b.strc.TEM.UpIDs(k) {
+		for _, c := range b.strc.TEM.USlp[k] {
 			if _, ok := strm[c]; !ok {
 				for _, c2 := range b.strc.TEM.ContributingAreaIDs(c) {
 					strmca[c2] = k

@@ -76,7 +76,7 @@ func (b *subdomain) toDefaultSample(m, slpx, soildepth, kfact float64) sample {
 			var recurs func(int)
 			recurs = func(cid int) {
 				build(cid)
-				for _, upcid := range b.strc.TEM.UpIDs(cid) {
+				for _, upcid := range b.strc.TEM.USlp[cid] {
 					recurs(upcid)
 				}
 			}

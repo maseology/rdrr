@@ -15,17 +15,6 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	// distributed monitors [mm/yr]
 	gy, ge, ga, gr, gg, gb := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
 
-	defer func() {
-		res.getTotals(sim, hsto, gsto)
-		for _, v := range obs {
-			gwg.Add(1)
-			go v.print(p.dir)
-		}
-		g := gmonitor{gy, ge, ga, gr, gg, gb, p.dir}
-		gwg.Add(1)
-		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, float64(p.nstep))
-	}()
-
 	for _, c := range monid {
 		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
 	}
@@ -116,5 +105,16 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 		}
 		s0s = s1s
 	}
+
+	func() {
+		res.getTotals(sim, hsto, gsto)
+		for _, v := range obs {
+			gwg.Add(1)
+			go v.print(p.dir)
+		}
+		g := gmonitor{gy, ge, ga, gr, gg, gb, p.dir}
+		gwg.Add(1)
+		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, float64(p.nstep))
+	}()
 	return
 }

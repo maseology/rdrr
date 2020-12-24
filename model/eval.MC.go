@@ -11,19 +11,6 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 		gy[i], ga[i], gr[i], gg[i], gb[i] = make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
 	}
 
-	defer func() {
-		res.getTotals(sim, hsto, gsto)
-		for _, v := range obs {
-			gwg.Add(1)
-			go v.print(p.dir)
-		}
-		g := mcmonitor{gy, ga, gr, gg, gb}
-		gwg.Add(1)
-		go g.print(p.sources, p.cxr, p.ds, float64(p.nstep), p.dir)
-	}()
-
-	// defer func() { res.getTotals(sim, hsto, gsto) }()
-
 	for _, c := range monid {
 		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
 	}
@@ -69,5 +56,16 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 		hsto[k] = s1s / p.fncid
 		gsto[k] = bs / p.fncid
 	}
+
+	func() {
+		res.getTotals(sim, hsto, gsto)
+		for _, v := range obs {
+			gwg.Add(1)
+			go v.print(p.dir)
+		}
+		g := mcmonitor{gy, ga, gr, gg, gb}
+		gwg.Add(1)
+		go g.print(p.sources, p.cxr, p.ds, float64(p.nstep), p.dir)
+	}()
 	return
 }

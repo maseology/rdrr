@@ -9,8 +9,6 @@ func eval(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	obs := make(map[int]monitor, len(monid))
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 
-	defer func() { res.getTotals(sim, hsto, gsto) }()
-
 	for _, c := range monid {
 		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
 	}
@@ -49,5 +47,7 @@ func eval(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 		hsto[k] = s1s / p.fncid
 		gsto[k] = bs / p.fncid
 	}
+
+	res.getTotals(sim, hsto, gsto)
 	return
 }

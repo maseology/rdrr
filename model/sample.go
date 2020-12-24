@@ -9,7 +9,7 @@ import (
 	"github.com/maseology/goHydro/gwru"
 	"github.com/maseology/goHydro/hru"
 	"github.com/maseology/mmio"
-	"github.com/maseology/montecarlo"
+	"github.com/maseology/montecarlo/smpln"
 	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
@@ -138,7 +138,10 @@ func SampleMaster(outdir string, nsmpl, outlet int) {
 
 	rng := rand.New(mrg63k3a.New())
 	rng.Seed(time.Now().UnixNano())
-	// sp := smpln.NewLHC(rng, nsmpl, nSmplDim, false)
+
+	tt := mmio.NewTimer()
+	fmt.Printf(" number of subwatersheds: %d\n", len(b.rtr.SwsCidXR))
+	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
 
 	printParams := func(m, grng, soildepth, kfact float64, mdir string) {
 		// tw, err := mmio.NewTXTwriter(mondir + "params.txt")
@@ -183,34 +186,31 @@ func SampleMaster(outdir string, nsmpl, outlet int) {
 		return of
 	}
 
-	tt := mmio.NewTimer()
-	fmt.Printf(" number of subwatersheds: %d\n", len(b.rtr.SwsCidXR))
-	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
-
-	// // for k := 0; k < nsmpl; k++ {
-	// // 	ut := make([]float64, nSmplDim)
-	// // 	for j := 0; j < nSmplDim; j++ {
-	// // 		ut[j] = sp.U[j][k]
-	// // 	}
-	// // 	gen(ut)
-	// // 	fmt.Print(".")
-	// // }
+	sp := smpln.NewLHC(rng, nsmpl, nSmplDim, false)
+	for k := 0; k < nsmpl; k++ {
+		ut := make([]float64, nSmplDim)
+		for j := 0; j < nSmplDim; j++ {
+			ut[j] = sp.U[j][k]
+		}
+		gen(ut)
+		fmt.Print(".")
+	}
 
 	// montecarlo.GenerateSamples(gen, nSmplDim, nsmpl)
 	// tt.Lap("\nsampling complete")
 
-	u, f, d := montecarlo.RankedUnBiased(gen, nSmplDim, nsmpl)
+	// u, f, d := montecarlo.RankedUnBiased(gen, nSmplDim, nsmpl)
 
-	tt.Lap("\nsampling complete")
-	t, err := mmio.NewTXTwriter(mcdir + "MCsummary.csv")
-	if err != nil {
-		log.Fatalf("SampleDefault %s save error: %v", mcdir+"MCsummary.csv", err)
-	}
-	t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,smax,dinc,soildepth,kfact", nsmpl))
-	for i, dd := range d {
-		m, grng, soildepth, kfact := par4(u[dd])
-		t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f", i+1, 1.-f[dd], m, grng, soildepth, kfact))
-	}
-	t.Close()
+	// tt.Lap("\nsampling complete")
+	// t, err := mmio.NewTXTwriter(mcdir + "MCsummary.csv")
+	// if err != nil {
+	// 	log.Fatalf("SampleDefault %s save error: %v", mcdir+"MCsummary.csv", err)
+	// }
+	// t.WriteLine(fmt.Sprintf("rank(of %d),eval,m,smax,dinc,soildepth,kfact", nsmpl))
+	// for i, dd := range d {
+	// 	m, grng, soildepth, kfact := par4(u[dd])
+	// 	t.WriteLine(fmt.Sprintf("%d,%f,%f,%f,%f,%f", i+1, 1.-f[dd], m, grng, soildepth, kfact))
+	// }
+	// t.Close()
 	tt.Lap("results save complete")
 }
