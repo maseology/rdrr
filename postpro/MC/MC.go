@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	mcDir   = "C:/Users/Mason/Desktop/New folder/"
-	obsFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv"
+	mcDir   = "S:/Peel/PWRMM21.MC/"                           // "C:/Users/Mason/Desktop/New folder/"
+	obsFP   = "S:/Peel/elevation.real.uhdem.gauges_final.csv" //"M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv"
 	jsonAPI = "https://api.oakridgeswater.ca/api/locnamsw?l="
 	npar    = 4
 )
@@ -24,6 +24,9 @@ var (
 )
 
 func main() {
+	tt := mmio.NewTimer()
+	defer tt.Lap("rdrr postpro complete")
+
 	fmt.Println(" reading observation locations from: " + obsFP)
 
 	// load observations
