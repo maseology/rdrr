@@ -13,13 +13,13 @@ import (
 	"github.com/maseology/mmio"
 )
 
-type data struct {
+type jdata struct {
 	T string  `json:"Date"`
 	V float64 `json:"Val"`
 	F int32   `json:"RDTC"`
 }
 
-type coll struct {
+type obsColl struct {
 	T   []time.Time
 	V   []float64
 	nam string
@@ -37,7 +37,7 @@ func getJSON(url string) ([]time.Time, []float64, error) {
 		return nil, nil, fmt.Errorf("unexpected http GET status: %s", resp.Status)
 	}
 
-	var df []data
+	var df []jdata
 	err = json.NewDecoder(resp.Body).Decode(&df)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot decode JSON: %v", err)
@@ -55,34 +55,34 @@ func getJSON(url string) ([]time.Time, []float64, error) {
 	return dts, vals, nil
 }
 
-func saveGob(colls map[int]coll, fp string) error {
+func saveGob(obsColls map[int]obsColl, fp string) error {
 	f, err := os.Create(fp)
 	defer f.Close()
 	if err != nil {
 		return fmt.Errorf(" saveGob %v", err)
 	}
-	if err := gob.NewEncoder(f).Encode(colls); err != nil {
+	if err := gob.NewEncoder(f).Encode(obsColls); err != nil {
 		return fmt.Errorf(" saveGob %v", err)
 	}
 	return nil
 }
 
-func loadGob(fp string) (map[int]coll, error) {
-	var colls map[int]coll
+func loadGob(fp string) (map[int]obsColl, error) {
+	var obsColls map[int]obsColl
 	f, err := os.Open(fp)
 	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
 	enc := gob.NewDecoder(f)
-	err = enc.Decode(&colls)
+	err = enc.Decode(&obsColls)
 	if err != nil {
 		return nil, err
 	}
-	return colls, nil
+	return obsColls, nil
 }
 
-func getObservations(stationCSVfp string) (map[int]coll, error) {
+func getObservations(stationCSVfp string) (map[int]obsColl, error) {
 
 	f, err := os.Open(obsFP)
 	if err != nil {
@@ -91,7 +91,7 @@ func getObservations(stationCSVfp string) (map[int]coll, error) {
 	defer f.Close()
 
 	recs := mmio.LoadCSV(io.Reader(f))
-	colls := make(map[int]coll, len(recs))
+	obsColls := make(map[int]obsColl, len(recs))
 	for lns := range recs {
 		staName := lns[0]
 		cid, _ := strconv.Atoi(lns[1])
@@ -107,7 +107,7 @@ func getObservations(stationCSVfp string) (map[int]coll, error) {
 		}
 
 		fmt.Printf("count = %d: %s to %s\n", len(dts), dts[0].Format("2006-01-02"), dts[len(dts)-1].Format("2006-01-02"))
-		colls[cid] = coll{dts, vals, staName}
+		obsColls[cid] = obsColl{dts, vals, staName}
 	}
-	return colls, nil
+	return obsColls, nil
 }
