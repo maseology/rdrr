@@ -62,8 +62,8 @@ func sumPlotSto(fp string, h, d []float64) {
 	for i := range h {
 		xs[i] = float64(i)
 	}
-	ys["sto"] = h
-	ys["def"] = d
+	ys["olf"] = h
+	ys["gw"] = d
 	mmio.Line(fp, xs, ys, 48.)
 }
 

@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/maseology/objfunc"
+	"github.com/maseology/rdrr/postpro"
 )
 
-func evaluate(dts []time.Time, sim []float64, obs obsColl) (int, float64, float64, float64) {
+func evaluate(dts []time.Time, sim []float64, obs postpro.ObsColl) (int, float64, float64, float64) {
 	//aggregate
 	if len(dts) != len(sim) {
 		log.Fatalf("evaluate error: dts and sim must be of same length")

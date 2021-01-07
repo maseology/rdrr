@@ -9,11 +9,11 @@ import (
 )
 
 // MasterDomain holds all data from which sub-domain scale models can be derived
-var masterDomain domain
+var MasterDomain domain
 
 // domain holds all data and is the parent to all sub models
 type domain struct {
-	frc  *FORC  // forcing (variable) data
+	Frc  *FORC  // forcing (variable) data
 	strc *STRC  // structural (unchanging) data (eg, topography, solar irradiation fractions)
 	rtr  *RTR   // subwatershed topology
 	mpr  *MAPR  // land use/surficial geology mapping for parameter assignment
@@ -24,7 +24,7 @@ type domain struct {
 // LoadMasterDomain loads all data from which sub-domain scale models can be derived
 func LoadMasterDomain(mdlprfx string) {
 	fmt.Println("Loading Master Domain..")
-	masterDomain = func() domain {
+	MasterDomain = func() domain {
 		frc, strc, rtr, mpr, mons := func() (*FORC, *STRC, *RTR, *MAPR, []int) {
 			var wg sync.WaitGroup
 			wg.Add(5)
@@ -83,7 +83,7 @@ func LoadMasterDomain(mdlprfx string) {
 		}()
 		// frc.q0 = avgRch // default discharge for warm-up
 		return domain{
-			frc:  frc,
+			Frc:  frc,
 			strc: strc,
 			rtr:  rtr,
 			mpr:  mpr,

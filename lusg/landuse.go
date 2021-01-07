@@ -12,7 +12,7 @@ const (
 	ShortVegetation
 	TallVegetation
 	Urban
-	Agriculture
+	Agriculture // 5
 	Forest
 	Meadow
 	Wetland

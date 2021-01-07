@@ -18,9 +18,9 @@ type stran struct {
 }
 
 // evaluate evaluates a subdomain
-func (b *subdomain) evaluate(p *sample, Ds, m float64, print bool) (of float64) {
+func (b *subdomain) evaluate(p *sample, Dinc, m float64, print bool) (of float64) {
 
-	ver := evalMC
+	ver := evalWB
 
 	nstep := len(b.frc.T)
 
@@ -35,8 +35,8 @@ func (b *subdomain) evaluate(p *sample, Ds, m float64, print bool) (of float64) 
 			rs := newResults(b, nstep)
 			rs.dt, rs.obs = b.frc.T, b.frc.O[0]
 			var res resulter = &rs
-			pp := newEvaluation(b, p, Ds, m, b.cid0, print)
-			ver(&pp, Ds, m, res, b.mon[b.cid0])
+			pp := newEvaluation(b, p, Dinc, m, b.cid0, print)
+			ver(&pp, Dinc, m, res, b.mon[b.cid0])
 			of = res.report(print)[0]
 		} else {
 			log.Fatalf("TODO (subdomain.eval): unordered set of subwatersheds.")
@@ -56,7 +56,7 @@ func (b *subdomain) evaluate(p *sample, Ds, m float64, print bool) (of float64) 
 				wg.Add(1)
 				go func(sid int, t []itran) {
 					defer wg.Done()
-					pp := newEvaluation(b, p, Ds, m, sid, print)
+					pp := newEvaluation(b, p, Dinc, m, sid, print)
 					if len(t) > 0 {
 						pp.sources = make(map[int][]float64, len(t)) // upstream inputs
 						for _, v := range t {
@@ -72,12 +72,15 @@ func (b *subdomain) evaluate(p *sample, Ds, m float64, print bool) (of float64) 
 					}
 					if sid == b.cid0 { // outlet
 						rs := newResults(b, nstep)
-						rs.dt, rs.obs = b.frc.T, b.frc.O[0]
+						rs.dt = b.frc.T
+						if b.frc.O != nil {
+							rs.obs = b.frc.O[0]
+						}
 						var res resulter = &rs
 						if print {
 							fmt.Printf(" printing SWS %d\n\n", sid)
 						}
-						ver(&pp, Ds, m, res, b.mon[sid])
+						ver(&pp, Dinc, m, res, b.mon[sid])
 						of = res.report(print)[0]
 						// outflw = rs.sim
 					} else {
@@ -85,7 +88,7 @@ func (b *subdomain) evaluate(p *sample, Ds, m float64, print bool) (of float64) 
 						if print {
 							fmt.Printf(" running SWS %d\n", sid)
 						}
-						ver(&pp, Ds, m, res, b.mon[sid])
+						ver(&pp, Dinc, m, res, b.mon[sid])
 						dsid := -1
 						if d, ok := b.rtr.Dsws[sid]; ok {
 							// if _, ok := transfers[d]; !ok {

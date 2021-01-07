@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/maseology/mmio"
+	pp "github.com/maseology/rdrr/postpro"
 )
 
 const (
-	mcDir   = "C:/Users/Mason/Desktop/New folder/"                             // "S:/Peel/PWRMM21.MC/" //
-	obsFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //"S:/Peel/elevation.real.uhdem.gauges_final.csv" //
-	jsonAPI = "https://api.oakridgeswater.ca/api/locnamsw?l="
-	npar    = 4
-	minOF   = -1
+	mcDir = "C:/Users/Mason/Desktop/New folder/"                             // "S:/Peel/PWRMM21.MC/" //
+	obsFP = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //"S:/Peel/elevation.real.uhdem.gauges_final.csv" //
+	npar  = 4
+	minOF = -1
 )
 
 var (
@@ -31,20 +31,12 @@ func main() {
 	fmt.Println(" reading observation locations from: " + obsFP)
 
 	// load observations
-	obsColls := func() map[int]obsColl {
-		var c map[int]obsColl
+	obsColls := func() map[int]pp.ObsColl {
+		var c map[int]pp.ObsColl
 		var err error
-		if _, ok := mmio.FileExists(mcDir + "obs.gob"); !ok {
-			c, err = getObservations(obsFP)
-			if err != nil {
-				log.Fatalf(" getObservations failed: %v", err)
-			}
-			saveGob(c, mcDir+"obs.gob")
-		} else {
-			c, err = loadGob(mcDir + "obs.gob")
-			if err != nil {
-				log.Fatalf(" getObservations loadGob failed: %v", err)
-			}
+		c, err = pp.GetObservations(mcDir, obsFP)
+		if err != nil {
+			log.Fatalf(" postpro.GetObservations failed: %v", err)
 		}
 		return c
 	}()
@@ -85,7 +77,7 @@ type stationResult struct {
 	fid            int
 }
 
-func collectResults(tarfp string, dts []time.Time, obs map[int]obsColl) []stationResult {
+func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []stationResult {
 	fmt.Printf(" extracting %s\n", tarfp)
 	tmpdir, err := mmio.ExtractTarGZ(tarfp)
 	if err != nil {

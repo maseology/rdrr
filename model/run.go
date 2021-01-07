@@ -7,20 +7,21 @@ import (
 )
 
 // RunDefault runs simulation with default parameters: topm: TOPMODEL m; hmax: max depth of mobile store; slpmax: cell slope above which all cascades; dinc: relative depth of channel incision
-func RunDefault(chkdir string, topm, slpmx, dinc, soildepth, kfact float64, outlet int, print bool) float64 {
+func RunDefault(mdldir, chkdir string, topm, slpmx, dinc, soildepth, kfact float64, outlet int, print bool) float64 {
 	tt := mmio.NewTimer()
 
 	// build submodel
-	b := masterDomain.newSubDomain(masterDomain.frc, outlet)
+	b := MasterDomain.newSubDomain(MasterDomain.Frc, outlet)
 	if print {
 		tt.Lap("sub-domain load complete")
 		fmt.Printf(" catchment area: %.1f km² (%s cells)\n", b.contarea/1000./1000., mmio.Thousands(int64(b.ncid)))
 		fmt.Printf(" building sample HRUs and TOPMODEL\n")
-		// b.print()
+		b.print()
 	}
 
 	// add parameterization
 	smpl := b.toDefaultSample(topm, slpmx, soildepth, kfact)
+	smpl.dir = mdldir
 	if print {
 		tt.Lap("sample build complete")
 		if len(chkdir) > 0 {

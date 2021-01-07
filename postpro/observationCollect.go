@@ -1,10 +1,11 @@
-package main
+package postpro
 
 import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,13 +14,15 @@ import (
 	"github.com/maseology/mmio"
 )
 
+const jsonAPI = "https://api.oakridgeswater.ca/api/locnamsw?l="
+
 type jdata struct {
 	T string  `json:"Date"`
 	V float64 `json:"Val"`
 	F int32   `json:"RDTC"`
 }
 
-type obsColl struct {
+type ObsColl struct {
 	T   []time.Time
 	V   []float64
 	nam string
@@ -55,7 +58,7 @@ func getJSON(url string) ([]time.Time, []float64, error) {
 	return dts, vals, nil
 }
 
-func saveGob(obsColls map[int]obsColl, fp string) error {
+func saveGob(obsColls map[int]ObsColl, fp string) error {
 	f, err := os.Create(fp)
 	defer f.Close()
 	if err != nil {
@@ -67,8 +70,8 @@ func saveGob(obsColls map[int]obsColl, fp string) error {
 	return nil
 }
 
-func loadGob(fp string) (map[int]obsColl, error) {
-	var obsColls map[int]obsColl
+func loadGob(fp string) (map[int]ObsColl, error) {
+	var obsColls map[int]ObsColl
 	f, err := os.Open(fp)
 	defer f.Close()
 	if err != nil {
@@ -82,32 +85,50 @@ func loadGob(fp string) (map[int]obsColl, error) {
 	return obsColls, nil
 }
 
-func getObservations(stationCSVfp string) (map[int]obsColl, error) {
+func GetObservations(odir, obsFP string) (map[int]ObsColl, error) {
 
-	f, err := os.Open(obsFP)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	recs := mmio.LoadCSV(io.Reader(f))
-	obsColls := make(map[int]obsColl, len(recs))
-	for lns := range recs {
-		staName := lns[0]
-		cid, _ := strconv.Atoi(lns[1])
-		fmt.Printf("%s (cid: %d): loading.. ", staName, cid)
-
-		dts, vals, err := getJSON(jsonAPI + staName)
+	gg := func() (map[int]ObsColl, error) {
+		f, err := os.Open(obsFP)
 		if err != nil {
 			return nil, err
 		}
-		if dts == nil {
-			fmt.Println("no data found")
-			continue
-		}
+		defer f.Close()
 
-		fmt.Printf("count = %d: %s to %s\n", len(dts), dts[0].Format("2006-01-02"), dts[len(dts)-1].Format("2006-01-02"))
-		obsColls[cid] = obsColl{dts, vals, staName}
+		recs := mmio.LoadCSV(io.Reader(f))
+		obsColls := make(map[int]ObsColl, len(recs))
+		for lns := range recs {
+			staName := lns[0]
+			cid, _ := strconv.Atoi(lns[1])
+			fmt.Printf("%s (cid: %d): loading.. ", staName, cid)
+
+			dts, vals, err := getJSON(jsonAPI + staName)
+			if err != nil {
+				return nil, err
+			}
+			if dts == nil {
+				fmt.Println("no data found")
+				continue
+			}
+
+			fmt.Printf("count = %d: %s to %s\n", len(dts), dts[0].Format("2006-01-02"), dts[len(dts)-1].Format("2006-01-02"))
+			obsColls[cid] = ObsColl{dts, vals, staName}
+		}
+		return obsColls, nil
 	}
-	return obsColls, nil
+
+	var c map[int]ObsColl
+	var err error
+	if _, ok := mmio.FileExists(odir + "obs.gob"); !ok {
+		c, err := gg()
+		if err != nil {
+			return nil, err
+		}
+		saveGob(c, odir+"obs.gob")
+	} else {
+		c, err = loadGob(odir + "obs.gob")
+		if err != nil {
+			log.Fatalf(" getObservations loadGob failed: %v", err)
+		}
+	}
+	return c, err
 }

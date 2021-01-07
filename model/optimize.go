@@ -42,15 +42,15 @@ import (
 
 // OptimizeDefault solves a default-parameter model to a given basin outlet
 func OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
-	if masterDomain.IsEmpty() {
+	if MasterDomain.IsEmpty() {
 		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
 	}
 	var b subdomain
 	if frc == nil {
-		if masterDomain.frc == nil {
+		if MasterDomain.Frc == nil {
 			log.Fatalf(" basin.RunDefault error: no forcings made available\n")
 		}
-		b = masterDomain.newSubDomain(masterDomain.frc, outlet) // gauge outlet cell id found in .met file
+		b = MasterDomain.newSubDomain(MasterDomain.Frc, outlet) // gauge outlet cell id found in .met file
 	} else {
 		log.Fatalf(" to fix")
 		// b = masterDomain.newSubDomain(loadForcing(metfp, true)) // gauge outlet cell id found in .met file
@@ -66,7 +66,7 @@ func OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
 
 	gen := func(u []float64) float64 {
 		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
-		m, grng, soildepth, kfact := par4(u)
+		m, grng, soildepth, kfact := Par4(u)
 		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
 		// of := b.evaluate(&smpl, 0., m, false)
 		// fmt.Print("#")
@@ -80,7 +80,7 @@ func OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
 
 	// m, hmax, smax, dinc, soildepth, kfact := par6(uFinal)
 	// fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\thmax:=\t\t%v\n\tsmax:=\t\t%v\n\tdinc:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, hmax, smax, dinc, soildepth, kfact)
-	m, grng, soildepth, kfact := par4(uFinal)
+	m, grng, soildepth, kfact := Par4(uFinal)
 	fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\tgrng:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, grng, soildepth, kfact)
 	final := b.toDefaultSample(m, grng, soildepth, kfact)
 	return b.evaluate(&final, 0., m, true), []float64{m, grng, 0., soildepth, kfact}

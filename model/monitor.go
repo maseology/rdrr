@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"sync"
 
@@ -11,8 +12,33 @@ import (
 
 var gwg sync.WaitGroup
 var gmu sync.Mutex
+var tmu sync.Mutex
 
 // var mondir string
+
+// DeleteMonitors deletes monitor output from previous model run
+func DeleteMonitors(mdldir string) {
+	// mondir = mdldir
+	mmio.MakeDir(mdldir)
+	mmio.DeleteFile(mdldir + "g.yield.rmap")
+	mmio.DeleteFile(mdldir + "g.ep.rmap")
+	mmio.DeleteFile(mdldir + "g.aet.rmap")
+	mmio.DeleteFile(mdldir + "g.olf.rmap")
+	mmio.DeleteFile(mdldir + "g.ron.rmap")
+	mmio.DeleteFile(mdldir + "g.rgen.rmap")
+	mmio.DeleteFile(mdldir + "g.gwe.rmap")
+	mmio.DeleteFile(mdldir + "g.sto.rmap")
+	mmio.DeleteFile(mdldir + "g.sma.rmap")
+	mmio.DeleteFile(mdldir + "g.Sdet.rmap")
+	mmio.DeleteFile(mdldir + "g.wbal.rmap")
+	mmio.DeleteAllInDirectory(mdldir, ".mon")
+	// mmio.DeleteAllSubdirectories(mdldir)
+}
+
+// WaitMonitors waits for all writes to complete
+func WaitMonitors() {
+	gwg.Wait()
+}
 
 type monitor struct {
 	v []float64
@@ -27,6 +53,26 @@ func (m *monitor) print(mdir string) {
 	// 	vv[k] = v * h2cms
 	// }
 	// mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), vv)
+}
+
+type tmonitor struct {
+	sid                               int
+	ys, ins, as, rs, gs, sto, bs, dm0 []float64
+	dir                               string
+}
+
+func (tm *tmonitor) print() {
+	tmu.Lock()
+	defer tmu.Unlock()
+	defer gwg.Done()
+	csvw := mmio.NewCSVwriter(fmt.Sprintf("%ssws%d.mon", tm.dir, tm.sid))
+	defer csvw.Close()
+	if err := csvw.WriteHead("ys,ins,as,rs,gs,sto,bs,dm0"); err != nil {
+		log.Fatalf("%v", err)
+	}
+	for i, y := range tm.ys {
+		csvw.WriteLine(y, tm.ins[i], tm.as[i], tm.rs[i], tm.gs[i], tm.sto[i], tm.bs[i], tm.dm0[i])
+	}
 }
 
 type gmonitor struct {
@@ -52,7 +98,7 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, d
 		mr[c] = g.gr[i] * f
 		mg[c] = (g.gg[i] - g.gb[i]) * f
 		// ms[c] = ws[i].Storage() * f
-		sma, srf := ws[i].Sma.Sto, ws[i].Srf.Sto
+		sma, srf := ws[i].Sma.Sto, ws[i].Sdet.Sto
 		msma[c] = sma       //* f
 		msrf[c] = srf       //* f
 		ms[c] = (sma + srf) //* f
@@ -96,29 +142,6 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, d
 	mmio.WriteRMAP(g.dir+"g.gwe.rmap", mg, true)
 	mmio.WriteRMAP(g.dir+"g.sto.rmap", ms, true)
 	mmio.WriteRMAP(g.dir+"g.sma.rmap", msma, true)
-	mmio.WriteRMAP(g.dir+"g.srf.rmap", msrf, true)
+	mmio.WriteRMAP(g.dir+"g.Sdet.rmap", msrf, true)
 	mmio.WriteRMAP(g.dir+"g.wbal.rmap", mw, true)
-}
-
-// DeleteMonitors deletes monitor output from previous model run
-func DeleteMonitors(mdldir string) {
-	// mondir = mdldir
-	mmio.MakeDir(mdldir)
-	mmio.DeleteFile(mdldir + "g.yield.rmap")
-	mmio.DeleteFile(mdldir + "g.ep.rmap")
-	mmio.DeleteFile(mdldir + "g.aet.rmap")
-	mmio.DeleteFile(mdldir + "g.olf.rmap")
-	mmio.DeleteFile(mdldir + "g.ron.rmap")
-	mmio.DeleteFile(mdldir + "g.rgen.rmap")
-	mmio.DeleteFile(mdldir + "g.gwe.rmap")
-	mmio.DeleteFile(mdldir + "g.sto.rmap")
-	mmio.DeleteFile(mdldir + "g.sma.rmap")
-	mmio.DeleteFile(mdldir + "g.srf.rmap")
-	mmio.DeleteFile(mdldir + "g.wbal.rmap")
-	// mmio.DeleteAllSubdirectories(mdldir)
-}
-
-// WaitMonitors waits for all writes to complete
-func WaitMonitors() {
-	gwg.Wait()
 }

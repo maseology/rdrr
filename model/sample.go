@@ -22,20 +22,20 @@ type sample struct {
 	// swsr, celr, p0, p1 map[int]float64
 }
 
-func (s *sample) copy() sample {
-	return sample{
-		ws:    hru.CopyWtrShd(s.ws),
-		cascf: mmio.CopyMapif(s.cascf),
-		gw: func(origTMQ map[int]*gwru.TMQ) map[int]*gwru.TMQ {
-			newTMQ := make(map[int]*gwru.TMQ, len(origTMQ))
-			for k, v := range origTMQ {
-				cpy := v.Copy()
-				newTMQ[k] = &cpy
-			}
-			return newTMQ
-		}(s.gw),
-	}
-}
+// func (s *sample) copy() sample {
+// 	return sample{
+// 		ws:    hru.CopyWtrShd(s.ws),
+// 		cascf: mmio.CopyMapif(s.cascf),
+// 		gw: func(origTMQ map[int]*gwru.TMQ) map[int]*gwru.TMQ {
+// 			newTMQ := make(map[int]*gwru.TMQ, len(origTMQ))
+// 			for k, v := range origTMQ {
+// 				cpy := v.Copy()
+// 				newTMQ[k] = &cpy
+// 			}
+// 			return newTMQ
+// 		}(s.gw),
+// 	}
+// }
 
 func (s *sample) write(dir string) error {
 	mmio.WriteRMAP(dir+"s.cascf.rmap", s.cascf, false)
@@ -49,12 +49,12 @@ func (s *sample) write(dir string) error {
 	}
 	perc, fimp, smacap, srfcap := make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws)), make(map[int]float64, len(s.ws))
 	for c, h := range s.ws {
-		perc[c], fimp[c], smacap[c], srfcap[c] = h.Perc, h.Fimp, h.Sma.Cap, h.Srf.Cap
+		perc[c], fimp[c], smacap[c], srfcap[c] = h.Perc, h.Fimp, h.Sma.Cap, h.Sdet.Cap
 	}
 	mmio.WriteRMAP(dir+"s.ws.perc.rmap", perc, false)
 	mmio.WriteRMAP(dir+"s.ws.fimp.rmap", fimp, false)
 	mmio.WriteRMAP(dir+"s.ws.smacap.rmap", smacap, false)
-	mmio.WriteRMAP(dir+"s.ws.srfcap.rmap", srfcap, false)
+	mmio.WriteRMAP(dir+"s.ws.Sdetcap.rmap", srfcap, false)
 	return nil
 }
 
@@ -114,16 +114,16 @@ func (s *sample) write(dir string) error {
 
 // SampleMaster samples a default-parameter full-domain model
 func SampleMaster(outdir string, nsmpl, outlet int) {
-	if masterDomain.IsEmpty() {
-		log.Fatalf(" basin.RunDefault error: masterDomain is empty")
+	if MasterDomain.IsEmpty() {
+		log.Fatalf(" basin.RunDefault error: MasterDomain is empty")
 	}
 	fmt.Println("Building Sub Domain..")
 	var b subdomain
-	if masterDomain.frc == nil {
+	if MasterDomain.Frc == nil {
 		log.Fatalf(" basin.RunMaster error: no forcings made available\n")
 	}
 
-	b = masterDomain.newSubDomain(masterDomain.frc, outlet)
+	b = MasterDomain.newSubDomain(MasterDomain.Frc, outlet)
 	// // b.mdldir = outdir
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
 	// // b.cid0 = -1
@@ -175,7 +175,7 @@ func SampleMaster(outdir string, nsmpl, outlet int) {
 	gen := func(u []float64) float64 {
 		mdir := newMCdir()
 		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
-		m, grng, soildepth, kfact := par4(u)
+		m, grng, soildepth, kfact := Par4(u)
 		go printParams(m, grng, soildepth, kfact, mdir)
 		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
 		smpl.dir = mdir

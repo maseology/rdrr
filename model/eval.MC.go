@@ -4,7 +4,7 @@ import "math"
 
 func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
-	obs := make(map[int]monitor, len(monid))
+	obs, f := make(map[int]monitor, len(monid)), p.ca/float64(p.nstep)
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 	gy, ga, gr, gg, gb := make([][]float64, 12), make([][]float64, 12), make([][]float64, 12), make([][]float64, 12), make([][]float64, 12)
 	for i := 0; i < 12; i++ {
@@ -20,12 +20,12 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 		mt := p.mt[k] - 1
 		rs, gs, s1s, bs := 0., 0., 0., 0.
 		for i, v := range p.sources {
-			p.ws[i].Srf.Sto += v[k] // inflow from up sws
+			p.ws[i].Sdet.Sto += v[k] // inflow from up sws
 		}
 		for i := 0; i < ncid; i++ {
 			y := p.y[p.mxr[i]][k]
 			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
-			p.ws[i].Srf.Sto += r * (1. - p.cascf[i])
+			p.ws[i].Sdet.Sto += r * (1. - p.cascf[i])
 			r *= p.cascf[i]
 			g += p.ws[i].InfiltrateSurplus()
 			s1s += p.ws[i].Storage()
@@ -40,12 +40,12 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 				gb[mt][i] += hb
 			}
 			if _, ok := obs[i]; ok {
-				obs[i].v[k] = r
+				obs[i].v[k] = r * f
 			}
 			if p.ds[i] == -1 { // outlet cell
 				rs += r
 			} else {
-				p.ws[p.cxr[p.ds[i]]].Srf.Sto += r
+				p.ws[p.cxr[p.ds[i]]].Sdet.Sto += r
 			}
 			gs += g
 			gr[mt][i] += r
