@@ -28,34 +28,35 @@ type ObsColl struct {
 	nam string
 }
 
-func getJSON(url string) ([]time.Time, []float64, error) {
+func getJSON(url string) ([]time.Time, []float64, []int32, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 500 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("unexpected http GET status: %s", resp.Status)
+		return nil, nil, nil, fmt.Errorf("unexpected http GET status: %s", resp.Status)
 	}
 
 	var df []jdata
 	err = json.NewDecoder(resp.Body).Decode(&df)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot decode JSON: %v", err)
+		return nil, nil, nil, fmt.Errorf("cannot decode JSON: %v", err)
 	}
 
-	dts, vals := make([]time.Time, len(df)), make([]float64, len(df))
+	dts, vals, flgs := make([]time.Time, len(df)), make([]float64, len(df)), make([]int32, len(df))
 	for i, r := range df { // data queried is assumed to be pre-sorted
 		t, err := time.Parse("2006-01-02T15:04:05", r.T)
 		if err != nil {
-			return nil, nil, fmt.Errorf("date parse error: %v", err)
+			return nil, nil, nil, fmt.Errorf("date parse error: %v", err)
 		}
 		dts[i] = t
 		vals[i] = r.V
+		flgs[i] = r.F
 	}
-	return dts, vals, nil
+	return dts, vals, flgs, nil
 }
 
 func saveGob(obsColls map[int]ObsColl, fp string) error {
@@ -85,8 +86,27 @@ func loadGob(fp string) (map[int]ObsColl, error) {
 	return obsColls, nil
 }
 
-func GetObservations(odir, obsFP string) (map[int]ObsColl, error) {
+func SaveObsToCsv(csvfp string) error {
+	stanam := mmio.FileName(csvfp, false)
+	dts, vals, flgs, err := getJSON(jsonAPI + stanam)
+	if err != nil {
+		return err
+	}
+	if dts == nil {
+		return fmt.Errorf("%s: no data found", stanam)
+	}
+	_ = vals
+	_ = flgs
+	csvw := mmio.NewCSVwriter(csvfp)
+	defer csvw.Close()
+	csvw.WriteHead("Date,Flow,Flag")
+	for i, t := range dts {
+		csvw.WriteLine(t.Format("2006-01-02"), vals[i], flgs[i])
+	}
+	return nil
+}
 
+func GetObservations(odir, obsFP string) (map[int]ObsColl, error) {
 	gg := func() (map[int]ObsColl, error) {
 		f, err := os.Open(obsFP)
 		if err != nil {
@@ -101,7 +121,7 @@ func GetObservations(odir, obsFP string) (map[int]ObsColl, error) {
 			cid, _ := strconv.Atoi(lns[1])
 			fmt.Printf("%s (cid: %d): loading.. ", staName, cid)
 
-			dts, vals, err := getJSON(jsonAPI + staName)
+			dts, vals, _, err := getJSON(jsonAPI + staName)
 			if err != nil {
 				return nil, err
 			}

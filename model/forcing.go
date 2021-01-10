@@ -52,7 +52,7 @@ func LoadGobFORC(fp string) (*FORC, error) {
 
 // AddObservation reads csv file of "Date","Flow","Flag"
 func (frc *FORC) AddObservation(csvfp string, cid int) error {
-	c, err := mmio.ReadCsvDateValueFlag(csvfp)
+	c, err := mmio.ReadCsvDateFloat(csvfp)
 	dd := mmio.DayDate
 	if err != nil {
 		return err
