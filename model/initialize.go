@@ -13,29 +13,7 @@ import (
 	"github.com/maseology/rdrr/lusg"
 )
 
-func (b *subdomain) buildCascadeFraction(rng float64) map[int]float64 {
-	fc := make(map[int]float64, len(b.cids))
-	for _, c := range b.cids {
-		h := math.Pow(b.strc.TEM.TEC[c].G, 2)
-		r := math.Pow(rng, 2)
-		fc[c] = (sill-nugget)*(1.-math.Exp(-h/r/a)) + nugget // Gaussian variogram model
-	}
-	return fc
-	// fc := make(map[int]float64, len(b.cids))
-	// for _, c := range b.cids {
-	// 	s := b.strc.TEM.TEC[c].G
-	// 	if s <= minslope {
-	// 		fc[c] = 0.
-	// 	} else if s >= smax {
-	// 		fc[c] = 1.
-	// 	} else {
-	// 		fc[c] = math.Log(minslope/s) / math.Log(minslope/smax) // see: fuzzy_slope.xlsx
-	// 	}
-	// }
-	// return fc
-}
-
-func (b *subdomain) toDefaultSample(topm, slpx, soildepth, kfact float64) sample {
+func (b *subdomain) toDefaultSample(topm, grdMin, kstrm, mcasc, soildepth, kfact float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.IntervalSec // [s/ts]
@@ -156,13 +134,13 @@ func (b *subdomain) toDefaultSample(topm, slpx, soildepth, kfact float64) sample
 	go buildTopmodel(topm)
 	wg.Wait()
 
-	cascf := b.buildCascadeFraction(slpx)
+	cascf := b.buildCascadeFraction(grdMin, kstrm, mcasc)
 
 	finalAdjustments := func() {
 		defer wg.Done()
 		for _, g := range gw {
 			for c := range g.Qs {
-				cascf[c] = 1.              // set streams to 100% cascade
+				cascf[c] = kstrm
 				ws[c].Sdet.Cap = soildepth // in cases where stream cell courses through a flow-resistive cell, ensure movement of water
 				ws[c].Sma.Cap = 0.
 			}

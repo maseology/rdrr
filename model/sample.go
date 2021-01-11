@@ -143,7 +143,7 @@ func SampleMaster(outdir string, nsmpl, outlet int) {
 	fmt.Printf(" number of subwatersheds: %d\n", len(b.rtr.SwsCidXR))
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSmplDim)
 
-	printParams := func(m, grng, soildepth, kfact float64, mdir string) {
+	printParams := func(m, kstrm, mcasc, soildepth, kfact, dinc float64, mdir string) {
 		// tw, err := mmio.NewTXTwriter(mondir + "params.txt")
 		tw, err := mmio.NewTXTwriter(mdir + "params.txt")
 		defer tw.Close()
@@ -154,10 +154,11 @@ func SampleMaster(outdir string, nsmpl, outlet int) {
 		// tw.WriteLine(mondir)
 		tw.WriteLine(mdir)
 		tw.WriteLine(fmt.Sprintf("m\t%f", m))
-		tw.WriteLine(fmt.Sprintf("grange\t%f", grng))
+		tw.WriteLine(fmt.Sprintf("kstrm\t%f", kstrm))
+		tw.WriteLine(fmt.Sprintf("mcasc\t%f", mcasc))
 		// tw.WriteLine(fmt.Sprintf("hmax\t%f", hmax))
 		// tw.WriteLine(fmt.Sprintf("smax\t%f", smax))
-		// tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
+		tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
 		tw.WriteLine(fmt.Sprintf("soildepth\t%f", soildepth))
 		tw.WriteLine(fmt.Sprintf("kfact\t%f", kfact))
 	}
@@ -175,11 +176,12 @@ func SampleMaster(outdir string, nsmpl, outlet int) {
 	gen := func(u []float64) float64 {
 		mdir := newMCdir()
 		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
-		m, grng, soildepth, kfact := Par4(u)
-		go printParams(m, grng, soildepth, kfact, mdir)
-		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
+		// m, grng, soildepth, kfact := Par4(u)
+		m, gdn, kstrm, mcasc, soildepth, kfact, dinc := Par7(u)
+		go printParams(m, kstrm, mcasc, soildepth, kfact, dinc, mdir)
+		smpl := b.toDefaultSample(m, gdn, kstrm, mcasc, soildepth, kfact)
 		smpl.dir = mdir
-		of := b.evaluate(&smpl, 0., m, false)
+		of := b.evaluate(&smpl, dinc, m, false)
 		WaitMonitors()
 		compressMC2(mdir)
 		fmt.Print(".")

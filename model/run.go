@@ -7,7 +7,7 @@ import (
 )
 
 // RunDefault runs simulation with default parameters: topm: TOPMODEL m; hmax: max depth of mobile store; slpmax: cell slope above which all cascades; dinc: relative depth of channel incision
-func RunDefault(mdldir, chkdir string, topm, slpmx, dinc, soildepth, kfact float64, outlet int, print bool) float64 {
+func RunDefault(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, dinc, soildepth, kfact float64, outlet int, print bool) float64 {
 	tt := mmio.NewTimer()
 
 	// build submodel
@@ -20,7 +20,7 @@ func RunDefault(mdldir, chkdir string, topm, slpmx, dinc, soildepth, kfact float
 	}
 
 	// add parameterization
-	smpl := b.toDefaultSample(topm, slpmx, soildepth, kfact)
+	smpl := b.toDefaultSample(topm, grdMin, kstrm, mcasc, soildepth, kfact)
 	smpl.dir = mdldir
 	if print {
 		tt.Lap("sample build complete")

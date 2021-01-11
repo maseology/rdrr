@@ -25,13 +25,10 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 		for i := 0; i < ncid; i++ {
 			y := p.y[p.mxr[i]][k]
 			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
+
 			p.ws[i].Sdet.Sto += r * (1. - p.cascf[i])
 			r *= p.cascf[i]
-			g += p.ws[i].InfiltrateSurplus()
-			s1s += p.ws[i].Storage()
 
-			gy[mt][i] += y
-			ga[mt][i] += a
 			hb := 0.
 			if v, ok := p.strmQs[i]; ok {
 				hb = v * math.Exp((Ds-dm-p.drel[i])/m)
@@ -39,6 +36,13 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 				r += hb
 				gb[mt][i] += hb
 			}
+			g += p.ws[i].InfiltrateSurplus()
+
+			s1s += p.ws[i].Storage()
+
+			gy[mt][i] += y
+			ga[mt][i] += a
+
 			if _, ok := obs[i]; ok {
 				obs[i].v[k] = r * f
 			}

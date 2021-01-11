@@ -38,25 +38,18 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 			y := p.y[p.mxr[i]][k]
 			ep := p.ep[p.mxr[i]][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
 			d := dm + p.drel[i]     // groundwater deficit
-			cascf := 0.             //p.cascf[i]
+			cascf := p.cascf[i]
 			a, r, g := p.ws[i].UpdateWT(y, ep, d < 0.)
+
+			p.ws[i].Sdet.Sto += r * (1. - cascf)
+			r *= cascf
 
 			b := 0.
 			if v, ok := p.strmQs[i]; ok { // stream cells always cascade
-
-				// p.ws[i].Sdet.Sto += r * (1. - cascf)
-				// r *= cascf
-
 				b = v * math.Exp((Dinc-d)/m)
 				bs += b
 				gb[i] += b
 				r += b
-			} else {
-
-				p.ws[i].Sdet.Sto += r * (1. - cascf)
-				r *= cascf
-				// p.ws[i].Sdet.Sto += r
-				// r = 0.
 			}
 			g += p.ws[i].InfiltrateSurplus() // help to maintain "water towers"
 

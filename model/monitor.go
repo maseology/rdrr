@@ -17,7 +17,13 @@ var tmu sync.Mutex
 // var mondir string
 
 // DeleteMonitors deletes monitor output from previous model run
-func DeleteMonitors(mdldir string) {
+func DeleteMonitors(mdldir string, preserveLast bool) {
+	if preserveLast {
+		mmio.DeleteAllInDirectory(mdldir, ".last")
+		for _, fp := range mmio.FileListExt(mdldir, ".mon") {
+			mmio.MoveFile(fp, fp+".last")
+		}
+	}
 	// mondir = mdldir
 	mmio.MakeDir(mdldir)
 	mmio.DeleteFile(mdldir + "g.yield.rmap")

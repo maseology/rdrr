@@ -66,12 +66,12 @@ func OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
 
 	gen := func(u []float64) float64 {
 		// m, hmax, smax, dinc, soildepth, kfact := par6(u)
-		m, grng, soildepth, kfact := Par4(u)
-		smpl := b.toDefaultSample(m, grng, soildepth, kfact)
+		m, gdn, kstrm, mcasc, soildepth, kfact, dinc := Par7(u)
+		smpl := b.toDefaultSample(m, gdn, kstrm, mcasc, soildepth, kfact)
 		// of := b.evaluate(&smpl, 0., m, false)
 		// fmt.Print("#")
 		// return of
-		return b.evaluate(&smpl, 0., m, false)
+		return b.evaluate(&smpl, dinc, m, false)
 	}
 
 	fmt.Println(" optimizing..")
@@ -80,10 +80,12 @@ func OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
 
 	// m, hmax, smax, dinc, soildepth, kfact := par6(uFinal)
 	// fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\thmax:=\t\t%v\n\tsmax:=\t\t%v\n\tdinc:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, hmax, smax, dinc, soildepth, kfact)
-	m, grng, soildepth, kfact := Par4(uFinal)
-	fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\tgrng:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, grng, soildepth, kfact)
-	final := b.toDefaultSample(m, grng, soildepth, kfact)
-	return b.evaluate(&final, 0., m, true), []float64{m, grng, 0., soildepth, kfact}
+	// m, grng, soildepth, kfact := Par4(uFinal)
+	// fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\tgrng:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, grng, soildepth, kfact)
+	m, gdn, kstrm, mcasc, soildepth, kfact, dinc := Par7(uFinal)
+	fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\tkstrm:=\t\t%v\n\tmcasc:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\tdinc:=\t\t%v\n\n", m, kstrm, mcasc, soildepth, kfact, dinc)
+	final := b.toDefaultSample(m, gdn, kstrm, mcasc, soildepth, kfact)
+	return b.evaluate(&final, dinc, m, true), []float64{m, kstrm, mcasc, dinc, soildepth, kfact}
 }
 
 // // OptimizeDefault1 solves a default-parameter model to a given basin outlet
