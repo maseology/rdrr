@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 
 	"github.com/maseology/mmio"
@@ -24,9 +23,9 @@ func main() {
 
 	// load data
 	model.LoadMasterDomain(mdlPrfx)
-	if err := model.MasterDomain.Frc.AddObservation(obsfp, cid0); err != nil {
-		log.Fatalln(err)
-	}
+	// if err := model.MasterDomain.Frc.AddObservation(obsfp, cid0); err != nil {
+	// 	log.Fatalln(err)
+	// }
 	tt.Print("Master Domain Load complete\n")
 
 	// run model
