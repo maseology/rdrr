@@ -18,7 +18,7 @@ var tmu sync.Mutex
 
 // DeleteMonitors deletes monitor output from previous model run
 func DeleteMonitors(mdldir string, preserveLast bool) {
-	if preserveLast {
+	if preserveLast && mmio.DirExists(mdldir) {
 		mmio.DeleteAllInDirectory(mdldir, ".last")
 		for _, fp := range mmio.FileListExt(mdldir, ".mon") {
 			mmio.MoveFile(fp, fp+".last")

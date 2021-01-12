@@ -12,7 +12,7 @@ func main() {
 
 	const (
 		// mdlPrfx = "S:/OWRC-RDRR/owrc."
-		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21." // "S:/Peel/PWRMM21."
+		mdlPrfx = "S:/Peel/PWRMM21." // "M:/Peel/RDRR-PWRMM21/PWRMM21." //
 		cid0    = 1552736
 		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/obs/02HB008.csv"
 	)
@@ -49,6 +49,6 @@ func main() {
 
 	// sample models
 	model.PrepMC(mdlPrfx + "MC/")
-	model.SampleMaster(mdlPrfx, 3, cid0)
+	model.SampleMaster(mdlPrfx, 700, cid0)
 
 }

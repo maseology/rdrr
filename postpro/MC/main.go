@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	mcDir = "C:/Users/Mason/Desktop/New folder/"                             // "S:/Peel/PWRMM21.MC/" //
-	obsFP = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //"S:/Peel/elevation.real.uhdem.gauges_final.csv" //
-	npar  = 4
-	minOF = -1
+	mcDir = "S:/Peel/PWRMM21.MC/"                           //"C:/Users/Mason/Desktop/New folder/"                             //
+	obsFP = "S:/Peel/elevation.real.uhdem.gauges_final.csv" //"M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //
+	npar  = 7
+	minOF = -9999
 )
 
 var (
@@ -53,26 +53,43 @@ func main() {
 	}()
 
 	// create output csv
-	csvw := mmio.NewCSVwriter(mcDir + "summaryOF.csv")
+	csvw, frst := mmio.NewCSVwriter(mcDir+"summaryOF.csv"), true
 	defer csvw.Close()
-	if err := csvw.WriteHead("realization,station,KGE,NSE,bias,m,grange,soildepth,kfact"); err != nil {
-		log.Fatalf("WriteHead failed")
-	}
 
 	// print model results
 	for _, fp := range mmio.FileListExt(mcDir, ".gz") {
 		rlz := mmio.FileName(mmio.FileName(fp, false), false)
 		for _, c := range collectResults(fp, dts, obsColls) {
+			if frst {
+				// writeHead(keys(c.par))
+				shed := make([]string, len(c.pars)+1)
+				shed[0] = "realization,station,KGE,NSE,bias"
+				for i := 1; i <= len(c.pars); i++ {
+					shed[i] = c.pars[i-1].name
+				}
+				if err := csvw.WriteHead(strings.Join(shed, ",")); err != nil {
+					log.Fatalf("WriteHead failed")
+				}
+				frst = false
+			}
 			if c.nse <= minOF {
 				continue
 			}
-			csvw.WriteLine(rlz, c.fid, c.kge, c.nse, c.bias, c.par["m"], c.par["grange"], c.par["soildepth"], c.par["kfact"])
+			sval := make([]float64, len(c.pars))
+			for i := 0; i < len(c.pars); i++ {
+				sval[i] = c.pars[i].value
+			}
+			csvw.WriteLine(rlz, c.fid, c.kge, c.nse, c.bias, sval)
 		}
 	}
 }
 
+type par struct {
+	name  string
+	value float64
+}
 type stationResult struct {
-	par            map[string]float64
+	pars           []par
 	kge, nse, bias float64
 	fid            int
 }
@@ -86,9 +103,9 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 	defer mmio.DeleteDir(tmpdir)
 
 	// read parameters of current realization
-	par := func() map[string]float64 {
+	par := func() []par {
 		const parHead = 2 // n lines to skip
-		par := make(map[string]float64, npar)
+		pars := make([]par, npar)
 		if _, ok := mmio.FileExists(tmpdir + "params.txt"); !ok {
 			fmt.Printf("params.txt does not exist in %s\n", tarfp)
 			return nil
@@ -100,12 +117,13 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 
 		for i := parHead; i < len(sa); i++ {
 			s := strings.Split(sa[i], "\t")
-			par[s[0]], err = strconv.ParseFloat(s[1], 64)
+			flt, err := strconv.ParseFloat(s[1], 64)
 			if err != nil {
 				log.Fatalf("strconv.ParseFloat error in %s: %s", tarfp, sa[i])
 			}
+			pars[i-parHead] = par{s[0], flt}
 		}
-		return par
+		return pars
 	}()
 
 	// read monitors
@@ -127,7 +145,7 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 		}
 
 		_, kge, nse, bias := evaluate(dts, qfid, obs[fid])
-		o[i] = stationResult{par: par, kge: kge, nse: nse, bias: bias, fid: fid}
+		o[i] = stationResult{pars: par, kge: kge, nse: nse, bias: bias, fid: fid}
 	}
 	return o
 }

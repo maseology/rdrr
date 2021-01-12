@@ -62,7 +62,7 @@ func (r *results) report(print bool) []float64 {
 	// 	// r.obs[k] *= r.h2cms
 	// 	// r.bf[k] *= r.h2cms / r.fncid / r.fnstrm
 	// }
-	if len(r.obs) < warmup {
+	if print && len(r.obs) < warmup {
 		sumPlotSto("wb.png", r.hsto, r.gsto)
 		return []float64{-1.}
 	}

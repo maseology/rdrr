@@ -1,8 +1,6 @@
 package model
 
-import (
-	"math"
-)
+import "math"
 
 func eval(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
