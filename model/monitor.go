@@ -53,7 +53,7 @@ type monitor struct {
 
 func (m *monitor) print(mdir string) {
 	defer gwg.Done()
-	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mdir, m.c), m.v)
+	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mdir, m.c), m.v) // monitor file (discharge from a cell)
 	// vv := make([]float64, len(m.v))
 	// for k, v := range m.v {
 	// 	vv[k] = v * h2cms
@@ -71,7 +71,7 @@ func (tm *tmonitor) print() {
 	tmu.Lock()
 	defer tmu.Unlock()
 	defer gwg.Done()
-	csvw := mmio.NewCSVwriter(fmt.Sprintf("%ssws%d.mon", tm.dir, tm.sid))
+	csvw := mmio.NewCSVwriter(fmt.Sprintf("%s%d.wbgt", tm.dir, tm.sid)) // subwatershed water budget file
 	defer csvw.Close()
 	if err := csvw.WriteHead("ys,ins,as,rs,gs,sto,bs,dm0"); err != nil {
 		log.Fatalf("%v", err)
