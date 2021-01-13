@@ -25,7 +25,7 @@ type jdata struct {
 type ObsColl struct {
 	T   []time.Time
 	V   []float64
-	nam string
+	Nam string
 }
 
 func getJSON(url string) ([]time.Time, []float64, []int32, error) {
