@@ -13,9 +13,9 @@ func main() {
 
 	const (
 		// mdlPrfx = "S:/OWRC-RDRR/owrc."
-		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21." //"S:/Peel/PWRMM21." //
+		mdlPrfx = "S:/Peel/PWRMM21." //"M:/Peel/RDRR-PWRMM21/PWRMM21." //
 		cid0    = 1552736
-		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/obs/02HB008.csv" //"S:/Peel/obs/02HB008.csv" //
+		obsfp   = "S:/Peel/obs/02HB008.csv" //"M:/Peel/RDRR-PWRMM21/dat/obs/02HB008.csv" //
 	)
 
 	fmt.Println("")
@@ -48,27 +48,27 @@ func main() {
 	// _ = cobs
 	// fmt.Println("")
 
-	// run model
-	TMQm := 1.
-	grdMin := .01
-	kstrm := .995
-	mcasc := 1. // .001-10
-	soildepth := .815
-	kfact := 1.
-	dinc := 10.5
-	// TMQm := 6.7
-	// grdMin := .5
+	// // run model
+	// TMQm := 1.
+	// grdMin := .01
 	// kstrm := .995
-	// mcasc := 3. // .001-10
+	// mcasc := 1. // .001-10
 	// soildepth := .815
-	// kfact := .088
-	// dinc := 8.5
-	fmt.Println(model.RunDefault(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, soildepth, kfact, dinc, cid0, true))
-	// fmt.Println(model.RunDefault(mdlPrfx+"out/", mdlPrfx+"check/", 37.866772, 2.60e-05, 0.64884, 0.002168, 1.374418, 0.020174, 4.654649, 1552736, true))
+	// kfact := 1.
+	// dinc := 10.5
+	// // TMQm := 6.7
+	// // grdMin := .5
+	// // kstrm := .995
+	// // mcasc := 3. // .001-10
+	// // soildepth := .815
+	// // kfact := .088
+	// // dinc := 8.5
+	// fmt.Println(model.RunDefault(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, soildepth, kfact, dinc, cid0, true))
+	// // fmt.Println(model.RunDefault(mdlPrfx+"out/", mdlPrfx+"check/", 37.866772, 2.60e-05, 0.64884, 0.002168, 1.374418, 0.020174, 4.654649, 1552736, true))
 
-	// // sample models
-	// model.PrepMC(mdlPrfx + "MC/")
-	// model.SampleMaster(mdlPrfx, 2, cid0)
+	// sample models
+	model.PrepMC(mdlPrfx + "MC/")
+	model.SampleMaster(mdlPrfx, 100, cid0)
 
 	// // find optimal model
 	// model.OptimizeDefault(nil, 1104986)

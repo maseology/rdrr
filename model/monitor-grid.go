@@ -2,85 +2,11 @@ package model
 
 import (
 	"fmt"
-	"log"
 	"math"
-	"sync"
 
 	"github.com/maseology/goHydro/hru"
 	"github.com/maseology/mmio"
 )
-
-var gwg sync.WaitGroup
-var gmu sync.Mutex
-var tmu sync.Mutex
-
-// var mondir string
-
-// DeleteMonitors deletes monitor output from previous model run
-func DeleteMonitors(mdldir string, preserveLast bool) {
-	if preserveLast && mmio.DirExists(mdldir) {
-		mmio.DeleteAllInDirectory(mdldir, ".last")
-		for _, fp := range mmio.FileListExt(mdldir, ".cms") {
-			mmio.MoveFile(fp, fp+".last")
-		}
-	}
-	// mondir = mdldir
-	mmio.MakeDir(mdldir)
-	mmio.DeleteFile(mdldir + "g.yield.rmap")
-	mmio.DeleteFile(mdldir + "g.ep.rmap")
-	mmio.DeleteFile(mdldir + "g.aet.rmap")
-	mmio.DeleteFile(mdldir + "g.olf.rmap")
-	mmio.DeleteFile(mdldir + "g.ron.rmap")
-	mmio.DeleteFile(mdldir + "g.rgen.rmap")
-	mmio.DeleteFile(mdldir + "g.gwe.rmap")
-	mmio.DeleteFile(mdldir + "g.sto.rmap")
-	mmio.DeleteFile(mdldir + "g.sma.rmap")
-	mmio.DeleteFile(mdldir + "g.Sdet.rmap")
-	mmio.DeleteFile(mdldir + "g.wbal.rmap")
-	mmio.DeleteAllInDirectory(mdldir, ".cms")
-	mmio.DeleteAllInDirectory(mdldir, ".wbgt")
-	// mmio.DeleteAllSubdirectories(mdldir)
-}
-
-// WaitMonitors waits for all writes to complete
-func WaitMonitors() {
-	gwg.Wait()
-}
-
-type monitor struct {
-	v []float64
-	c int
-}
-
-func (m *monitor) print(mdir string) {
-	defer gwg.Done()
-	mmio.WriteFloats(fmt.Sprintf("%s%d.cms", mdir, m.c), m.v) // monitor file (discharge from a cell [m³/s])
-	// vv := make([]float64, len(m.v))
-	// for k, v := range m.v {
-	// 	vv[k] = v * h2cms
-	// }
-	// mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mondir, m.c), vv)
-}
-
-type tmonitor struct {
-	sid                               int
-	ys, ins, as, rs, gs, sto, bs, dm0 []float64
-	dir                               string
-}
-
-func (tm *tmonitor) print() {
-	tmu.Lock()
-	defer tmu.Unlock()
-	defer gwg.Done()
-	csvw := mmio.NewCSVwriter(fmt.Sprintf("%s%d.wbgt", tm.dir, tm.sid)) // subwatershed water budget file
-	defer csvw.Close()
-	if err := csvw.WriteHead("ys,ins,as,rs,gs,sto,bs,dm0"); err != nil {
-		log.Fatalf("%v", err)
-	}
-	for i, y := range tm.ys {
-		csvw.WriteLine(y, tm.ins[i], tm.as[i], tm.rs[i], tm.gs[i], tm.sto[i], tm.bs[i], tm.dm0[i])
-	}
-}
 
 type gmonitor struct {
 	gy, ge, ga, gr, gg, gb []float64
