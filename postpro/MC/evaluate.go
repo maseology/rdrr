@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/maseology/rdrr/postpro"
 )
 
-func evaluate(dts []time.Time, sim []float64, obs postpro.ObsColl) (int, float64, float64, float64) {
+func evaluate(fp string, dts []time.Time, sim []float64, obs postpro.ObsColl) (int, float64, float64, float64) {
 	if len(dts) != len(sim) {
 		log.Fatalf("evaluate error: dts and sim must be of same length")
 	}
@@ -27,6 +28,8 @@ func evaluate(dts []time.Time, sim []float64, obs postpro.ObsColl) (int, float64
 			fobs[i] = 0.
 		}
 	}
+	mmio.WriteCsvDateFloats(fmt.Sprintf("%s%s-hdgrph.csv", fp, obs.Nam), "date,obs,sim", dts, fobs, sim)
+	fmt.Println(obs.Nam)
 	kge := objfunc.KGE(fobs, sim)
 	nse := objfunc.NSE(fobs, sim)
 	bias := objfunc.Bias(fobs, sim)

@@ -120,7 +120,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		outlet = frc.Oxr[0]
 	}
 
-	cids, ds := d.strc.TEM.DownslopeContributingAreaIDs(outlet)
+	cids, ds := d.Strc.TEM.DownslopeContributingAreaIDs(outlet)
 	// cids := make([]int, d.gd.Na)
 	// icid := 0
 	// for _, cid := range cids0 {
@@ -135,19 +135,19 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	// 	}
 	// }
 
-	strms, _ := BuildStreams(d.strc, cids)
-	newRTR, swsord, _ := d.rtr.subset(d.strc.TEM, cids, strms, outlet)
+	strms, _ := BuildStreams(d.Strc, cids)
+	newRTR, swsord, _ := d.rtr.subset(d.Strc.TEM, cids, strms, outlet)
 	ncid := len(cids)
 	fncid := float64(ncid)
 
 	for _, c := range cids {
-		if p, ok := d.strc.TEM.TEC[c]; ok {
+		if p, ok := d.Strc.TEM.TEC[c]; ok {
 			if p.G <= 0. {
 				fmt.Printf(" domain.newSubDomain warning: slope at cell %d was found to be %v, reset to 0.0001.", c, p.G)
-				t := d.strc.TEM.TEC[c]
+				t := d.Strc.TEM.TEC[c]
 				t.G = 0.0001
 				t.A = 0.
-				d.strc.TEM.TEC[c] = t
+				d.Strc.TEM.TEC[c] = t
 			}
 		} else {
 			log.Fatalf(" domain.newSubDomain error: no topographic info available for cell %d", c)
@@ -161,7 +161,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 
 	b := subdomain{
 		frc:      frc,
-		strc:     d.strc,
+		strc:     d.Strc,
 		mpr:      d.mpr,
 		rtr:      newRTR,
 		cids:     cids,
@@ -172,7 +172,7 @@ func (d *domain) newSubDomain(frc *FORC, outlet int) subdomain {
 		fncid:    fncid,
 		nstrm:    len(strms),
 		fnstrm:   float64(len(strms)),
-		contarea: d.strc.Acell * fncid, // basin contributing area [m²]
+		contarea: d.Strc.Acell * fncid, // basin contributing area [m²]
 		cid0:     outlet,
 		// strms:    strms,
 	}

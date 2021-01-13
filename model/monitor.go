@@ -20,7 +20,7 @@ var tmu sync.Mutex
 func DeleteMonitors(mdldir string, preserveLast bool) {
 	if preserveLast && mmio.DirExists(mdldir) {
 		mmio.DeleteAllInDirectory(mdldir, ".last")
-		for _, fp := range mmio.FileListExt(mdldir, ".mon") {
+		for _, fp := range mmio.FileListExt(mdldir, ".cms") {
 			mmio.MoveFile(fp, fp+".last")
 		}
 	}
@@ -37,7 +37,8 @@ func DeleteMonitors(mdldir string, preserveLast bool) {
 	mmio.DeleteFile(mdldir + "g.sma.rmap")
 	mmio.DeleteFile(mdldir + "g.Sdet.rmap")
 	mmio.DeleteFile(mdldir + "g.wbal.rmap")
-	mmio.DeleteAllInDirectory(mdldir, ".mon")
+	mmio.DeleteAllInDirectory(mdldir, ".cms")
+	mmio.DeleteAllInDirectory(mdldir, ".wbgt")
 	// mmio.DeleteAllSubdirectories(mdldir)
 }
 
@@ -53,7 +54,7 @@ type monitor struct {
 
 func (m *monitor) print(mdir string) {
 	defer gwg.Done()
-	mmio.WriteFloats(fmt.Sprintf("%s%d.mon", mdir, m.c), m.v) // monitor file (discharge from a cell)
+	mmio.WriteFloats(fmt.Sprintf("%s%d.cms", mdir, m.c), m.v) // monitor file (discharge from a cell [m³/s])
 	// vv := make([]float64, len(m.v))
 	// for k, v := range m.v {
 	// 	vv[k] = v * h2cms

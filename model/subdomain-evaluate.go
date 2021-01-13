@@ -74,7 +74,7 @@ func (b *subdomain) evaluate(p *sample, Dinc, m float64, print bool) (of float64
 						rs := newResults(b, nstep)
 						rs.dt = b.frc.T
 						if b.frc.O != nil {
-							rs.obs = b.frc.O[0]
+							rs.obs = b.frc.O[0] //* pp.intvl / pp.ca
 						}
 						var res resulter = &rs
 						if print {

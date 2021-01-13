@@ -25,7 +25,7 @@ func (pp *evaluation) initialize(Dinc, m float64, print bool) {
 	pp.dm = smpl(u)
 
 	if print {
-		fmt.Printf("intial dm = %f\n", pp.dm)
+		fmt.Printf("initial dm = %f\n", pp.dm)
 	}
 
 	pp.s0s = 0.

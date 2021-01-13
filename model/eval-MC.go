@@ -4,7 +4,7 @@ import "math"
 
 func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
-	obs, f := make(map[int]monitor, len(monid)), p.ca/float64(p.nstep)
+	obs, fcms := make(map[int]monitor, len(monid)), p.ca/p.intvl
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 	gy, ga, gr, gg, gb := make([][]float64, 12), make([][]float64, 12), make([][]float64, 12), make([][]float64, 12), make([][]float64, 12)
 	for i := 0; i < 12; i++ {
@@ -44,7 +44,7 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 			ga[mt][i] += a
 
 			if _, ok := obs[i]; ok {
-				obs[i].v[k] = r * f
+				obs[i].v[k] = r * fcms
 			}
 			if p.ds[i] == -1 { // outlet cell
 				rs += r

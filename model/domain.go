@@ -14,7 +14,7 @@ var MasterDomain domain
 // domain holds all data and is the parent to all sub models
 type domain struct {
 	Frc  *FORC  // forcing (variable) data
-	strc *STRC  // structural (unchanging) data (eg, topography, solar irradiation fractions)
+	Strc *STRC  // structural (unchanging) data (eg, topography, solar irradiation fractions)
 	rtr  *RTR   // subwatershed topology
 	mpr  *MAPR  // land use/surficial geology mapping for parameter assignment
 	mons []int  // monitor cell IDs
@@ -84,7 +84,7 @@ func LoadMasterDomain(mdlprfx string) {
 		// frc.q0 = avgRch // default discharge for warm-up
 		return domain{
 			Frc:  frc,
-			strc: strc,
+			Strc: strc,
 			rtr:  rtr,
 			mpr:  mpr,
 			mons: mons,
@@ -95,5 +95,5 @@ func LoadMasterDomain(mdlprfx string) {
 
 // IsEmpty returns true if the domain has no data
 func (m *domain) IsEmpty() bool {
-	return m.strc == nil || m.mpr == nil //|| m.gd == nil
+	return m.Strc == nil || m.mpr == nil //|| m.gd == nil
 }

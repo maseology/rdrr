@@ -1,6 +1,8 @@
 package model
 
-import "github.com/maseology/mmio"
+import (
+	"github.com/maseology/mmio"
+)
 
 // // ObsSim is used to create simple observed vs. simulated hydrographs
 // func ObsSim(fp string, o, s, b, x []float64) {

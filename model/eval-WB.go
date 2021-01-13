@@ -9,7 +9,7 @@ import (
 // evalWB is the main model routine, the others are derivatives to this. Dinc: depth of channel incision/depth of channel relative to cell elevation; m: TOPMODEL parameter
 func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
-	obs, f := make(map[int]monitor, len(monid)), p.ca/float64(p.nstep)
+	obsCms, fcms := make(map[int]monitor, len(monid)), p.ca/p.intvl
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 	// yss, ass, rss, gss, bss := 0., 0., 0., 0., 0.
 	// distributed monitors [mm/yr]
@@ -18,7 +18,7 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	ty, tins, ta, tr, tg, ts, tb, tdm := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 
 	for _, c := range monid {
-		obs[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
+		obsCms[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
 	}
 
 	dm, s0s := p.dm, p.s0s
@@ -68,8 +68,8 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 			ge[i] += ep
 			ga[i] += a
 
-			if _, ok := obs[i]; ok {
-				obs[i].v[k] = r * f
+			if _, ok := obsCms[i]; ok {
+				obsCms[i].v[k] = r * fcms
 			}
 			if p.ds[i] == -1 { // outlet cell
 				rs += r
@@ -121,7 +121,7 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 
 	func() {
 		res.getTotals(sim, hsto, gsto)
-		for _, v := range obs {
+		for _, v := range obsCms {
 			gwg.Add(1)
 			go v.print(p.dir)
 		}

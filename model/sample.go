@@ -148,7 +148,7 @@ func SampleMaster(outdir string, nsmpl, outlet int) {
 		tw, err := mmio.NewTXTwriter(mdir + "params.txt")
 		defer tw.Close()
 		if err != nil {
-			log.Fatalf("SampleMaster error: %v", err)
+			log.Fatalf("SampleMaster.printParams error: %v", err)
 		}
 		tw.WriteLine(mmio.MMtime(time.Now()))
 		// tw.WriteLine(mondir)

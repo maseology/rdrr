@@ -11,7 +11,7 @@ func Par7(u []float64) (m, grdMin, kstrm, mcasc, soildepth, kfact, dinc float64)
 	mcasc = mmaths.LogLinearTransform(.001, 10., u[3])      // slope of fuzzy cascade curve
 	soildepth = mmaths.LinearTransform(0., 1.5, u[4])       // depth of soilzone/ET extinction depth
 	kfact = mmaths.LogLinearTransform(0.0001, 10000., u[5]) // global surficial geology adjustment factor
-	dinc = mmaths.LinearTransform(0., 10., u[6])
+	dinc = mmaths.LinearTransform(0., 2., u[6])
 	return
 }
 

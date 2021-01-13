@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	mcDir = "S:/Peel/PWRMM21.MC/"                           //"C:/Users/Mason/Desktop/New folder/"                             //
-	obsFP = "S:/Peel/elevation.real.uhdem.gauges_final.csv" //"M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //
+	mcDir = "M:/Peel/RDRR-PWRMM21/PWRMM21.MC/"                               // "S:/Peel/PWRMM21.MC/"                           //"C:/Users/Mason/Desktop/New folder/"                             //
+	obsFP = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //"S:/Peel/elevation.real.uhdem.gauges_final.csv" //
 	npar  = 7
 	minOF = -9999
 )
@@ -104,7 +104,7 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 	if err != nil {
 		log.Fatalf(" ExtractTarGZ failed: %v", err)
 	}
-	defer mmio.DeleteDir(tmpdir)
+	// defer mmio.DeleteDir(tmpdir)
 
 	// read parameters of current realization
 	fpar := func() []par {
@@ -131,13 +131,13 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 	}()
 
 	// read monitors
-	fps := mmio.FileListExt(tmpdir, ".mon")
+	fps := mmio.FileListExt(tmpdir, ".cms")
 	o := make([]stationResult, len(fps))
 	for i, fp := range fps {
 		fid, err := strconv.Atoi(mmio.FileName(fp, false))
 		if err != nil {
-			continue
-			// log.Fatalf(" filename error (cannot convert to number): %s: %v", mmio.FileName(fp, true), err)
+			// continue
+			log.Fatalf(" filename error (cannot convert to number): %s: %v", mmio.FileName(fp, true), err)
 		}
 		if _, ok := obs[fid]; !ok {
 			o[i] = stationResult{fid: -9999, kge: -math.MaxFloat64, nse: -math.MaxFloat64}
@@ -149,7 +149,7 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 			log.Fatalf(" ReadFloats failed for %s: %v", fp, err)
 		}
 
-		_, kge, nse, bias := evaluate(dts, qfid, obs[fid])
+		_, kge, nse, bias := evaluate(fp, dts, qfid, obs[fid])
 		o[i] = stationResult{pars: fpar, kge: kge, nse: nse, bias: bias, fid: fid}
 	}
 	return o

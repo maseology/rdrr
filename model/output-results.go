@@ -63,9 +63,12 @@ func (r *results) report(print bool) []float64 {
 	// 	// r.bf[k] *= r.h2cms / r.fncid / r.fnstrm
 	// }
 	if print && len(r.obs) < warmup {
-		sumPlotSto("wb.png", r.hsto, r.gsto)
+		sumPlotSto("sto.png", r.hsto, r.gsto)
 		return []float64{-1.}
 	}
+	kge1 := objfunc.KGE(r.obs, r.sim)
+	fmt.Printf("results.go: kge1 = %f", kge1)
+	mmio.WriteCsvDateFloats("hdgrph.csv", "date,obs,sim", r.dt, r.obs, r.sim)
 	nobs, nsim, ii := make([]float64, len(r.dt)/4), make([]float64, len(r.dt)/4), 0
 	for k := range r.obs {
 		nobs[ii] += r.obs[k]
@@ -86,7 +89,7 @@ func (r *results) report(print bool) []float64 {
 		// fmt.Printf("  waterbudget [mm/yr]: pre: %.0f  aet: %.0f  rch: %.0f  gwd: %.0f  olf: %.0f  dif: %.1f\n", r.ytot*ff, r.atot*ff, r.gtot*ff, r.btot*ff, r.rtot*ff, (r.ytot+r.btot-(r.atot+r.gtot+r.rtot))*ff)
 		fmt.Printf("  KGE: %.3f  NSE: %.3f  RMSE: %.3f  mon-wR²: %.3f  Bias: %.3f\n", kge, nse, rmse, mwr2, bias)
 		mmio.ObsSim("hyd.png", r.obs, r.sim)
-		sumPlotSto("wb.png", r.hsto, r.gsto)
+		sumPlotSto("sto.png", r.hsto, r.gsto)
 	}
 	return []float64{1. - kge}
 }
