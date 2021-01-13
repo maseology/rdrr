@@ -106,49 +106,47 @@ func SaveObsToCsv(csvfp string) error {
 	return nil
 }
 
-func GetObservations(odir, obsFP string) (map[int]ObsColl, error) {
-	gg := func() (map[int]ObsColl, error) {
-		f, err := os.Open(obsFP)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-
-		recs := mmio.LoadCSV(io.Reader(f))
-		obsColls := make(map[int]ObsColl, len(recs))
-		for lns := range recs {
-			staName := lns[0]
-			cid, _ := strconv.Atoi(lns[1])
-			fmt.Printf("%s (cid: %d): loading.. ", staName, cid)
-
-			dts, vals, _, err := getJSON(jsonAPI + staName)
-			if err != nil {
-				return nil, err
-			}
-			if dts == nil {
-				fmt.Println("no data found")
-				continue
-			}
-
-			fmt.Printf("count = %d: %s to %s\n", len(dts), dts[0].Format("2006-01-02"), dts[len(dts)-1].Format("2006-01-02"))
-			obsColls[cid] = ObsColl{dts, vals, staName}
-		}
-		return obsColls, nil
-	}
-
+func GetObservations(odir, namToCidCsv string) (map[int]ObsColl, error) {
 	var c map[int]ObsColl
 	var err error
-	if _, ok := mmio.FileExists(odir + "obs.gob"); !ok {
-		c, err := gg()
-		if err != nil {
-			return nil, err
-		}
-		saveGob(c, odir+"obs.gob")
-	} else {
+	if _, ok := mmio.FileExists(odir + "obs.gob"); ok {
 		c, err = loadGob(odir + "obs.gob")
 		if err != nil {
 			log.Fatalf(" getObservations loadGob failed: %v", err)
 		}
+	} else {
+		c, err := func() (map[int]ObsColl, error) {
+			f, err := os.Open(namToCidCsv) // name,cid
+			if err != nil {
+				return nil, err
+			}
+			defer f.Close()
+
+			recs := mmio.LoadCSV(io.Reader(f))
+			obsColls := make(map[int]ObsColl, len(recs))
+			for lns := range recs {
+				staName := lns[0]
+				cid, _ := strconv.Atoi(lns[1])
+				fmt.Printf("%s (cid: %d): loading.. ", staName, cid)
+
+				dts, vals, _, err := getJSON(jsonAPI + staName)
+				if err != nil {
+					return nil, err
+				}
+				if dts == nil {
+					fmt.Println("no data found")
+					continue
+				}
+
+				fmt.Printf("count = %d: %s to %s\n", len(dts), dts[0].Format("2006-01-02"), dts[len(dts)-1].Format("2006-01-02"))
+				obsColls[cid] = ObsColl{dts, vals, staName}
+			}
+			return obsColls, nil
+		}()
+		if err != nil {
+			return nil, err
+		}
+		saveGob(c, odir+"obs.gob")
 	}
 	return c, err
 }

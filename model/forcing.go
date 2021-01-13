@@ -53,10 +53,10 @@ func LoadGobFORC(fp string) (*FORC, error) {
 // AddObservation reads csv file of "Date","Flow","Flag"
 func (frc *FORC) AddObservation(csvfp string, cid int) error {
 	c, err := mmio.ReadCsvDateFloat(csvfp)
-	dd := mmio.DayDate
 	if err != nil {
 		return err
 	}
+	dd := mmio.DayDate
 	frc.O, frc.Oxr = make([][]float64, 1), []int{cid}
 	frc.O[0] = make([]float64, len(frc.T))
 	for i, t := range frc.T {
