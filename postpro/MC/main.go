@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -60,6 +61,9 @@ func main() {
 	for _, fp := range mmio.FileListExt(mcDir, ".gz") {
 		rlz := mmio.FileName(mmio.FileName(fp, false), false)
 		for _, c := range collectResults(fp, dts, obsColls) {
+			if c.pars == nil {
+				continue
+			}
 			if frst {
 				// writeHead(keys(c.par))
 				shed := make([]string, len(c.pars)+1)
@@ -103,7 +107,7 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 	defer mmio.DeleteDir(tmpdir)
 
 	// read parameters of current realization
-	par := func() []par {
+	fpar := func() []par {
 		const parHead = 2 // n lines to skip
 		pars := make([]par, npar)
 		if _, ok := mmio.FileExists(tmpdir + "params.txt"); !ok {
@@ -136,7 +140,7 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 			// log.Fatalf(" filename error (cannot convert to number): %s: %v", mmio.FileName(fp, true), err)
 		}
 		if _, ok := obs[fid]; !ok {
-			o[i] = stationResult{fid: -9999, kge: minOF, nse: minOF}
+			o[i] = stationResult{fid: -9999, kge: -math.MaxFloat64, nse: -math.MaxFloat64}
 			continue
 		}
 
@@ -146,7 +150,7 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 		}
 
 		_, kge, nse, bias := evaluate(dts, qfid, obs[fid])
-		o[i] = stationResult{pars: par, kge: kge, nse: nse, bias: bias, fid: fid}
+		o[i] = stationResult{pars: fpar, kge: kge, nse: nse, bias: bias, fid: fid}
 	}
 	return o
 }
