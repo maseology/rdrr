@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"runtime"
 
 	"github.com/maseology/mmio"
@@ -14,7 +15,7 @@ func main() {
 		// mdlPrfx = "S:/OWRC-RDRR/owrc."
 		mdlPrfx = "S:/Peel/PWRMM21." // "M:/Peel/RDRR-PWRMM21/PWRMM21." //
 		cid0    = 1552736
-		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/obs/02HB008.csv"
+		obsfp   = "S:/Peel/obs/02HB008.csv" // "M:/Peel/RDRR-PWRMM21/dat/obs/02HB008.csv"
 	)
 
 	fmt.Println("")
@@ -23,32 +24,27 @@ func main() {
 
 	// load data
 	model.LoadMasterDomain(mdlPrfx)
-	// if err := model.MasterDomain.Frc.AddObservation(obsfp, cid0); err != nil {
-	// 	log.Fatalln(err)
-	// }
 	tt.Print("Master Domain Load complete\n")
 
-	// run model
 	model.DeleteMonitors(mdlPrfx+"out/", true) // also sets-up the output folder
+	if err := model.MasterDomain.Frc.AddObservation(obsfp, cid0); err != nil {
+		log.Fatalln(err)
+	}
 
-	// // TMQm := 1.4380620030367803
-	// // grng := 0.0019749463694001177
-	// // soildepth := 0.8744999999999999
-	// // kfact := 946.237161365793
-	// TMQm := .01
-	// grdMin := .0005
-	// kstrm := .999
-	// mcasc := .5 // .001-10
-	// soildepth := 1.
-	// kfact := 1.
-	// dinc := 1.
+	// // run model
+	// TMQm := 6.7
+	// grdMin := .5
+	// kstrm := .995
+	// mcasc := 3. // .001-10
+	// soildepth := .815
+	// kfact := .088
+	// dinc := 8.5
 	// fmt.Println(model.RunDefault(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, dinc, soildepth, kfact, cid0, true))
-
-	// // find optimal model
-	// model.OptimizeDefault(nil, 1104986)
 
 	// sample models
 	model.PrepMC(mdlPrfx + "MC/")
 	model.SampleMaster(mdlPrfx, 700, cid0)
 
+	// // find optimal model
+	// model.OptimizeDefault(nil, 1104986)
 }

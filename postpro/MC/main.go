@@ -72,9 +72,9 @@ func main() {
 				}
 				frst = false
 			}
-			if c.nse <= minOF {
-				continue
-			}
+			// if c.nse <= minOF {
+			// 	continue
+			// }
 			sval := make([]float64, len(c.pars))
 			for i := 0; i < len(c.pars); i++ {
 				sval[i] = c.pars[i].value
@@ -132,7 +132,8 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 	for i, fp := range fps {
 		fid, err := strconv.Atoi(mmio.FileName(fp, false))
 		if err != nil {
-			log.Fatalf(" filename error (cannot convert to number): %s: %v", mmio.FileName(fp, true), err)
+			continue
+			// log.Fatalf(" filename error (cannot convert to number): %s: %v", mmio.FileName(fp, true), err)
 		}
 		if _, ok := obs[fid]; !ok {
 			o[i] = stationResult{fid: -9999, kge: minOF, nse: minOF}

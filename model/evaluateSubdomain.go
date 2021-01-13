@@ -20,7 +20,7 @@ type stran struct {
 // evaluate evaluates a subdomain
 func (b *subdomain) evaluate(p *sample, Dinc, m float64, print bool) (of float64) {
 
-	ver := evalMC
+	ver := evalWB
 
 	nstep := len(b.frc.T)
 
