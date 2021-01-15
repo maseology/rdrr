@@ -17,8 +17,6 @@ type FORC struct {
 	XR          map[int]int   // mapping of model grid cell to met grid cell
 	Oxr, mt     []int         // mapping of outlet cell ID to O[][]
 	IntervalSec float64
-	// q0, qs      float64
-	// Name   string
 }
 
 // SaveGob FORC to gob
@@ -68,16 +66,3 @@ func (frc *FORC) AddObservation(csvfp string, ca float64, cid int) error {
 	}
 	return nil
 }
-
-// // AddObservation reads csv file of "name,cid" and assumes "name.csv" is where the monitoring data are located in outDir
-// func (frc *FORC) AddObservation(outDir, csvfp string, cid int) {
-// 	var c map[int]postpro.ObsColl
-// 	var err error
-// 	c, err = postpro.GetObservations(outDir, csvfp)
-// 	if err != nil {
-// 		log.Fatalf(" postpro.GetObservations failed: %v", err)
-// 	}
-// 	for i,t := range frc.T {
-
-// 	}
-// }

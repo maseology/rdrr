@@ -104,7 +104,7 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 	if err != nil {
 		log.Fatalf(" ExtractTarGZ failed: %v", err)
 	}
-	// defer mmio.DeleteDir(tmpdir)
+	defer mmio.DeleteDir(tmpdir)
 
 	// read parameters of current realization
 	fpar := func() []par {

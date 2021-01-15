@@ -4,7 +4,9 @@ import (
 	"log"
 	"math"
 
+	"github.com/maseology/mmaths"
 	"github.com/maseology/montecarlo/invdistr"
+	"github.com/maseology/montecarlo/jointdist"
 )
 
 const (
@@ -57,12 +59,23 @@ type SurfGeo struct {
 }
 
 // Sample returns a sample from the SurfGeo's range
-func (s *SurfGeo) Sample(u ...float64) (ksat, por, sy float64) {
-	ksat = s.dK.P(u[0])
-	por = s.dP.P(u[1])
-	sy = s.SY
-	return
+func Sample(u []float64) []float64 {
+	k := make([]float64, 8)
+	for i, un := range jointdist.Nested(u[:5]...) {
+		k[i] = mmaths.LogLinearTransform(1e-11, 1e-3, un) // low through high
+	}
+	k[5] = ksatDistrFromID(unknown).Distr.Inv(u[5])          // unknown/variable
+	k[6] = ksatDistrFromID(streambed).Distr.Inv(u[6])        // streambed
+	k[7] = ksatDistrFromID(wetlandSediments).Distr.Inv(u[7]) // wetland
+	return k
 }
+
+// func (s *SurfGeo) Sample(u ...float64) (ksat, por, sy float64) {
+// 	ksat = s.dK.P(u[0])
+// 	por = s.dP.P(u[1])
+// 	sy = s.SY
+// 	return
+// }
 
 /////////////////////////////////////////////////
 //// MATERIAL PROPERTIES

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -28,8 +27,8 @@ func evaluate(fp string, dts []time.Time, sim []float64, obs postpro.ObsColl) (i
 			fobs[i] = 0.
 		}
 	}
-	mmio.WriteCsvDateFloats(fmt.Sprintf("%s%s-hdgrph.csv", fp, obs.Nam), "date,obs,sim", dts, fobs, sim)
-	fmt.Println(obs.Nam)
+	// mmio.WriteCsvDateFloats(fmt.Sprintf("%s%s-hdgrph.csv", fp, obs.Nam), "date,obs,sim", dts, fobs, sim)
+	// fmt.Println(obs.Nam)
 	kge := objfunc.KGE(fobs, sim)
 	nse := objfunc.NSE(fobs, sim)
 	bias := objfunc.Bias(fobs, sim)

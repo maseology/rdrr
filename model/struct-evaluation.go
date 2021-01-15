@@ -7,7 +7,7 @@ import (
 	"github.com/maseology/goHydro/hru"
 )
 
-// evaluation is a dehashed model run built from a sample (this is what gets evaluated)
+// evaluation is a de-hashed instance of a model run parameterized from a sample (this is what gets evaluated). (de-hashing increases performance)
 type evaluation struct {
 	cxr                       map[int]int       // cellID to slice id cross-reference; mapping of cell id to (de-hashed) array index
 	strmQs                    map[int]float64   // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
@@ -18,9 +18,8 @@ type evaluation struct {
 	drel, cascf               []float64         // relative depth to WT; cascade fraction
 	ds, xrc, mxr, mt          []int             // downslope cell ID; meteo to cell xr; consecutive month index
 	ca, intvl, fncid, dm, s0s float64           // cell area (m²); timestep interval (sec); float number cells; mean depth to WT; initial storage
-	// carea                 float64           // catchment area (m²)
-	sid, nstep int // sws ID; n timesteps
-	dir        string
+	sid, nstep                int               // sws ID; n timesteps
+	dir                       string
 }
 
 func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool) evaluation {
@@ -43,24 +42,8 @@ func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool
 	pp.dir = p.dir
 	pp.sid = sid
 	pp.y, pp.ep, pp.nstep, pp.intvl, pp.ca = b.frc.D[0], b.frc.D[1], len(b.frc.T), b.frc.IntervalSec, b.strc.Acell
-	// pp.carea = b.contarea
-	// pp.cids, pp.fncid = b.rtr.SwsCidXR[sid], float64(len(b.rtr.SwsCidXR[sid]))
 	pp.fncid = float64(len(b.rtr.SwsCidXR[sid]))
 	pp.dehash(b, p, sid, len(b.rtr.SwsCidXR[sid]), len(p.gw[sid].Qs))
-
-	// cktopo := make(map[int]bool, len(pp.cids))
-	// for _, i := range pp.cids {
-	// 	if _, ok := cktopo[i]; ok {
-	// 		log.Fatalf(" subsample.newSubsample error: cell %d occured more than once, possible cycle", i)
-	// 	}
-	// 	if _, ok := b.ds[i]; !ok {
-	// 		log.Fatalf(" subsample.newSubsample error: cell %d not given dowslope id", i)
-	// 	}
-	// 	if _, ok := cktopo[b.ds[i]]; ok {
-	// 		log.Fatalf(" subsample.newSubsample error: cell %d out of topological order", i)
-	// 	}
-	// 	cktopo[i] = true
-	// }
 
 	pp.initialize(Dinc, m, print)
 	// fmt.Printf(" **** sid: %d;  Dm0: %f;  s0: %f\n", sid, pp.dm, pp.s0s)
@@ -71,7 +54,6 @@ func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool
 func (pp *evaluation) dehash(b *subdomain, p *sample, sid, ncid, nstrm int) {
 	pp.drel = make([]float64, ncid) // initialize mean TOPMODEL deficit
 	pp.ws, pp.cascf, pp.ds = make([]hru.HRU, ncid), make([]float64, ncid), make([]int, ncid)
-	// pp.f = make([][]float64, ncid)
 	pp.cxr = make(map[int]int, ncid)         // cellID to slice id cross-reference
 	pp.xrc = make([]int, ncid)               // cellID cross-reference
 	pp.mxr = make([]int, ncid)               // met cellID to slice id cross-reference
@@ -86,7 +68,6 @@ func (pp *evaluation) dehash(b *subdomain, p *sample, sid, ncid, nstrm int) {
 		} else {
 			pp.ds[i] = -1 // farfield
 		}
-		// pp.f[i] = b.strc.f[c]
 		pp.cxr[c] = i
 		pp.xrc[i] = c
 		pp.mxr[i] = b.frc.XR[c]
