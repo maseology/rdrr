@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/maseology/mmio"
@@ -67,7 +68,9 @@ func (r *results) report(print bool) []float64 {
 		return []float64{-1.}
 	}
 	kge1 := objfunc.KGE(r.obs, r.sim)
-	fmt.Printf("results.go: kge1 = %f", kge1)
+	if math.IsNaN(kge1) {
+		fmt.Printf("results.go: kge1 = %f\n", kge1)
+	}
 	mmio.WriteCsvDateFloats("hdgrph.csv", "date,obs,sim", r.dt, r.obs, r.sim)
 	nobs, nsim, ii := make([]float64, len(r.dt)/4), make([]float64, len(r.dt)/4), 0
 	for k := range r.obs {
@@ -79,7 +82,7 @@ func (r *results) report(print bool) []float64 {
 			ii++
 		}
 	}
-	kge := objfunc.KGE(nobs[warmup/4:], nsim[warmup/4:])
+	kge := objfunc.KGE(nobs[warmup:], nsim[warmup:])
 	if print {
 		rmse := objfunc.RMSE(r.obs[warmup:], r.sim[warmup:])
 		mwr2 := objfunc.Krause(computeMonthly(r.dt[warmup:], r.obs[warmup:], r.sim[warmup:], r.intvl, r.contarea))

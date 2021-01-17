@@ -27,7 +27,7 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 
 	tt := mmio.NewTimer()
 	fmt.Printf(" number of subwatersheds: %d\n", len(b.rtr.SwsCidXR))
-	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nDefltSmplDim)
+	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSGeoSmplDim)
 
 	printParams := func(m, grdMin, kstrm, mcasc, soildepth, dinc float64, ksat []float64, mdir string) {
 		tw, err := mmio.NewTXTwriter(mdir + "params.txt")
@@ -42,7 +42,7 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 		tw.WriteLine(fmt.Sprintf("kstrm\t%f", kstrm))
 		tw.WriteLine(fmt.Sprintf("mcasc\t%f", mcasc))
 		tw.WriteLine(fmt.Sprintf("soildepth\t%f", soildepth))
-		tw.WriteLine(fmt.Sprintf("ksat\t%f", ksat))
+		tw.WriteLine(fmt.Sprintf("ksat\t%e", ksat))
 		tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
 	}
 
@@ -58,14 +58,13 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 		fmt.Print(".")
 		return of
 	}
-	sp := smpln.NewLHC(rng, nsmpl, nDefltSmplDim, false)
+	sp := smpln.NewLHC(rng, nsmpl, nSGeoSmplDim, false)
 	for k := 0; k < nsmpl; k++ {
-		ut := make([]float64, nDefltSmplDim)
-		for j := 0; j < nDefltSmplDim; j++ {
+		ut := make([]float64, nSGeoSmplDim)
+		for j := 0; j < nSGeoSmplDim; j++ {
 			ut[j] = sp.U[j][k]
 		}
 		gen(ut)
-		fmt.Print(".")
 	}
 	tt.Lap("results save complete")
 }

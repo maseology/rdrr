@@ -179,6 +179,10 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, soildepth float64,
 				log.Printf(" surfgeoSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
 				gg = 6 // Unknown (variable)
 			}
+			if gg == 0 {
+				log.Printf(" surfgeoSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
+				gg = 6
+			}
 			var lu lusg.LandUse
 			if lu, ok = b.mpr.LU[ll]; !ok {
 				log.Fatalf(" surfgeoSample.assignHRUs error, no LandUse assigned of type %d", ll)
@@ -186,7 +190,7 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, soildepth float64,
 
 			var h hru.HRU
 			drnsto, srfsto, _, _ := lu.Rebuild1(soildepth, b.mpr.Fimp[cid], b.mpr.Ifct[cid])
-			h.Initialize(drnsto, srfsto, b.mpr.Fimp[cid], ksat[gg]*ts, 0., 0.)
+			h.Initialize(drnsto, srfsto, b.mpr.Fimp[cid], ksat[gg-1]*ts, 0., 0.)
 			ws[cid] = &h
 		}
 
@@ -220,16 +224,19 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, soildepth float64,
 		nsws := len(b.rtr.SwsCidXR)
 		ch := make(chan kv, runtime.NumCPU()/2)
 		getgw := func(sid int) {
-			ksat := make(map[int]float64)
+			ksatTS := make(map[int]float64)
 			for _, c := range b.rtr.SwsCidXR[sid] {
 				gg := 6 // default: unknown/variable
 				if _, ok := b.mpr.SGx[c]; ok {
 					gg = b.mpr.SGx[c]
 				}
-				ksat[c] = ksat[gg] * ts // [m/ts]
+				if gg == 0 {
+					gg = 6
+				}
+				ksatTS[c] = ksat[gg-1] * ts // [m/ts]
 			}
 			var gwt gwru.TMQ
-			gwt.New(ksat, b.rtr.UCA[sid], b.rtr.SwsStrmXR[sid], b.strc.TEM, b.strc.Wcell, m)
+			gwt.New(ksatTS, b.rtr.UCA[sid], b.rtr.SwsStrmXR[sid], b.strc.TEM, b.strc.Wcell, m)
 			ch <- kv{k: sid, v: gwt}
 		}
 

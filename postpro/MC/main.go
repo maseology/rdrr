@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -15,7 +16,7 @@ import (
 const (
 	mcDir = "S:/Peel/PWRMM21.MC/"                           // "M:/Peel/RDRR-PWRMM21/PWRMM21.MC/"                               //
 	obsFP = "S:/Peel/elevation.real.uhdem.gauges_final.csv" //"M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //
-	npar  = 7
+	npar  = 14                                              // 7
 	minOF = -9999
 )
 
@@ -76,9 +77,9 @@ func main() {
 				}
 				frst = false
 			}
-			// if c.nse <= minOF {
-			// 	continue
-			// }
+			if c.nse <= minOF {
+				continue
+			}
 			sval := make([]float64, len(c.pars))
 			for i := 0; i < len(c.pars); i++ {
 				sval[i] = c.pars[i].value
@@ -119,13 +120,26 @@ func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []sta
 			log.Fatalf(" ReadTextLines failed in %s: %v", tarfp, err)
 		}
 
+		ii := 0
 		for i := parHead; i < len(sa); i++ {
 			s := strings.Split(sa[i], "\t")
 			flt, err := strconv.ParseFloat(s[1], 64)
 			if err != nil {
-				log.Fatalf("strconv.ParseFloat error in %s: %s", tarfp, sa[i])
+				flts := func(s string) []float64 { // test for string array (i.e., "[2 4 6 8]")
+					flts := make([]float64, strings.Count(s, ",")+1)
+					if json.Unmarshal([]byte(s), &flts) != nil {
+						log.Fatalf("strconv.ParseFloat error in %s: %s (%v)", tarfp, sa[i], err)
+					}
+					return flts
+				}(strings.Replace(s[1], " ", ",", -1))
+				for _, v := range flts {
+					pars[i+ii-parHead] = par{fmt.Sprintf("%s%02d", s[0], ii+1), v}
+					ii++
+				}
+				ii--
+			} else {
+				pars[i+ii-parHead] = par{s[0], flt}
 			}
-			pars[i-parHead] = par{s[0], flt}
 		}
 		return pars
 	}()

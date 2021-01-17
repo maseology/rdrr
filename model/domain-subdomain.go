@@ -19,7 +19,7 @@ func (d *Domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	}
 
 	cids, ds := d.Strc.TEM.DownslopeContributingAreaIDs(outlet)
-	strms, _ := buildStreams(d.Strc, cids)
+	strms, _ := BuildStreams(d.Strc, cids)
 	newRTR, swsord, _ := d.rtr.subset(d.Strc.TEM, cids, strms, outlet)
 	ncid := len(cids)
 	fncid := float64(ncid)
@@ -62,8 +62,8 @@ func (d *Domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	return b
 }
 
-// buildStreams determines stream cells based on const strmkm2
-func buildStreams(strc *STRC, cids []int) ([]int, int) {
+// BuildStreams determines stream cells based on const strmkm2
+func BuildStreams(strc *STRC, cids []int) ([]int, int) {
 	strmcthresh := int(strmkm2 * 1000. * 1000. / strc.Acell) // "stream cell" threshold
 	strms, nstrm := []int{}, 0
 	for _, c := range cids {

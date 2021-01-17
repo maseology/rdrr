@@ -14,16 +14,6 @@ type subdomain struct {
 	ncid, nstrm, cid0               int           // number of cells, number of stream cells, outlet cell ID
 }
 
-// func (b *subdomain) getForcings() (dt []time.Time, y, ep [][]float64, obs []float64, intvl int64, nstep int) {
-// 	dt = b.frc.T
-// 	y = b.frc.D[0]
-// 	ep = b.frc.D[1]
-// 	obs = []float64{}
-// 	intvl = int64(b.frc.IntervalSec)
-// 	nstep = len(b.frc.T)
-// 	return
-// }
-
 // func gwsink(sta string) float64 {
 // 	d := map[string]float64{
 // 		"02EC021": .0005,

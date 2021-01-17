@@ -61,12 +61,21 @@ type SurfGeo struct {
 // Sample returns a sample from the SurfGeo's range
 func Sample(u []float64) []float64 {
 	k := make([]float64, 8)
-	for i, un := range jointdist.Nested(u[:5]...) {
-		k[i] = mmaths.LogLinearTransform(1e-11, 1e-3, un) // low through high
+	for i := 0; i < 8; i++ {
+		k[i] = ksatDistrFromID(i + 1).P(u[i])
 	}
-	k[5] = ksatDistrFromID(unknown).Distr.Inv(u[5])          // unknown/variable
-	k[6] = ksatDistrFromID(streambed).Distr.Inv(u[6])        // streambed
-	k[7] = ksatDistrFromID(wetlandSediments).Distr.Inv(u[7]) // wetland
+	return k
+}
+
+// SampleNested returns a nested sample from the SurfGeo's range
+func SampleNested(u []float64) []float64 {
+	k := make([]float64, 8)
+	for i, un := range jointdist.Nested(u[:5]...) {
+		k[4-i] = mmaths.LogLinearTransform(1e-11, 1e-3, un) // low through high
+	}
+	k[5] = ksatDistrFromID(unknown).P(u[5])          // unknown/variable
+	k[6] = ksatDistrFromID(streambed).P(u[6])        // streambed
+	k[7] = ksatDistrFromID(wetlandSediments).P(u[7]) // wetland
 	return k
 }
 
