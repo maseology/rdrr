@@ -20,7 +20,7 @@ func par7(u []float64) (m, grdMin, kstrm, mcasc, soildepth, kfact, dinc float64)
 }
 
 func parSurfGeo(u []float64) (m, grdMin, kstrm, mcasc, soildepth, dinc float64, ksat []float64) {
-	m = mmaths.LogLinearTransform(0.1, 500., u[0])       // topmodel m -- NOTE anything less than 0.01 can lead to overflows
+	m = mmaths.LogLinearTransform(0.1, 5., u[0])         // topmodel m -- NOTE anything less than 0.01 can lead to overflows
 	grdMin = mmaths.LogLinearTransform(.00001, 1., u[1]) // gradient under which no flow will cascade
 	kstrm = mmaths.LinearTransform(.85, 1., u[2])        // maximum cascade fraction and given to all stream cells (~streamflow recession factor)
 	mcasc = mmaths.LogLinearTransform(.001, 10., u[3])   // slope of fuzzy cascade curve

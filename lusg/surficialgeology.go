@@ -93,7 +93,7 @@ func Sample(u []float64) []float64 {
 		}
 	}
 	for i := 0; i < 8; i++ {
-		l, h := f(i)
+		l, h := f(i + 1)
 		k[i] = mmaths.LogLinearTransform(l, h, u[i])
 	}
 	return k
