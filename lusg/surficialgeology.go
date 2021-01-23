@@ -34,7 +34,7 @@ func LoadSurfGeo(UniqueValues []int) *SurfGeoColl {
 				ID:   id,
 				Ksat: ksatFromID(6),
 				SY:   syFromID(6),
-				dK:   ksatDistrFromID(6),
+				dK:   ksatTrapDistrFromID(6),
 				dP:   porDistrFromID(6),
 			}
 		default:
@@ -42,7 +42,7 @@ func LoadSurfGeo(UniqueValues []int) *SurfGeoColl {
 				ID:   id,
 				Ksat: ksatFromID(id),
 				SY:   syFromID(id),
-				dK:   ksatDistrFromID(id),
+				dK:   ksatTrapDistrFromID(id),
 				dP:   porDistrFromID(id),
 			}
 		}
@@ -61,8 +61,49 @@ type SurfGeo struct {
 // Sample returns a sample from the SurfGeo's range
 func Sample(u []float64) []float64 {
 	k := make([]float64, 8)
+	f := func(sgid int) (float64, float64) {
+		switch sgid {
+		case 1: // Low
+			return 1e-11, 1e-6
+			// return buildLogTrapezoid(1e-11, 1e-9, 1e-7, 1e-6)
+		case 2: // Low_Medium
+			return 1e-9, 1e-5
+			// return buildLogTrapezoid(1e-9, 1e-7, 1e-6, 1e-5)
+		case 3: // Medium
+			return 1e-8, 1e-4
+			// return buildLogTrapezoid(1e-8, 1e-6, 1e-5, 1e-4)
+		case 4: // Medium_High
+			return 1e-6, 1e-3
+			// return buildLogTrapezoid(1e-6, 1e-5, 1e-4, 1e-3)
+		case 5: // High
+			return 1e-5, 1e-2
+			// return buildLogTrapezoid(1e-5, 1e-4, 1e-3, 1e-2)
+		case 6: // Unknown (variable)
+			return 1e-9, 1e-3
+			// return buildLogTrapezoid(1e-9, 1e-7, 1e-5, 1e-3)
+		case 7: // Streambed (alluvium/unconsolidated/fluvial/floodplain)
+			return 1e-8, 1e-4
+			// return buildLogTrapezoid(1e-8, 1e-7, 1e-5, 1e-4)
+		case 8: // Wetland_Sediments (organics)
+			return 1e-8, 1e-4
+			// return buildLogTrapezoid(1e-8, 1e-7, 1e-5, 1e-4)
+		default:
+			log.Fatalf("Sample: no value assigned to SurfGeo ID %d", sgid)
+			return 0., 0.
+		}
+	}
 	for i := 0; i < 8; i++ {
-		k[i] = ksatDistrFromID(i + 1).P(u[i])
+		l, h := f(i)
+		k[i] = mmaths.LogLinearTransform(l, h, u[i])
+	}
+	return k
+}
+
+// SampleTrapezoid returns a sample from the SurfGeo's range using trapezoidal distributions
+func SampleTrapezoid(u []float64) []float64 {
+	k := make([]float64, 8)
+	for i := 0; i < 8; i++ {
+		k[i] = ksatTrapDistrFromID(i + 1).P(u[i])
 	}
 	return k
 }
@@ -73,9 +114,9 @@ func SampleNested(u []float64) []float64 {
 	for i, un := range jointdist.Nested(u[:5]...) {
 		k[4-i] = mmaths.LogLinearTransform(1e-11, 1e-3, un) // low through high
 	}
-	k[5] = ksatDistrFromID(unknown).P(u[5])          // unknown/variable
-	k[6] = ksatDistrFromID(streambed).P(u[6])        // streambed
-	k[7] = ksatDistrFromID(wetlandSediments).P(u[7]) // wetland
+	k[5] = ksatTrapDistrFromID(unknown).P(u[5])          // unknown/variable
+	k[6] = ksatTrapDistrFromID(streambed).P(u[6])        // streambed
+	k[7] = ksatTrapDistrFromID(wetlandSediments).P(u[7]) // wetland
 	return k
 }
 
@@ -144,9 +185,8 @@ func buildLinear(l, h float64) *invdistr.Map {
 	}
 }
 
-// ksatDistrFromID returns a trapezoidal sample distribution of
-// hydraulic conductivity [m/s] for a given material type
-func ksatDistrFromID(sgid int) *invdistr.Map {
+// ksatTrapDistrFromID returns a trapezoidal sample distribution of hydraulic conductivity [m/s] for a given material type
+func ksatTrapDistrFromID(sgid int) *invdistr.Map {
 	switch sgid {
 	case 1: // Low
 		return buildLogTrapezoid(1e-11, 1e-9, 1e-7, 1e-6)

@@ -179,8 +179,8 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, soildepth float64,
 				log.Printf(" surfgeoSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
 				gg = 6 // Unknown (variable)
 			}
-			if gg == 0 {
-				log.Printf(" surfgeoSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
+			if gg == -9999 || gg == 0 {
+				// log.Printf(" surfgeoSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
 				gg = 6
 			}
 			var lu lusg.LandUse
@@ -230,7 +230,7 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, soildepth float64,
 				if _, ok := b.mpr.SGx[c]; ok {
 					gg = b.mpr.SGx[c]
 				}
-				if gg == 0 {
+				if gg == -9999 || gg == 0 {
 					gg = 6
 				}
 				ksatTS[c] = ksat[gg-1] * ts // [m/ts]
