@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	mcDir = "S:/Peel/PWRMM21.MC/"                           // "M:/Peel/RDRR-PWRMM21/PWRMM21.MC/"                               //
-	obsFP = "S:/Peel/elevation.real.uhdem.gauges_final.csv" //"M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //
-	npar  = 14                                              // 7
+	mcDir = "O:/PWRMM21.MC/"                                                 //"S:/Peel/PWRMM21.MC/"                           // "M:/Peel/RDRR-PWRMM21/PWRMM21.MC/"                               //
+	obsFP = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //"S:/Peel/elevation.real.uhdem.gauges_final.csv"
+	npar  = 14                                                               // 7
 	minOF = -9999
 )
 
@@ -34,9 +34,7 @@ func main() {
 
 	// load observations
 	obsColls := func() map[int]pp.ObsColl {
-		var c map[int]pp.ObsColl
-		var err error
-		c, err = pp.GetObservations(mcDir, obsFP)
+		c, err := pp.GetObservations(mcDir, obsFP)
 		if err != nil {
 			log.Fatalf(" postpro.GetObservations failed: %v", err)
 		}
@@ -102,10 +100,12 @@ type stationResult struct {
 func collectResults(tarfp string, dts []time.Time, obs map[int]pp.ObsColl) []stationResult {
 	fmt.Printf(" extracting %s\n", tarfp)
 	tmpdir, err := mmio.ExtractTarGZ(tarfp)
-	if err != nil {
-		log.Fatalf(" ExtractTarGZ failed: %v", err)
-	}
 	defer mmio.DeleteDir(tmpdir)
+	if err != nil {
+		// log.Fatalf(" ExtractTarGZ failed: %v", err)
+		fmt.Printf(" ExtractTarGZ failed: %v", err)
+		return []stationResult{}
+	}
 
 	// read parameters of current realization
 	fpar := func() []par {
