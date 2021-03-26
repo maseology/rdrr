@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	mcDir = "O:/PWRMM21.MC/"                                                 //"S:/Peel/PWRMM21.MC/"                           // "M:/Peel/RDRR-PWRMM21/PWRMM21.MC/"                               //
-	obsFP = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //"S:/Peel/elevation.real.uhdem.gauges_final.csv"
-	npar  = 14                                                               // 7
+	mcDir = "S:/OWRC-RDRR/owrc.MC/"                // "S:/Peel/PWRMM21.MC/"                          // "M:/Peel/RDRR-PWRMM21/PWRMM21.MC/"                              // "O:/PWRMM21.MC/"
+	obsFP = "S:/OWRC-RDRR/owrc20-50-obs.final.csv" //"S:/Peel/elevation.real.uhdem.gauges_final.csv" //"M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv" //
+	npar  = 14                                     // 7
 	minOF = -9999
 )
 
