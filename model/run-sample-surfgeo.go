@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/maseology/mmio"
@@ -29,7 +30,10 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 	fmt.Printf(" number of subwatersheds: %d\n", len(b.rtr.SwsCidXR))
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSGeoSmplDim)
 
+	var mu sync.Mutex
 	printParams := func(m, grdMin, kstrm, mcasc, soildepth, dinc float64, ksat []float64, mdir string) {
+		mu.Lock()
+		defer mu.Unlock()
 		tw, err := mmio.NewTXTwriter(mdir + "params.txt")
 		defer tw.Close()
 		if err != nil {
@@ -59,12 +63,36 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 		return of
 	}
 	sp := smpln.NewLHC(rng, nsmpl, nSGeoSmplDim, false)
-	for k := 0; k < nsmpl; k++ {
-		ut := make([]float64, nSGeoSmplDim)
-		for j := 0; j < nSGeoSmplDim; j++ {
-			ut[j] = sp.U[j][k]
+
+	nPara := 4
+	if nPara > 1 { // ONLY USE FOR SMALLER MODELS !!!
+		var wg sync.WaitGroup
+		k := 0
+		for k < nsmpl {
+			for t := 0; t < nPara; t++ {
+				if k < nsmpl {
+					wg.Add(1)
+					go func(k int) {
+						ut := make([]float64, nSGeoSmplDim)
+						for j := 0; j < nSGeoSmplDim; j++ {
+							ut[j] = sp.U[j][k]
+						}
+						gen(ut)
+						wg.Done()
+					}(k)
+				}
+				k++
+			}
+			wg.Wait()
 		}
-		gen(ut)
+	} else { // serial
+		for k := 0; k < nsmpl; k++ {
+			ut := make([]float64, nSGeoSmplDim)
+			for j := 0; j < nSGeoSmplDim; j++ {
+				ut[j] = sp.U[j][k]
+			}
+			gen(ut)
+		}
 	}
 	tt.Lap("results save complete")
 }

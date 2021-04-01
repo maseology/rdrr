@@ -58,8 +58,8 @@ type SurfGeo struct {
 	ID       int
 }
 
-// Sample returns a sample from the SurfGeo's range
-func Sample(u []float64) []float64 {
+// SurfGeoSample returns a sample from the SurfGeo's range
+func SurfGeoSample(u []float64) []float64 {
 	k := make([]float64, 8)
 	f := func(sgid int) (float64, float64) {
 		switch sgid {
@@ -82,7 +82,7 @@ func Sample(u []float64) []float64 {
 			return 1e-9, 1e-3
 			// return buildLogTrapezoid(1e-9, 1e-7, 1e-5, 1e-3)
 		case 7: // Streambed (alluvium/unconsolidated/fluvial/floodplain)
-			return 1e-8, 1e-4
+			return 1e-8, 1e-5
 			// return buildLogTrapezoid(1e-8, 1e-7, 1e-5, 1e-4)
 		case 8: // Wetland_Sediments (organics)
 			return 1e-8, 1e-4

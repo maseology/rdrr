@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	gdeffp = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gdef" // "M:/OWRC-RDRR/owrc20-50a.uhdem.gdef"
-	evalfp = "O:/PWRMM21.MC/summaryOF.csv"
-	obsFP  = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv"
+	gdeffp = "S:/Peel/elevation.real.uhdem.gdef"             // "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gdef" // "M:/OWRC-RDRR/owrc20-50a.uhdem.gdef"
+	evalfp = "S:/Peel/PWRMM21.MC/summaryOF.csv"              // "O:/PWRMM21.MC/summaryOF.csv"
+	obsFP  = "S:/Peel/elevation.real.uhdem.gauges_final.csv" // "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem.gauges_final.csv"
 	minL   = 0.2
 )
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 
 	"github.com/maseology/mmio"
@@ -13,9 +12,9 @@ func main() {
 
 	const (
 		// mdlPrfx = "S:/OWRC-RDRR/owrc."
-		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21." //"S:/Peel/PWRMM21." //
-		obsfp   = "S:/Peel/obs/02HB004.csv"       //"M:/Peel/RDRR-PWRMM21/dat/obs/02HB004.csv" // "S:/Peel/obs/02HB008.csv" //"M:/Peel/RDRR-PWRMM21/dat/obs/02HB008.csv" //
-		cid0    = 2014386                         //-1                                         //  1552736
+		mdlPrfx = "S:/Peel/PWRMM21."        //"M:/Peel/RDRR-PWRMM21/PWRMM21." //
+		obsfp   = "S:/Peel/obs/02HB004.csv" //"M:/Peel/RDRR-PWRMM21/dat/obs/02HB004.csv" // "S:/Peel/obs/02HB008.csv" //"M:/Peel/RDRR-PWRMM21/dat/obs/02HB008.csv" //
+		cid0    = 2014386                   //-1                                         //  1552736
 	)
 	//02HB024
 
@@ -28,9 +27,9 @@ func main() {
 	tt.Print("Master Domain Load complete\n")
 
 	model.DeleteMonitors(mdlPrfx+"out/", true) // also sets-up the output folder
-	if err := dom.Frc.AddObservation(obsfp, dom.Strc.Acell, cid0); err != nil {
-		log.Fatalln(err)
-	}
+	// if err := dom.Frc.AddObservation(obsfp, dom.Strc.Acell, cid0); err != nil {
+	// 	log.Fatalln(err)
+	// }
 
 	// fobs := dom.Frc.O[0]
 	// oobs, _ := postpro.GetObservations("C:/Users/Mason/Desktop/", "")
