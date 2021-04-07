@@ -7,7 +7,7 @@ import (
 )
 
 // RunSurfGeo runs like RunDefault, but adds sampling of surficial geology types to an outlet cellID (=-1 for full-domain model)
-func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, soildepth, dinc float64, ksat []float64, outlet int, print bool) float64 {
+func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv float64, ksat []float64, outlet int, print bool) float64 {
 	tt := mmio.NewTimer()
 
 	// build submodel
@@ -20,7 +20,7 @@ func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, s
 	}
 
 	// add parameterization
-	smpl := b.surfgeoSample(topm, grdMin, kstrm, mcasc, soildepth, ksat)
+	smpl := b.surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth, ksat)
 	smpl.dir = mdldir
 	if print {
 		tt.Lap("sample build complete")

@@ -17,7 +17,7 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 	fmt.Println("Building Sub Domain..")
 	var b subdomain
 	if d.Frc == nil {
-		log.Fatalf(" Daomain.SampleSurfGeo error: no forcings made available\n")
+		log.Fatalf(" Domain.SampleSurfGeo error: no forcings made available\n")
 	}
 
 	b = d.newSubDomain(d.Frc, outlet)
@@ -52,9 +52,9 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 
 	gen := func(u []float64) float64 {
 		mdir := newMCdir()
-		m, gdn, kstrm, mcasc, soildepth, dinc, ksat := parSurfGeo(u)
+		m, gdn, kstrm, mcasc, urbDiv, soildepth, dinc, ksat := parSurfGeo(u)
 		go printParams(m, gdn, kstrm, mcasc, soildepth, dinc, ksat, mdir)
-		smpl := b.surfgeoSample(m, gdn, kstrm, mcasc, soildepth, ksat)
+		smpl := b.surfgeoSample(m, gdn, kstrm, mcasc, urbDiv, soildepth, ksat)
 		smpl.dir = mdir
 		of := b.evaluate(&smpl, dinc, m, false)
 		WaitMonitors()

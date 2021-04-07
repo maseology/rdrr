@@ -155,7 +155,7 @@ func (b *subdomain) defaultSample(topm, grdMin, kstrm, mcasc, soildepth, kfact f
 	}
 }
 
-func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, soildepth float64, ksat []float64) sample {
+func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth float64, ksat []float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.IntervalSec // [s/ts]
@@ -279,6 +279,16 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, soildepth float64,
 				ws[c].Sma.Cap = 0.
 			}
 		}
+		curb := 0
+		for _, c := range b.cids {
+			if ll, ok := b.mpr.LUx[c]; !ok {
+				log.Fatalf(" surfgeoSample finalAdjustments error, no LandUse assigned to cell ID %d", c)
+			} else if ll == 4 { // urban
+				cascf[c] = urbDiv
+				curb++
+			}
+		}
+		print("")
 	}()
 
 	return sample{

@@ -7,6 +7,7 @@ import (
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/goHydro/tem"
+	"github.com/maseology/mmio"
 	"github.com/maseology/rdrr/model"
 )
 
@@ -20,9 +21,17 @@ type Cell struct {
 func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc *model.STRC, cells []Cell) {
 
 	dem := func() tem.TEM {
+		if mmio.GetExtension(demFP) == ".gob" {
+			t, err := tem.LoadGob(demFP)
+			if err != nil {
+				log.Fatalf(" BuildSTRC tem.LoadGob() error: %v", err)
+			}
+			return t
+		}
+
 		var dem tem.TEM
 		if err := dem.New(demFP); err != nil {
-			log.Fatalf(" tem.New() error: %v", err)
+			log.Fatalf(" BuildSTRC tem.New() error: %v", err)
 		}
 		for _, i := range gd.Sactives {
 			if _, ok := dem.TEC[i]; !ok {
@@ -30,21 +39,22 @@ func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc
 			}
 			if dem.TEC[i].Z == -9999. {
 				// log.Fatalf("no elevation assigned to cell %d", i)
-				fmt.Printf(" WARNING no elevation assigned to meteo cell %d\n", i)
+				fmt.Printf(" WARNING no elevation assigned to cell %d\n", i)
 			}
 		}
 		if gd.Nact != len(dem.TEC) {
-			d := make(map[int]tem.TEC, gd.Nact)
-			for _, i := range gd.Sactives {
-				d[i] = dem.TEC[i]
-				if !gd.IsActive(d[i].Ds) {
-					t := d[i]
-					t.Ds = -1
-					d[i] = t
-				}
-			}
-			dem.TEC = d
-			dem.BuildUpslopes()
+			log.Fatalf("BuildSTRC todo1")
+			// d := make(map[int]tem.TEC, gd.Nact)
+			// for _, i := range gd.Sactives {
+			// 	d[i] = dem.TEC[i]
+			// 	if !gd.IsActive(d[i].Ds) {
+			// 		t := d[i]
+			// 		t.Ds = -1
+			// 		d[i] = t
+			// 	}
+			// }
+			// dem.TEC = d
+			// dem.BuildUpslopes()
 		}
 		return dem
 	}()

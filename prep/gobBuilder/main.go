@@ -41,12 +41,13 @@ import (
 // 	ncfp    = "M:/OWRC-RDRR/met/202010010100.nc.bin"             // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
 // )
 const (
-	gobDir  = "M:/Peel/RDRR-PWRMM21/PWRMM21."
-	gdefFP  = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.indx.gdef"
-	demFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem"
+	gobDir = "M:/Peel/RDRR-PWRMM21/PWRMM21."
+	gdefFP = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.indx.gdef"
+	// demFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real.uhdem"
+	demFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real-urbDiv.uhdem"
 	swsFP   = "M:/Peel/RDRR-PWRMM21/dat/elevation.real_SWS10.indx"
 	midFP   = "M:/Peel/RDRR-PWRMM21/dat/owrc20-50a_SWS10_resmpl.indx" // index meteo timeseries
-	lufprfx = "M:/Peel/RDRR-PWRMM21/dat/solrisv3_10_infilled.bil"
+	lufprfx = "M:/Peel/RDRR-PWRMM21/dat/solrisv3_10_infilled.bil"     // used only as a prefix
 	sgfp    = "M:/Peel/RDRR-PWRMM21/dat/OGSsurfGeo_50_resmpl.indx"
 	ncfp    = "M:/OWRC-RDRR/met/202010010100.nc.bin" // needed to convert nc to bin using /@dev/python/src/FEWS/netcdf/ncToMet.py; I cannot get github.com/fhs/go-netcdf to work on windows (as of 201027)
 )
