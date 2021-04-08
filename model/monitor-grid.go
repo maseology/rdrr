@@ -75,6 +75,6 @@ func (g *gmonitor) print(ws []hru.HRU, pin map[int][]float64, cxr map[int]int, d
 	mmio.WriteRMAP(g.dir+"g.gwe.rmap", mg, true)
 	mmio.WriteRMAP(g.dir+"g.sto.rmap", ms, true)
 	mmio.WriteRMAP(g.dir+"g.sma.rmap", msma, true)
-	mmio.WriteRMAP(g.dir+"g.Sdet.rmap", msrf, true)
+	mmio.WriteRMAP(g.dir+"g.sdet.rmap", msrf, true)
 	mmio.WriteRMAP(g.dir+"g.wbal.rmap", mw, true)
 }

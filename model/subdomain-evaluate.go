@@ -20,7 +20,7 @@ type stran struct {
 // evaluate evaluates a subdomain
 func (b *subdomain) evaluate(p *sample, Dinc, m float64, print bool) (of float64) {
 
-	ver := evalMC
+	ver := evalWB
 
 	nstep := len(b.frc.T)
 
@@ -110,63 +110,109 @@ func (b *subdomain) evaluate(p *sample, Dinc, m float64, print bool) (of float64
 				}
 			}
 		}
+		if b.cid0 > -1 {
+			printAggregated(b, p)
+		}
 		// printTrans(b, transfers, outflw)
 	}
 	return
 }
 
-func printTrans(b *subdomain, m map[int][]itran, outflow []float64) {
-	nstp := 10
-	txt, _ := mmio.NewTXTwriter("printTrans.txt")
-	defer txt.Close()
-	osws := b.rtr.Sws[b.cid0]
-	xr := make(map[int]int, len(b.rtr.SwsCidXR))
-	for sws := range b.rtr.SwsCidXR {
-		xr[b.ds[sws]] = sws
-	}
-	for i, k := range b.swsord {
-		for _, sid := range k {
-			ss := sid
-			if sid == osws {
-				ss = b.cid0
-			}
-			txt.Write(fmt.Sprintf("%d ============================================================================== SWS: %d\ninput\t", i+1, ss))
-			if _, ok := m[ss]; !ok {
-				txt.Write("none (peak)\n")
-			} else {
-				for _, t := range m[ss] {
-					txt.Write(fmt.Sprintf("%20d", xr[t.c]))
+func printAggregated(b *subdomain, p *sample) {
+	if _, ok := mmio.FileExists(fmt.Sprintf("%s%d.wbgt", p.dir, b.cid0)); ok {
+		fmt.Println("  aggregating waterbudgets..")
+		nstp := len(b.frc.T)
+		ty, ta, tr, tg, ts, tb, tdm := make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp)
+		dcel := 0.
+		for _, k := range b.swsord {
+			for _, sid := range k {
+				fp := fmt.Sprintf("%s%d.wbgt", p.dir, sid)
+				if _, ok := mmio.FileExists(fp); !ok {
+					log.Fatalf("sws %d waterbudget not printed", sid)
 				}
-				txt.Write("\n")
-				for i := 0; i < nstp; i++ { //} i := range v[0].v {
-					txt.Write(fmt.Sprintf("\t\t"))
-					for j := 0; j < len(m[ss]); j++ {
-						txt.Write(fmt.Sprintf("%20f", m[ss][j].v[i]))
+				ncel := float64(len(b.rtr.SwsCidXR[sid]))
+
+				if dat, err := mmio.ReadCSV(fp); err != nil {
+					log.Fatalf("sws %d waterbudget not printed", sid)
+				} else {
+					dcel += ncel
+					for i := 0; i < nstp; i++ {
+						ty[i] += ncel * dat[i][0]
+						// tins[i] += ncel * dat[i][1]
+						ta[i] += ncel * dat[i][2]
+						tr[i] += ncel * dat[i][3]
+						tg[i] += ncel * dat[i][4]
+						ts[i] += ncel * dat[i][5]
+						tb[i] += ncel * dat[i][6]
+						tdm[i] += ncel * dat[i][7]
 					}
-					txt.Write("\n")
 				}
 			}
-			txt.Write("\n\n")
+		}
+
+		csvw := mmio.NewCSVwriter(fmt.Sprintf("%saggregated.wbgt", p.dir)) // all-model water budget file
+		defer csvw.Close()
+		if err := csvw.WriteHead("ys,as,rs,gs,sto,bs,dm0"); err != nil {
+			log.Fatalf("%v", err)
+		}
+		for i, y := range ty {
+			csvw.WriteLine(y/dcel, ta[i]/dcel, tr[i]/dcel, tg[i]/dcel, ts[i]/dcel, tb[i]/dcel, tdm[i]/dcel)
 		}
 	}
-	txt.Write(fmt.Sprintf("========================== outflow\n"))
-	for i := 0; i < nstp; i++ {
-		txt.Write(fmt.Sprintf("\t%20f\n", outflow[i]))
-	}
-
-	// for k, v := range m {
-	// 	txt.Write(fmt.Sprintf("to SWS: %d\n==========================\ni", k))
-	// 	for _, t := range v {
-	// 		txt.Write(fmt.Sprintf(",%d", t.c))
-	// 	}
-	// 	txt.Write("\n")
-	// 	for i := 0; i < 10; i++ { //} i := range v[0].v {
-	// 		txt.Write(fmt.Sprintf("%d", i))
-	// 		for j := 0; j < len(v); j++ {
-	// 			txt.Write(fmt.Sprintf(",%f", v[j].v[i]))
-	// 		}
-	// 		txt.Write("\n")
-	// 	}
-	// 	txt.Write("\n\n")
-	// }
 }
+
+// func printTrans(b *subdomain, m map[int][]itran, outflow []float64) {
+// 	nstp := 10
+// 	txt, _ := mmio.NewTXTwriter("printTrans.txt")
+// 	defer txt.Close()
+// 	osws := b.rtr.Sws[b.cid0]
+// 	xr := make(map[int]int, len(b.rtr.SwsCidXR))
+// 	for sws := range b.rtr.SwsCidXR {
+// 		xr[b.ds[sws]] = sws
+// 	}
+// 	for i, k := range b.swsord {
+// 		for _, sid := range k {
+// 			ss := sid
+// 			if sid == osws {
+// 				ss = b.cid0
+// 			}
+// 			txt.Write(fmt.Sprintf("%d ============================================================================== SWS: %d\ninput\t", i+1, ss))
+// 			if _, ok := m[ss]; !ok {
+// 				txt.Write("none (peak)\n")
+// 			} else {
+// 				for _, t := range m[ss] {
+// 					txt.Write(fmt.Sprintf("%20d", xr[t.c]))
+// 				}
+// 				txt.Write("\n")
+// 				for i := 0; i < nstp; i++ { //} i := range v[0].v {
+// 					txt.Write(fmt.Sprintf("\t\t"))
+// 					for j := 0; j < len(m[ss]); j++ {
+// 						txt.Write(fmt.Sprintf("%20f", m[ss][j].v[i]))
+// 					}
+// 					txt.Write("\n")
+// 				}
+// 			}
+// 			txt.Write("\n\n")
+// 		}
+// 	}
+// 	txt.Write(fmt.Sprintf("========================== outflow\n"))
+// 	for i := 0; i < nstp; i++ {
+// 		txt.Write(fmt.Sprintf("\t%20f\n", outflow[i]))
+// 	}
+
+// 	// for k, v := range m {
+// 	// 	txt.Write(fmt.Sprintf("to SWS: %d\n==========================\ni", k))
+// 	// 	for _, t := range v {
+// 	// 		txt.Write(fmt.Sprintf(",%d", t.c))
+// 	// 	}
+// 	// 	txt.Write("\n")
+// 	// 	for i := 0; i < 10; i++ { //} i := range v[0].v {
+// 	// 		txt.Write(fmt.Sprintf("%d", i))
+// 	// 		for j := 0; j < len(v); j++ {
+// 	// 			txt.Write(fmt.Sprintf(",%f", v[j].v[i]))
+// 	// 		}
+// 	// 		txt.Write("\n")
+// 	// 	}
+// 	// 	txt.Write("\n\n")
+// 	// }
+// }

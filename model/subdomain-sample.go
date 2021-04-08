@@ -272,23 +272,24 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth 
 	cascf := b.buildCascadeFraction(grdMin, kstrm, mcasc)
 
 	func() { // finalAdjustments
+		strms := map[int]bool{}
 		for _, g := range gw {
 			for c := range g.Qs {
 				cascf[c] = kstrm
 				ws[c].Sdet.Cap = soildepth // in cases where stream cell courses through a flow-resistive cell, ensure movement of water
 				ws[c].Sma.Cap = 0.
+				strms[c] = true
 			}
 		}
-		curb := 0
 		for _, c := range b.cids {
-			if ll, ok := b.mpr.LUx[c]; !ok {
-				log.Fatalf(" surfgeoSample finalAdjustments error, no LandUse assigned to cell ID %d", c)
-			} else if ll == 4 { // urban
-				cascf[c] = urbDiv
-				curb++
+			if _, ok := strms[c]; !ok { // skip stream cells
+				if ll, ok := b.mpr.LUx[c]; !ok {
+					log.Fatalf(" surfgeoSample finalAdjustments error, no LandUse assigned to cell ID %d", c)
+				} else if ll == 4 { // urban
+					cascf[c] = urbDiv
+				}
 			}
 		}
-		print("")
 	}()
 
 	return sample{

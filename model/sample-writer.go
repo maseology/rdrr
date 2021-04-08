@@ -19,6 +19,6 @@ func (s *sample) write(dir string) error {
 	mmio.WriteRMAP(dir+"s.ws.perc.rmap", perc, false)
 	mmio.WriteRMAP(dir+"s.ws.fimp.rmap", fimp, false)
 	mmio.WriteRMAP(dir+"s.ws.smacap.rmap", smacap, false)
-	mmio.WriteRMAP(dir+"s.ws.Sdetcap.rmap", srfcap, false)
+	mmio.WriteRMAP(dir+"s.ws.sdetcap.rmap", srfcap, false)
 	return nil
 }
