@@ -66,8 +66,8 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 	}
 	sp := smpln.NewLHC(rng, nsmpl, nSGeoSmplDim, false)
 
-	nPara := runtime.GOMAXPROCS(0) / 2
-	if nPara > 1 { // ONLY USE FOR SMALLER MODELS !!!
+	nPara := runtime.GOMAXPROCS(0) / 2 // ONLY USE FOR SMALLER MODELS !!!
+	if nPara > 1 {                     // ONLY USE FOR SMALLER MODELS !!!
 		var wg sync.WaitGroup
 		k := 0
 		for k < nsmpl {
