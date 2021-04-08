@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"runtime"
 	"sync"
 	"time"
 
@@ -31,7 +32,7 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSGeoSmplDim)
 
 	var mu sync.Mutex
-	printParams := func(m, grdMin, kstrm, mcasc, soildepth, dinc float64, ksat []float64, mdir string) {
+	printParams := func(m, grdMin, kstrm, mcasc, urbDiv, soildepth, dinc float64, ksat []float64, mdir string) {
 		mu.Lock()
 		defer mu.Unlock()
 		tw, err := mmio.NewTXTwriter(mdir + "params.txt")
@@ -45,15 +46,16 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 		tw.WriteLine(fmt.Sprintf("grdMin\t%f", grdMin))
 		tw.WriteLine(fmt.Sprintf("kstrm\t%f", kstrm))
 		tw.WriteLine(fmt.Sprintf("mcasc\t%f", mcasc))
+		tw.WriteLine(fmt.Sprintf("urbDiv\t%f", urbDiv))
 		tw.WriteLine(fmt.Sprintf("soildepth\t%f", soildepth))
-		tw.WriteLine(fmt.Sprintf("ksat\t%e", ksat))
 		tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
+		tw.WriteLine(fmt.Sprintf("ksat\t%e", ksat))
 	}
 
 	gen := func(u []float64) float64 {
 		mdir := newMCdir()
 		m, gdn, kstrm, mcasc, urbDiv, soildepth, dinc, ksat := parSurfGeo(u)
-		go printParams(m, gdn, kstrm, mcasc, soildepth, dinc, ksat, mdir)
+		go printParams(m, gdn, kstrm, mcasc, urbDiv, soildepth, dinc, ksat, mdir)
 		smpl := b.surfgeoSample(m, gdn, kstrm, mcasc, urbDiv, soildepth, ksat)
 		smpl.dir = mdir
 		of := b.evaluate(&smpl, dinc, m, false)
@@ -64,7 +66,7 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 	}
 	sp := smpln.NewLHC(rng, nsmpl, nSGeoSmplDim, false)
 
-	nPara := 4
+	nPara := runtime.GOMAXPROCS(0) / 2
 	if nPara > 1 { // ONLY USE FOR SMALLER MODELS !!!
 		var wg sync.WaitGroup
 		k := 0
