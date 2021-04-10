@@ -37,7 +37,7 @@ func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, s
 	}
 
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
-	of := b.evaluate(&smpl, dinc, topm, print)
+	of := b.evaluate(&smpl, dinc, topm, print, evalWB)
 	WaitMonitors()
 	return of
 }

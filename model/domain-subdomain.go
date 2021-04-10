@@ -72,7 +72,9 @@ func BuildStreams(strc *STRC, cids []int) ([]int, int) {
 			nstrm++
 		}
 	}
-	return strms, nstrm
+	o := make([]int, nstrm)
+	copy(o, strms)
+	return o, nstrm
 }
 
 // sortMonitorsSWS sorts observation cell IDs by SWS, where d.obs ([]int{cellID}) --> b.obs (map[sid][]int{cellID})

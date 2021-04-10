@@ -43,12 +43,13 @@ func (b *subdomain) print() {
 func (b *subdomain) write(dir string) error {
 	b.rtr.write(dir + "b.rtr.")
 	b.mpr.writeSubset(dir+"b.mpr.", b.cids)
-	ucnt, strm := make(map[int]float64, b.ncid), make(map[int]bool, b.nstrm)
+	ucnt, ifct, strm := make(map[int]float64, b.ncid), make(map[int]float64, b.ncid), make(map[int]bool, b.nstrm)
 	slp := make(map[int]float64, b.ncid)
 	mxr := make(map[int]int, b.ncid)
 	for _, c := range b.cids {
 		ucnt[c] = float64(b.strc.UpCnt[c])
 		slp[c] = b.strc.TEM.TEC[c].G
+		ifct[c] = b.mpr.Ifct[c]
 		mxr[c] = b.frc.XR[c]
 		if b.strc.UpCnt[c] > 400 {
 			strm[c] = true
@@ -56,6 +57,7 @@ func (b *subdomain) write(dir string) error {
 	}
 	mmio.WriteRMAP(dir+"b.strc.t.upcnt.rmap", ucnt, false)
 	mmio.WriteRMAP(dir+"b.strc.t.grad.rmap", slp, false)
+	mmio.WriteRMAP(dir+"b.mpr.ifct.rmap", ifct, false)
 	mmio.WriteIMAP(dir+"b.frc.mxr.imap", mxr)
 	strmca := make(map[int]int, b.ncid)
 	for k := range strm {

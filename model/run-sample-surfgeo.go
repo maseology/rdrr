@@ -58,7 +58,7 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 		go printParams(m, gdn, kstrm, mcasc, urbDiv, soildepth, dinc, ksat, mdir)
 		smpl := b.surfgeoSample(m, gdn, kstrm, mcasc, urbDiv, soildepth, ksat)
 		smpl.dir = mdir
-		of := b.evaluate(&smpl, dinc, m, false)
+		of := b.evaluate(&smpl, dinc, m, false, evalMC)
 		WaitMonitors()
 		compressMC2(mdir)
 		fmt.Print(".")

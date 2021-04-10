@@ -18,7 +18,7 @@ func eval(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 			p.ws[i].Sdet.Sto += v[k] // inflow from up sws
 		}
 		for i := 0; i < ncid; i++ {
-			_, r, g := p.ws[i].UpdateWT(p.y[p.mxr[i]][k], p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
+			_, r, g := p.ws[i].UpdateWT(p.y[p.mxr[i]][k], p.ep[p.mxr[i]][k], dm+p.drel[i])
 			p.ws[i].Sdet.Sto += r * (1. - p.cascf[i])
 			r *= p.cascf[i]
 			g += p.ws[i].InfiltrateSurplus()

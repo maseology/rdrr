@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"log"
+	"math"
 	"sync"
 
 	"github.com/maseology/mmio"
@@ -17,10 +18,10 @@ type stran struct {
 	s int
 }
 
-// evaluate evaluates a subdomain
-func (b *subdomain) evaluate(p *sample, Dinc, m float64, print bool) (of float64) {
+type version func(p *evaluation, Dinc, m float64, res resulter, monid []int)
 
-	ver := evalWB
+// evaluate evaluates a subdomain
+func (b *subdomain) evaluate(p *sample, Dinc, m float64, print bool, ver version) (of float64) {
 
 	nstep := len(b.frc.T)
 
@@ -122,41 +123,72 @@ func printAggregated(b *subdomain, p *sample) {
 	if _, ok := mmio.FileExists(fmt.Sprintf("%s%d.wbgt", p.dir, b.cid0)); ok {
 		fmt.Println("  aggregating waterbudgets..")
 		nstp := len(b.frc.T)
-		ty, ta, tr, tg, ts, tb, tdm := make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp)
+		ty, ta, tg, ts, tds, tb, tdm, tddm, tout, tq := make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp), make([]float64, nstp)
+
+		twbal := func(y, i, a, o, b, g, ds, ddm float64, sid, k int) {
+			wbal := func(wb float64, sufx string) {
+				if math.Abs(wb) > nearzero {
+					s1 := fmt.Sprintf("    inputs: atmyld (y=%.5f); inflow (i=%.5f); qbf (b=%.5f); TOTAL = %.5f\n", y, i, b, y+i+b)
+					s1 += fmt.Sprintf("   outputs:    aet (e=%.5f); outflw (o=%.5f); gwe (g=%.5f); TOTAL = %.5f\n", a, o, g, a+o+g)
+					s1 += fmt.Sprintf("  ins-outs =%10.5f\n", (y+i+b)-(a+o+g))
+					s1 += fmt.Sprintf("     gwdef:    ddm = %10.5f   dsto = %10.5f\n", ddm, ds)
+					log.Fatalf("printAggregated [%s] waterbalance error |wbal| = %e  (sws %d, step %d)\n%s", sufx, wb, sid, k, s1)
+				}
+			}
+			wbal(y+i+ddm-(a+o+ds), "basin:y+i+ddm-(a+o+ds)")      // basin/sws-wide
+			wbal((y+i+b)-(a+o+g+ds), "allHRU:(y+i+b)-(a+o+g+ds)") // sum of all HRUs
+			wbal(b-(g+ddm), "GWR:b-(g+ddm)")                      // groundwater res
+			// wbal((y)-(a+o), "test")
+		}
+
 		dcel := 0.
-		for _, k := range b.swsord {
-			for _, sid := range k {
+		for ii, swss := range b.swsord {
+			for _, sid := range swss {
 				fp := fmt.Sprintf("%s%d.wbgt", p.dir, sid)
 				if _, ok := mmio.FileExists(fp); !ok {
-					log.Fatalf("sws %d waterbudget not printed", sid)
+					log.Fatalf("printAggregated sws %d waterbudget not printed", sid)
 				}
 				ncel := float64(len(b.rtr.SwsCidXR[sid]))
+				dcel += ncel // weighted average
 
-				if dat, err := mmio.ReadCSV(fp); err != nil {
-					log.Fatalf("sws %d waterbudget not printed", sid)
+				if dat, err := mmio.ReadCSV(fp); err != nil { // ys,ins,as,outs,sto,dsto,gs,bs,dm,ddm
+					log.Fatalf("printAggregated sws %d waterbudget not printed\n", sid)
 				} else {
-					dcel += ncel
-					for i := 0; i < nstp; i++ {
-						ty[i] += ncel * dat[i][0]
-						// tins[i] += ncel * dat[i][1]
-						ta[i] += ncel * dat[i][2]
-						tr[i] += ncel * dat[i][3]
-						tg[i] += ncel * dat[i][4]
-						ts[i] += ncel * dat[i][5]
-						tb[i] += ncel * dat[i][6]
-						tdm[i] += ncel * dat[i][7]
+					for k := 0; k < nstp; k++ {
+						twbal(dat[k][0], dat[k][1], dat[k][2], dat[k][3], dat[k][7], dat[k][6], dat[k][5], dat[k][9], sid, k)
+
+						ty[k] += ncel * dat[k][0]
+						// ti := ncel * dat[k][1]
+						ta[k] += ncel * dat[k][2]
+						// to := ncel * dat[k][3]
+						tout[k] += ncel * (dat[k][3] - dat[k][1]) // net out = outs - ins
+						ts[k] = ncel * dat[k][4]
+						tds[k] += ncel * dat[k][5]
+						tg[k] += ncel * dat[k][6]
+						tb[k] += ncel * dat[k][7]
+						tdm[k] = ncel * dat[k][8]
+						tddm[k] += ncel * dat[k][9]
+					}
+					if ii == len(b.swsord)-1 {
+						for k := 0; k < nstp; k++ {
+							tq[k] += ncel * dat[k][3] // only sum outflows from roots sws (i.e, entire subDomain)
+							if math.Abs(tq[k]-tout[k]) > nearzero {
+								log.Fatalf("printAggregated outflow summation error\n")
+							}
+						}
 					}
 				}
 			}
 		}
 
-		csvw := mmio.NewCSVwriter(fmt.Sprintf("%saggregated.wbgt", p.dir)) // all-model water budget file
+		csvw := mmio.NewCSVwriter(fmt.Sprintf("%saggregated.wbgt.csv", p.dir)) // all-model water budget file
 		defer csvw.Close()
-		if err := csvw.WriteHead("ys,as,rs,gs,sto,bs,dm0"); err != nil {
-			log.Fatalf("%v", err)
+		if err := csvw.WriteHead("ys,as,qs,sto,dsto,gs,bs,dm,ddm"); err != nil {
+			log.Fatalf("printAggregated %v", err)
 		}
-		for i, y := range ty {
-			csvw.WriteLine(y/dcel, ta[i]/dcel, tr[i]/dcel, tg[i]/dcel, ts[i]/dcel, tb[i]/dcel, tdm[i]/dcel)
+		for i, y := range ty { // weighted average
+			twbal(y/dcel, 0., ta[i]/dcel, tq[i]/dcel, tb[i]/dcel, tg[i]/dcel, tds[i]/dcel, tddm[i]/dcel, -1, i)
+			csvw.WriteLine(y/dcel, ta[i]/dcel, tq[i]/dcel, ts[i]/dcel, tds[i]/dcel, tg[i]/dcel, tb[i]/dcel, tdm[i]/dcel, tddm[i]/dcel)
 		}
 	}
 }

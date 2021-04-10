@@ -15,20 +15,21 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	// distributed monitors [mm/yr]
 	gy, ge, ga, gr, gg, gb := make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid), make([]float64, ncid)
 	// temporal sws monitors [m/ts]
-	ty, tins, ta, tr, tg, ts, tb, tdm := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
+	ty, ti, ta, to, tg, ts, tb, tdm := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 
 	for _, c := range monid {
 		obsCms[p.cxr[c]] = monitor{c: c, v: make([]float64, p.nstep)}
 	}
 
-	dm, s0s := p.dm, p.s0s
+	dm, dm0, s0s := p.dm, p.dm, p.s0s // initial condition
+	asdf, sdfg := p.dm, p.s0s
 	for k := 0; k < p.nstep; k++ {
 		// doy := p.t[k].doy // day of year
 		// if k%100 == 0 {
 		// 	fmt.Printf("%.3f ", dm)
 		// }
 
-		ys, ins, as, rs, gs, s1s, bs, dm0 := 0., 0., 0., 0., 0., 0., 0., dm
+		ys, ins, as, outs, gs, s1s, bs := 0., 0., 0., 0., 0., 0., 0.
 		for i, v := range p.sources {
 			p.ws[i].Sdet.Sto += v[k] // inflow from up sws
 			ins += v[k]
@@ -39,10 +40,13 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 			ep := p.ep[p.mxr[i]][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
 			d := dm + p.drel[i]     // groundwater deficit
 			cascf := p.cascf[i]
-			a, r, g := p.ws[i].UpdateWT(y, ep, d < 0.)
+			a, r, g := p.ws[i].UpdateWT(y, ep, d/m)
 
 			p.ws[i].Sdet.Sto += r * (1. - cascf)
 			r *= cascf
+			g += p.ws[i].InfiltrateSurplus() // help to maintain "water towers"
+			s1 := p.ws[i].Storage()
+			s1s += s1
 
 			b := 0.
 			if v, ok := p.strmQs[i]; ok { // stream cells always cascade
@@ -51,10 +55,6 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 				gb[i] += b
 				r += b
 			}
-			g += p.ws[i].InfiltrateSurplus() // help to maintain "water towers"
-
-			s1 := p.ws[i].Storage()
-			s1s += s1
 
 			hruwbal := y + s0 + b - (a + r + g + s1)
 			if math.Abs(hruwbal) > nearzero {
@@ -72,7 +72,7 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 				obsCms[i].v[k] = r * fcms
 			}
 			if p.ds[i] == -1 { // outlet cell
-				rs += r
+				outs += r
 			} else {
 				p.ws[p.cxr[p.ds[i]]].Sdet.Sto += r
 			}
@@ -80,43 +80,74 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 			gr[i] += r
 			gg[i] += g
 		}
+
+		// update GWR
+		dm += (bs - gs) / p.fncid
+
+		// basin sums
 		// yss += ys
 		// ass += as
 		// rss += rs
 		// gss += gs
 		// bss += bs
-		dm += (bs - gs) / p.fncid
-		sim[k] = rs
 		// bf[k] = bs
+
+		sim[k] = outs
 		hsto[k] = s1s / p.fncid
 		gsto[k] = dm
 
-		hruwbal := ys + ins + bs + s0s - (as + rs + gs + s1s)
-		if math.Abs(hruwbal) > nearzero {
-			// fmt.Printf("(sum)|hruwbal| = %e\n", hruwbal)
+		ty[k] = ys / p.fncid
+		ti[k] = ins / p.fncid
+		ta[k] = as / p.fncid
+		to[k] = outs / p.fncid
+		tg[k] = gs / p.fncid
+		tb[k] = bs / p.fncid
+		ts[k] = s1s / p.fncid
+		tdm[k] = dm
+
+		// water balances
+		allhruwbal := ys + ins + bs + s0s - (as + outs + gs + s1s)
+		if math.Abs(allhruwbal) > nearzero {
+			// fmt.Printf("sum{hruwbal} = %e\n", allhruwbal)
 			fmt.Print("*")
 		}
 
-		basinwbal := ys + ins + (dm-dm0)*p.fncid + s0s - (as + rs + s1s)
-		// basinwbal := (dm - dm0) + (gs-bs)/p.fncid // gwbal
+		basinwbal := ys + ins + (dm-dm0)*p.fncid + s0s - (as + outs + s1s)
 		if math.Abs(basinwbal) > nearzero {
 			if math.Abs(basinwbal) > fatalzero {
 				log.Fatalf("waterbalance error |basinwbal| = %e, step %d", basinwbal, k)
 			}
-			// fmt.Printf("|basinwbal| = %e\n", basinwbal)
+			// fmt.Printf("basinwbal = %e\n", basinwbal)
 			fmt.Print("+")
 		}
 
-		ty[k] = ys / p.fncid
-		tins[k] = ins / p.fncid
-		ta[k] = as / p.fncid
-		tr[k] = rs / p.fncid
-		tg[k] = gs / p.fncid
-		tb[k] = bs / p.fncid
-		ts[k] = s1s / p.fncid
-		tdm[k] = dm0
+		gwbal := (dm-dm0)*p.fncid + gs - bs
+		if math.Abs(gwbal) > nearzero {
+			if math.Abs(gwbal) > fatalzero {
+				log.Fatalf("waterbalance error |gwbal| = %e, step %d", gwbal, k)
+			}
+			// fmt.Printf("|gwbal| = %e\n", gwbal)
+			fmt.Print("~")
+		}
 
+		// save state
 		s0s = s1s
+		dm0 = dm
+	}
+
+	for k := 1; k < p.nstep; k++ {
+		twbal := (ty[k] + ti[k] + ts[k-1] - tdm[k-1]) - (ta[k] + to[k] + ts[k] - tdm[k])
+		if math.Abs(twbal) > nearzero {
+			if math.Abs(twbal) > fatalzero {
+				s1 := fmt.Sprintf("    inputs: atmyld (y=%.5f); inflow (i=%.5f); gwd (b=%.5f); TOTAL = %.5f\n", ty[k], ti[k], tb[k], ty[k]+ti[k]+tb[k])
+				s1 += fmt.Sprintf("   outputs:    aet (e=%.5f); outflw (o=%.5f); rch (g=%.5f); TOTAL = %.5f\n", ta[k], to[k], tg[k], ta[k]+to[k]+tg[k])
+				s1 += fmt.Sprintf("     gwdef:     dm(t)=%10.5f     dm(t-1)=%10.5f\t\tDIFF = %10.5f\n", tdm[k], tdm[k-1], tdm[k]-tdm[k-1])
+				s1 += fmt.Sprintf("   storage:      s(t)=%10.5f      s(t-1)=%10.5f\t\tDIFF = %10.5f\n", ts[k-1], ts[k], ts[k-1]-ts[k])
+				log.Fatalf("waterbalance error |twbal| = %e, step %d\n%s", twbal, k, s1)
+			}
+			// fmt.Printf("|twbal| = %e\n", twbal)
+			fmt.Print("~")
+		}
 	}
 
 	func() {
@@ -128,9 +159,12 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 		g := gmonitor{gy, ge, ga, gr, gg, gb, p.dir}
 		gwg.Add(1)
 		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, float64(p.nstep))
-		tm := tmonitor{p.sid, ty, tins, ta, tr, tg, ts, tb, tdm, p.dir}
+		tm := tmonitor{p.sid, ty, ti, ta, to, tg, ts, tb, tdm, p.dir}
 		gwg.Add(1)
-		go tm.print()
+		if asdf != p.dm || sdfg != p.s0s {
+			log.Fatalf("waterbalance error %f %f %f %f", asdf, p.dm, sdfg, p.s0s)
+		}
+		go tm.print(p.s0s, p.dm)
 	}()
 	return
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // BuildRTR returns (and saves) the topological routing scheme amongst sub-basins
-func BuildRTR(gobDir string, strc *model.STRC, csws, dsws map[int]int, nsws int) *model.RTR {
+func BuildRTR(gobDir string, strc *model.STRC, csws, dsws map[int]int, nsws int) (*model.RTR, []int) {
 
 	cids, _ := strc.TEM.DownslopeContributingAreaIDs(-1)
 
@@ -86,6 +86,5 @@ func BuildRTR(gobDir string, strc *model.STRC, csws, dsws map[int]int, nsws int)
 		log.Fatalf(" BuildRTR error: %v", err)
 	}
 
-	return &rtr
-
+	return &rtr, strms
 }

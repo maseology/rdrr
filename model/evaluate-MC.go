@@ -2,7 +2,7 @@ package model
 
 import "math"
 
-func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
+func evalMC(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs, fcms := make(map[int]monitor, len(monid)), p.ca/p.intvl
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -24,14 +24,14 @@ func evalMC(p *evaluation, Ds, m float64, res resulter, monid []int) {
 		}
 		for i := 0; i < ncid; i++ {
 			y := p.y[p.mxr[i]][k]
-			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i] < 0.)
+			a, r, g := p.ws[i].UpdateWT(y, p.ep[p.mxr[i]][k], dm+p.drel[i])
 
 			p.ws[i].Sdet.Sto += r * (1. - p.cascf[i])
 			r *= p.cascf[i]
 
 			hb := 0.
 			if v, ok := p.strmQs[i]; ok {
-				hb = v * math.Exp((Ds-dm-p.drel[i])/m)
+				hb = v * math.Exp((Dinc-dm-p.drel[i])/m)
 				bs += hb
 				r += hb
 				gb[mt][i] += hb

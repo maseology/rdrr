@@ -7,6 +7,7 @@ import (
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/model"
 	"github.com/maseology/rdrr/prep"
 )
 
@@ -75,6 +76,7 @@ func main() {
 		return gd
 	}()
 
+	var strms []int
 	if _, ok := mmio.FileExists(gobDir + "STRC.gob"); !ok {
 		fmt.Println("collecting DEM and subwatersheds..")
 
@@ -104,13 +106,20 @@ func main() {
 
 		if _, ok := mmio.FileExists(gobDir + "RTR.gob"); !ok {
 			fmt.Println("\nbuilding subbasin routing scheme..")
-			prep.BuildRTR(gobDir, strc, csws, dsws, len(swsc))
+			_, strms = prep.BuildRTR(gobDir, strc, csws, dsws, len(swsc))
+		}
+	} else {
+		if strc, err := model.LoadGobSTRC(gobDir + "STRC.gob"); err != nil {
+			log.Fatalf("%v", err)
+		} else {
+			cids, _ := strc.TEM.DownslopeContributingAreaIDs(-1)
+			strms, _ = model.BuildStreams(strc, cids) // collect stream cells
 		}
 	}
 
 	if _, ok := mmio.FileExists(gobDir + "MAPR.gob"); !ok {
 		fmt.Println("\nbuilding land use and surficial geology mapping..")
-		prep.BuildMAPR(gobDir, lufprfx, sgfp, gd)
+		prep.BuildMAPR(gobDir, lufprfx, sgfp, gd, strms)
 		// mmio.WriteIMAP(gobDir+"luid.imap", m.LUx)
 		// mmio.WriteIMAP(gobDir+"sgid.imap", m.SGx)
 	}

@@ -45,14 +45,20 @@ func (l *LandUse) Rebuild1(soildepth, fimp, ifct float64) (rzsto, surfsto, sma0,
 		rzsto = soildepth * l.Porosity * (1. - l.Fc)
 		surfsto = soildepth*l.Porosity*l.Fc + fimp*l.DepSto + l.IntSto*ifct
 		switch l.ID {
-		case Waterbody, Channel, Lake: // Open water
+		case Channel:
+			// rzsto = 0.
+			surfsto = 0.
+		case Waterbody, Lake: // Open water
 			rzsto = 0.
 			surfsto = soildepth
 			srf0 = soildepth
 		case Noflow:
 			rzsto = 0.
 			surfsto = math.MaxFloat64
-		case ShortVegetation, TallVegetation, Forest, Swamp, Wetland, SparseVegetation, DenseVegetation, Agriculture, Meadow, Marsh, Urban, Barren:
+		case Urban: // (assumed drained)
+			rzsto *= (1. - fimp)
+			surfsto = soildepth*l.Porosity*l.Fc*(1.-fimp) + fimp*l.DepSto + l.IntSto*ifct
+		case ShortVegetation, TallVegetation, Forest, Swamp, Wetland, SparseVegetation, DenseVegetation, Agriculture, Meadow, Marsh, Barren:
 			// do nothing
 		default:
 			log.Fatalf(" LandUse.Rebuild1: no value assigned to ID %d", l.ID)

@@ -82,7 +82,7 @@ func (d *Domain) SampleDefault(outdir string, nsmpl, outlet int) {
 			go printParams(m, gdn, kstrm, mcasc, soildepth, kfact, dinc, mdir)
 			smpl := b.defaultSample(m, gdn, kstrm, mcasc, soildepth, kfact)
 			smpl.dir = mdir
-			of := b.evaluate(&smpl, dinc, m, false)
+			of := b.evaluate(&smpl, dinc, m, false, evalMC)
 			WaitMonitors()
 			compressMC2(mdir)
 			fmt.Print(".")

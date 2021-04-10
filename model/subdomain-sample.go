@@ -171,16 +171,17 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth 
 		build := func(cid int) {
 			var ll, gg int
 			var ok bool
+
 			if ll, ok = b.mpr.LUx[cid]; !ok {
 				log.Fatalf(" surfgeoSample.assignHRUs error, no LandUse assigned to cell ID %d", cid)
 			}
+
 			if gg, ok = b.mpr.SGx[cid]; !ok {
-				// log.Fatalf(" surfgeoSample.assignHRUs error, no SurfGeo assigned to cell ID %d", cid)
 				log.Printf(" surfgeoSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
 				gg = 6 // Unknown (variable)
 			}
 			if gg == -9999 || gg == 0 {
-				// log.Printf(" surfgeoSample.assignHRUs warning, no SurfGeo assigned to cell ID %d", cid)
+				log.Printf(" surfgeoSample.assignHRUs warning, no SurfGeo assigned to cell ID %d, gg = %d\n", cid, gg)
 				gg = 6
 			}
 			var lu lusg.LandUse
@@ -272,15 +273,22 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth 
 	cascf := b.buildCascadeFraction(grdMin, kstrm, mcasc)
 
 	func() { // finalAdjustments
-		strms := map[int]bool{}
 		for _, g := range gw {
 			for c := range g.Qs {
 				cascf[c] = kstrm
-				ws[c].Sdet.Cap = soildepth // in cases where stream cell courses through a flow-resistive cell, ensure movement of water
-				ws[c].Sma.Cap = 0.
-				strms[c] = true
+				// ws[c].Sdet.Cap = soildepth // in cases where stream cell courses through a flow-resistive cell, ensure movement of water
+				// ws[c].Sma.Cap = 0.
 			}
 		}
+		strms := func() map[int]bool {
+			strms := make(map[int]bool, b.nstrm)
+			for _, g := range b.rtr.SwsStrmXR {
+				for _, c := range g {
+					strms[c] = true
+				}
+			}
+			return strms
+		}()
 		for _, c := range b.cids {
 			if _, ok := strms[c]; !ok { // skip stream cells
 				if ll, ok := b.mpr.LUx[c]; !ok {

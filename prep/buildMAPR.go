@@ -28,7 +28,7 @@ const ( // canopy types
 )
 
 // BuildMAPR returns (and saves) the parameter mapping scheme
-func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
+func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition, strms []int) *model.MAPR {
 	var wg sync.WaitGroup
 	var lu lusg.LandUseColl
 	var sg lusg.SurfGeoColl
@@ -86,6 +86,21 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition) *model.MAPR {
 			if ic, ok := icov[k]; ok {
 				fcov[k] = v * relativeCover(ic, ilu[k])
 			}
+		}
+
+		// force stream cells to Channel type
+		for _, c := range strms {
+			ilu[c] = lusg.Channel
+		}
+		if func() bool {
+			for _, c := range ulu {
+				if c == lusg.Channel {
+					return false
+				}
+			}
+			return true
+		}() {
+			ulu = append(ulu, lusg.Channel)
 		}
 
 		// getLUtypes := func(ilu map[int]int, LUtype int) map[int]int {
