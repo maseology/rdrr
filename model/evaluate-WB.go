@@ -22,7 +22,6 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 	}
 
 	dm, dm0, s0s := p.dm, p.dm, p.s0s // initial condition
-	asdf, sdfg := p.dm, p.s0s
 	for k := 0; k < p.nstep; k++ {
 		// doy := p.t[k].doy // day of year
 		// if k%100 == 0 {
@@ -161,9 +160,6 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 		go g.print(p.ws, p.sources, p.cxr, p.ds, p.intvl, float64(p.nstep))
 		tm := tmonitor{p.sid, ty, ti, ta, to, tg, ts, tb, tdm, p.dir}
 		gwg.Add(1)
-		if asdf != p.dm || sdfg != p.s0s {
-			log.Fatalf("waterbalance error %f %f %f %f", asdf, p.dm, sdfg, p.s0s)
-		}
 		go tm.print(p.s0s, p.dm)
 	}()
 	return

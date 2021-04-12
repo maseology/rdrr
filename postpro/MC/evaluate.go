@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"time"
 
 	"github.com/maseology/mmio"
@@ -24,7 +25,7 @@ func evaluate(fp string, dts []time.Time, sim []float64, obs postpro.ObsColl) (i
 		if v, ok := c[dd(t)]; ok {
 			fobs[i] = v
 		} else {
-			fobs[i] = 0.
+			fobs[i] = math.NaN()
 		}
 	}
 	// mmio.WriteCsvDateFloats(fmt.Sprintf("%s%s-hdgrph.csv", fp, obs.Nam), "date,obs,sim", dts, fobs, sim)

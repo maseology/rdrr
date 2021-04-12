@@ -13,9 +13,9 @@ func main() {
 
 	const (
 		// mdlPrfx = "S:/OWRC-RDRR/owrc."
-		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."            // "S:/Peel/PWRMM21."        //
-		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/obs/02HC033.csv" // "S:/Peel/obs/02HB004.csv" //
-		cid0    = 1537675                                    //                                    //
+		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."          // "S:/Peel/PWRMM21."        //
+		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/obs/HY045.csv" // "S:/Peel/obs/02HB004.csv" //
+		cid0    = 1340114                                  //                                    //
 	)
 	// 02HC033 1537675
 	// HY045   1340114
@@ -37,9 +37,9 @@ func main() {
 	}
 
 	// run model
-	TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv := .5, 0.000835, .998, 0.256054, 0.05, 0., .95
-	ksat := []float64{8.38e-11, 2.66e-09, 2.57e-07, 1.04e-05, 7.50e-05, 2.37e-07, 4.67e-06, 1.23e-07}
-	fmt.Println(dom.RunSurfGeo(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv, ksat, cid0, true))
+	TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv := 4.770454, 0.02148, 0.973707, 0.445008, 0.663354, 0.343679, 0.207454
+	ksat := []float64{5.97e-08, 1.07e-08, 1.28e-05, 7.61e-05, 0.002199092, 3.12e-06, 0.000228956, 7.51e-06}
+	dom.RunSurfGeo(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv, ksat, cid0, true)
 
 	// // sample models
 	// model.PrepMC(mdlPrfx + "MC/")

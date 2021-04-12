@@ -111,7 +111,7 @@ func (b *subdomain) evaluate(p *sample, Dinc, m float64, print bool, ver version
 				}
 			}
 		}
-		if b.cid0 > -1 {
+		if print { // && b.cid0 > -1 {
 			printAggregated(b, p)
 		}
 		// printTrans(b, transfers, outflw)
@@ -186,10 +186,26 @@ func printAggregated(b *subdomain, p *sample) {
 		if err := csvw.WriteHead("ys,as,qs,sto,dsto,gs,bs,dm,ddm"); err != nil {
 			log.Fatalf("printAggregated %v", err)
 		}
+
+		ys, as, qs, bs, gs, dss, dms := 0., 0., 0., 0., 0., 0., 0.
+		sum := func(y, a, q, b, g, ds, dm float64) {
+			ys += y
+			as += a
+			qs += q
+			bs += b
+			gs += g
+			dss += ds
+			dms += dm
+		}
 		for i, y := range ty { // weighted average
+			sum(y/dcel, ta[i]/dcel, tq[i]/dcel, tb[i]/dcel, tg[i]/dcel, tds[i]/dcel, tddm[i]/dcel)
 			twbal(y/dcel, 0., ta[i]/dcel, tq[i]/dcel, tb[i]/dcel, tg[i]/dcel, tds[i]/dcel, tddm[i]/dcel, -1, i)
 			csvw.WriteLine(y/dcel, ta[i]/dcel, tq[i]/dcel, ts[i]/dcel, tds[i]/dcel, tg[i]/dcel, tb[i]/dcel, tdm[i]/dcel, tddm[i]/dcel)
 		}
+		f := 86400 / b.frc.IntervalSec * 365.24 * 1000. / float64(len(ty))
+		fmt.Printf("  sums:  y = %.1f  a = %.1f  q = %.1f  g = %.1f  b = %.1f  s = %.1f  dm = %.1f  \n", ys*f, as*f, qs*f, gs*f, bs*f, dss*f, dms*f)
+		fmt.Printf("  wbal: (y+b)-(a+q+g+ds) = %.3e\n", (ys+bs-(as+qs+gs+dss))*f)
+		fmt.Printf("  gwbl:  b-(g+dm) = %.3e\n", (bs-(gs+dms))*f)
 	}
 }
 

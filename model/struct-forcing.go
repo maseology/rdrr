@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/gob"
 	"fmt"
+	"math"
 	"os"
 	"time"
 
@@ -61,7 +62,7 @@ func (frc *FORC) AddObservation(csvfp string, ca float64, cid int) error {
 		if v, ok := c[dd(t)]; ok {
 			frc.O[0][i] = v * frc.IntervalSec / ca
 		} else {
-			frc.O[0][i] = 0.
+			frc.O[0][i] = math.NaN()
 		}
 	}
 	return nil
