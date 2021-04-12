@@ -39,7 +39,7 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 			ep := p.ep[p.mxr[i]][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
 			d := dm + p.drel[i]     // groundwater deficit
 			cascf := p.cascf[i]
-			a, r, g := p.ws[i].UpdateWT(y, ep, d/m)
+			a, r, g := p.ws[i].UpdateWT(y, ep, d < 0.)
 
 			p.ws[i].Sdet.Sto += r * (1. - cascf)
 			r *= cascf
@@ -55,6 +55,7 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 				r += b
 			}
 
+			// water balance
 			hruwbal := y + s0 + b - (a + r + g + s1)
 			if math.Abs(hruwbal) > nearzero {
 				// fmt.Printf("|hruwbal| = %e\n", hruwbal)

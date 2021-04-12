@@ -38,7 +38,7 @@ func main() {
 
 	// run model
 	TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv := 4.770454, 0.02148, 0.973707, 0.445008, 0.663354, 0.343679, 0.207454
-	ksat := []float64{5.97e-08, 1.07e-08, 1.28e-05, 7.61e-05, 0.002199092, 3.12e-06, 0.000228956, 7.51e-06}
+	ksat := []float64{5.968698e-08, 1.065531e-08, 1.283136e-05, 7.605820e-05, 2.199092e-03, 3.122402e-06, 2.289555e-04, 7.510469e-06}
 	dom.RunSurfGeo(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv, ksat, cid0, true)
 
 	// // sample models
