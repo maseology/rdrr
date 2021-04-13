@@ -221,6 +221,7 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth 
 		type kv struct {
 			k int
 			v gwru.TMQ
+			t map[int]float64
 		}
 		nsws := len(b.rtr.SwsCidXR)
 		ch := make(chan kv, runtime.NumCPU()/2)
@@ -237,8 +238,8 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth 
 				ksatTS[c] = ksat[gg-1] * ts // [m/ts]
 			}
 			var gwt gwru.TMQ
-			gwt.New(ksatTS, b.rtr.UCA[sid], b.rtr.SwsStrmXR[sid], b.strc.TEM, b.strc.Wcell, m)
-			ch <- kv{k: sid, v: gwt}
+			t, _ := gwt.New(ksatTS, b.rtr.UCA[sid], b.rtr.SwsStrmXR[sid], b.strc.TEM, b.strc.Wcell, m)
+			ch <- kv{k: sid, v: gwt, t: t}
 		}
 
 		if b.cid0 >= 0 {
@@ -255,11 +256,14 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth 
 			}
 		}
 
-		gw = make(map[int]*gwru.TMQ, nsws)
+		gw, b.ti = make(map[int]*gwru.TMQ, nsws), make(map[int]float64, len(b.cids))
 		for i := 0; i < nsws; i++ {
 			kv := <-ch
 			k, gwt := kv.k, kv.v
 			gw[k] = &gwt
+			for kk, vv := range kv.t {
+				b.ti[kk] = vv
+			}
 		}
 		close(ch)
 		return

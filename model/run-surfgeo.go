@@ -29,6 +29,7 @@ func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, s
 			b.write(chkdir)
 			smpl.write(chkdir)
 			tt.Lap("sample maps printed")
+			// os.Exit(2)
 		}
 		mmio.FileRename("hyd.png", "hydx.png", true)
 		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))

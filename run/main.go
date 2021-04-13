@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 
 	"github.com/maseology/mmio"
@@ -13,16 +12,15 @@ func main() {
 
 	const (
 		// mdlPrfx = "S:/OWRC-RDRR/owrc."
-		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."          // "S:/Peel/PWRMM21."        //
-		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/obs/HY045.csv" // "S:/Peel/obs/02HB004.csv" //
-		cid0    = 1340114                                  //                                    //
+		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."            // "S:/Peel/PWRMM21."        //
+		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/obs/02HC033.csv" // "S:/Peel/obs/02HB004.csv" //
+		cid0    = 1537675                                    //                                    //
 	)
 	// 02HC033 1537675
 	// HY045   1340114
 	// 02HB004 2014386
 	// 02HB008 1552736
 	// 02HB024 1610724
-	// single sws, little imperv
 
 	fmt.Println("")
 	tt := mmio.NewTimer()
@@ -32,13 +30,12 @@ func main() {
 	dom := model.LoadDomain(mdlPrfx)
 	tt.Print("Master Domain Load complete\n")
 	model.DeleteMonitors(mdlPrfx+"out/", true) // also sets-up the output folder
-	if err := dom.Frc.AddObservation(obsfp, dom.Strc.Acell, cid0); err != nil {
-		log.Fatalln(err)
-	}
+	dom.Frc.AddObservation(obsfp, dom.Strc.Acell, cid0)
 
 	// run model
-	TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv := 4.770454, 0.02148, 0.973707, 0.445008, 0.663354, 0.343679, 0.207454
-	ksat := []float64{5.968698e-08, 1.065531e-08, 1.283136e-05, 7.605820e-05, 2.199092e-03, 3.122402e-06, 2.289555e-04, 7.510469e-06}
+	// TMQm, grdMin, kstrm, mcasc, urbDiv, soildepth, dinc := 0.221871, 0.073682, 0.979411, 2.13048, 0.667674, 0.086067, 0.961614
+	TMQm, grdMin, kstrm, mcasc, urbDiv, soildepth, dinc := 0.221, 0.05, 0.995, 2.13048, 0.9, 0.086067, 0.
+	ksat := []float64{7.73e-09, 4.63e-06, 1.21e-06, 1.30e-05, 0.00577451, 4.92e-08, 0.006880688, 2.53e-08}
 	dom.RunSurfGeo(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv, ksat, cid0, true)
 
 	// // sample models

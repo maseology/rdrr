@@ -203,9 +203,9 @@ func printAggregated(b *subdomain, p *sample) {
 			csvw.WriteLine(y/dcel, ta[i]/dcel, tq[i]/dcel, ts[i]/dcel, tds[i]/dcel, tg[i]/dcel, tb[i]/dcel, tdm[i]/dcel, tddm[i]/dcel)
 		}
 		f := 86400 / b.frc.IntervalSec * 365.24 * 1000. / float64(len(ty))
-		fmt.Printf("  sums:  y = %.1f  a = %.1f  q = %.1f  g = %.1f  b = %.1f  s = %.1f  dm = %.1f  \n", ys*f, as*f, qs*f, gs*f, bs*f, dss*f, dms*f)
-		fmt.Printf("  wbal: (y+b)-(a+q+g+ds) = %.3e\n", (ys+bs-(as+qs+gs+dss))*f)
-		fmt.Printf("  gwbl:  b-(g+dm) = %.3e\n", (bs-(gs+dms))*f)
+		fmt.Printf("   sums:  y = %.1f  a = %.1f  q = %.1f  g = %.1f  b = %.1f  s = %.1f  dm = %.1f  \n", ys*f, as*f, qs*f, gs*f, bs*f, dss*f, dms*f)
+		fmt.Printf("   wbal: (y+b)-(a+q+g+ds) = %.3e\n", (ys+bs-(as+qs+gs+dss))*f)
+		fmt.Printf("   gwbl:  b-(g+dm) = %.3e\n", (bs-(gs+dms))*f)
 	}
 }
 

@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/gob"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"time"
@@ -50,20 +51,19 @@ func LoadGobFORC(fp string) (*FORC, error) {
 }
 
 // AddObservation reads csv file of "Date","Flow","Flag"
-func (frc *FORC) AddObservation(csvfp string, ca float64, cid int) error {
+func (frc *FORC) AddObservation(csvfp string, ca float64, cid int) {
 	c, err := mmio.ReadCsvDateFloat(csvfp)
 	if err != nil {
-		return err
+		log.Fatalf("FORC.AddObservation error: %v", err)
 	}
-	dd := mmio.DayDate
+	dd, f := mmio.DayDate, frc.IntervalSec/ca
 	frc.O, frc.Oxr = make([][]float64, 1), []int{cid}
 	frc.O[0] = make([]float64, len(frc.T))
 	for i, t := range frc.T {
 		if v, ok := c[dd(t)]; ok {
-			frc.O[0][i] = v * frc.IntervalSec / ca
+			frc.O[0][i] = v * f
 		} else {
 			frc.O[0][i] = math.NaN()
 		}
 	}
-	return nil
 }

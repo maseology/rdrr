@@ -43,6 +43,7 @@ func (l *LandUse) Rebuild1(soildepth, fimp, ifct float64) (rzsto, surfsto, sma0,
 	return func() (rzsto, surfsto, sma0, srf0 float64) {
 		sma0, srf0 = 0., 0.
 		rzsto = soildepth * l.Porosity * (1. - l.Fc)
+		l.DepSto *= 1.5
 		surfsto = soildepth*l.Porosity*l.Fc + fimp*l.DepSto + l.IntSto*ifct
 		switch l.ID {
 		case Channel:

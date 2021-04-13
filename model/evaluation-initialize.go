@@ -18,7 +18,7 @@ func (pp *evaluation) initialize(Dinc, m float64, print bool) {
 	// if print {
 	// 	fmt.Printf(" initial dm = %f\n", pp.dm)
 	// }
-	pp.dm = 2.
+	pp.dm = m
 
 	pp.s0s = 0.
 	for i := 0; i < int(pp.fncid); i++ {

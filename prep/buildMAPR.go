@@ -92,7 +92,7 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition, strms []int) *mod
 		for _, c := range strms {
 			ilu[c] = lusg.Channel
 		}
-		if func() bool {
+		if func() bool { // check if channels allready exist in ulu, if not, add
 			for _, c := range ulu {
 				if c == lusg.Channel {
 					return false
