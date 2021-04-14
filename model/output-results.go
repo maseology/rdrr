@@ -39,9 +39,8 @@ func (r *results) getTotals(sim, hsto, gsto []float64) {
 }
 
 func (r *results) report(print bool) []float64 {
-	if r.obs == nil || (print && len(r.obs) < warmup) {
-		sumPlotSto("sto.png", r.hsto, r.gsto)
-		return []float64{-1.}
+	if r.obs == nil {
+		return []float64{}
 	}
 
 	nse := objfunc.NSE(r.obs, r.sim)
@@ -72,7 +71,9 @@ func (r *results) report(print bool) []float64 {
 
 		mmio.WriteCsvDateFloats("hdgrph.csv", "date,obs,sim", r.dt, r.obs, r.sim)
 		mmio.ObsSim("hyd.png", r.obs, r.sim)
-		sumPlotSto("sto.png", r.hsto, r.gsto)
+		if len(r.obs) < warmup {
+			sumPlotSto("sto.png", r.hsto, r.gsto)
+		}
 	}
 	return []float64{1. - nse}
 }

@@ -58,7 +58,6 @@ func (b *subdomain) write(dir string) error {
 	mmio.WriteRMAP(dir+"b.strc.t.upcnt.rmap", ucnt, false)
 	mmio.WriteRMAP(dir+"b.strc.t.grad.rmap", slp, false)
 	mmio.WriteRMAP(dir+"b.mpr.ifct.rmap", ifct, false)
-	mmio.WriteRMAP(dir+"b.ti.rmap", b.ti, false)
 	mmio.WriteIMAP(dir+"b.frc.mxr.imap", mxr)
 	strmca := make(map[int]int, b.ncid)
 	for k := range strm {
