@@ -10,7 +10,7 @@ import (
 	"github.com/maseology/rdrr/lusg"
 )
 
-func (b *subdomain) defaultSample(topm, grdMin, kstrm, mcasc, soildepth, kfact float64) sample {
+func (b *subdomain) defaultSample(topm, kstrm, mcasc, soildepth, kfact float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.IntervalSec // [s/ts]
@@ -131,7 +131,7 @@ func (b *subdomain) defaultSample(topm, grdMin, kstrm, mcasc, soildepth, kfact f
 	go buildTopmodel(topm)
 	wg.Wait()
 
-	cascf := b.buildCascadeFraction(grdMin, kstrm, mcasc)
+	cascf := b.buildCascadeFractionFuzzy(kstrm, mcasc)
 
 	finalAdjustments := func() {
 		defer wg.Done()
@@ -155,7 +155,7 @@ func (b *subdomain) defaultSample(topm, grdMin, kstrm, mcasc, soildepth, kfact f
 	}
 }
 
-func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth float64, ksat []float64) sample {
+func (b *subdomain) surfgeoSample(topm, kstrm, mcasc, urbDiv, soildepth float64, ksat []float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.IntervalSec // [s/ts]
@@ -270,14 +270,12 @@ func (b *subdomain) surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth 
 	go buildTopmodel(topm)
 	wg.Wait()
 
-	cascf := b.buildCascadeFraction(grdMin, kstrm, mcasc)
+	cascf := b.buildCascadeFractionFuzzy(kstrm, mcasc)
 
 	func() { // finalAdjustments
 		for _, g := range gw {
 			for c := range g.Qs {
 				cascf[c] = kstrm
-				// ws[c].Sdet.Cap = soildepth // in cases where stream cell courses through a flow-resistive cell, ensure movement of water
-				// ws[c].Sma.Cap = 0.
 			}
 		}
 		strms := func() map[int]bool {

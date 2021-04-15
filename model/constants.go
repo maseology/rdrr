@@ -7,9 +7,10 @@ const (
 	secperday  = 86400.
 
 	// cascade fraction parameters
-	sill   = 1.
-	nugget = .001
-	a      = .2 // scaling factor such that the "range" parameter looks representative (see fuzzy_slope.xlsx)
+	sill    = 1.
+	nugget  = .001
+	a       = .2     // scaling factor such that the "range" parameter looks representative (see fuzzy_slope.xlsx)
+	gradMin = 0.0005 // smallest gradient from where lateral water movement is allowed
 
 	strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"
 

@@ -7,7 +7,7 @@ import (
 )
 
 // RunDefault runs simulation with fewest parameters
-func (d *Domain) RunDefault(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, soildepth, kfact, dinc float64, outlet int, print bool) float64 {
+func (d *Domain) RunDefault(mdldir, chkdir string, topm, kstrm, mcasc, soildepth, kfact float64, outlet int, print bool) float64 {
 	tt := mmio.NewTimer()
 
 	// build submodel
@@ -20,7 +20,7 @@ func (d *Domain) RunDefault(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, s
 	}
 
 	// add parameterization
-	smpl := b.defaultSample(topm, grdMin, kstrm, mcasc, soildepth, kfact)
+	smpl := b.defaultSample(topm, kstrm, mcasc, soildepth, kfact)
 	smpl.dir = mdldir
 	if print {
 		tt.Lap("sample build complete")
@@ -37,7 +37,7 @@ func (d *Domain) RunDefault(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, s
 	}
 
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
-	of := b.evaluate(&smpl, dinc, topm, print, evalWB)
+	of := b.evaluate(&smpl, topm, print, evalWB)
 	WaitMonitors()
 	return of
 }

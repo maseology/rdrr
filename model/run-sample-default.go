@@ -29,7 +29,7 @@ func (d *Domain) SampleDefault(outdir string, nsmpl, outlet int) {
 	fmt.Printf(" number of subwatersheds: %d\n", len(b.rtr.SwsCidXR))
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nDefltSmplDim)
 
-	printParams := func(m, grdMin, kstrm, mcasc, soildepth, kfact, dinc float64, mdir string) {
+	printParams := func(m, kstrm, mcasc, soildepth, kfact float64, mdir string) {
 		tw, err := mmio.NewTXTwriter(mdir + "params.txt")
 		defer tw.Close()
 		if err != nil {
@@ -38,12 +38,12 @@ func (d *Domain) SampleDefault(outdir string, nsmpl, outlet int) {
 		tw.WriteLine(mmio.MMtime(time.Now()))
 		tw.WriteLine(mdir)
 		tw.WriteLine(fmt.Sprintf("m\t%f", m))
-		tw.WriteLine(fmt.Sprintf("grdMin\t%f", grdMin))
+		// tw.WriteLine(fmt.Sprintf("grdMin\t%f", grdMin))
 		tw.WriteLine(fmt.Sprintf("kstrm\t%f", kstrm))
 		tw.WriteLine(fmt.Sprintf("mcasc\t%f", mcasc))
 		tw.WriteLine(fmt.Sprintf("soildepth\t%f", soildepth))
 		tw.WriteLine(fmt.Sprintf("kfact\t%f", kfact))
-		tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
+		// tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
 	}
 
 	modelIsSmall := false
@@ -78,11 +78,11 @@ func (d *Domain) SampleDefault(outdir string, nsmpl, outlet int) {
 	} else {
 		gen := func(u []float64) float64 {
 			mdir := newMCdir()
-			m, gdn, kstrm, mcasc, soildepth, kfact, dinc := par7(u)
-			go printParams(m, gdn, kstrm, mcasc, soildepth, kfact, dinc, mdir)
-			smpl := b.defaultSample(m, gdn, kstrm, mcasc, soildepth, kfact)
+			m, _, kstrm, mcasc, soildepth, kfact, _ := par7(u)
+			go printParams(m, kstrm, mcasc, soildepth, kfact, mdir)
+			smpl := b.defaultSample(m, kstrm, mcasc, soildepth, kfact)
 			smpl.dir = mdir
-			of := b.evaluate(&smpl, dinc, m, false, evalMC)
+			of := b.evaluate(&smpl, m, false, evalMC)
 			WaitMonitors()
 			compressMC2(mdir)
 			fmt.Print(".")

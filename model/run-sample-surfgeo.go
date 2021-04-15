@@ -32,7 +32,7 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSGeoSmplDim)
 
 	var mu sync.Mutex
-	printParams := func(m, grdMin, kstrm, mcasc, urbDiv, soildepth, dinc float64, ksat []float64, mdir string) {
+	printParams := func(m, kstrm, mcasc, urbDiv, soildepth float64, ksat []float64, mdir string) {
 		mu.Lock()
 		defer mu.Unlock()
 		tw, err := mmio.NewTXTwriter(mdir + "params.txt")
@@ -43,22 +43,22 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 		tw.WriteLine(mmio.MMtime(time.Now()))
 		tw.WriteLine(mdir)
 		tw.WriteLine(fmt.Sprintf("m\t%f", m))
-		tw.WriteLine(fmt.Sprintf("grdMin\t%f", grdMin))
+		// tw.WriteLine(fmt.Sprintf("grdMin\t%f", grdMin))
 		tw.WriteLine(fmt.Sprintf("kstrm\t%f", kstrm))
 		tw.WriteLine(fmt.Sprintf("mcasc\t%f", mcasc))
 		tw.WriteLine(fmt.Sprintf("urbDiv\t%f", urbDiv))
 		tw.WriteLine(fmt.Sprintf("soildepth\t%f", soildepth))
-		tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc))
+		// tw.WriteLine(fmt.Sprintf("dinc\t%f", dinc)) // Dinc: depth of channel incision/depth of channel relative to cell elevation;
 		tw.WriteLine(fmt.Sprintf("ksat\t%e", ksat))
 	}
 
 	gen := func(u []float64) float64 {
 		mdir := newMCdir()
-		m, gdn, kstrm, mcasc, urbDiv, soildepth, dinc, ksat := parSurfGeo(u)
-		go printParams(m, gdn, kstrm, mcasc, urbDiv, soildepth, dinc, ksat, mdir)
-		smpl := b.surfgeoSample(m, gdn, kstrm, mcasc, urbDiv, soildepth, ksat)
+		m, kstrm, mcasc, urbDiv, soildepth, ksat := parSurfGeo(u)
+		go printParams(m, kstrm, mcasc, urbDiv, soildepth, ksat, mdir)
+		smpl := b.surfgeoSample(m, kstrm, mcasc, urbDiv, soildepth, ksat)
 		smpl.dir = mdir
-		of := b.evaluate(&smpl, dinc, m, false, evalMC)
+		of := b.evaluate(&smpl, m, false, evalMC)
 		WaitMonitors()
 		compressMC2(mdir)
 		fmt.Print(".")

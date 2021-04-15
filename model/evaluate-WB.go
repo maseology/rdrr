@@ -6,8 +6,8 @@ import (
 	"math"
 )
 
-// evalWB is the main model routine, the others are derivatives to this. Dinc: depth of channel incision/depth of channel relative to cell elevation; m: TOPMODEL parameter
-func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
+// evalWB is the main model routine, the others are derivatives to this. m: TOPMODEL parameter
+func evalWB(p *evaluation, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obsCms, fcms := make(map[int]monitor, len(monid)), p.ca/p.intvl
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -49,7 +49,7 @@ func evalWB(p *evaluation, Dinc, m float64, res resulter, monid []int) {
 
 			b := 0.
 			if v, ok := p.strmQs[i]; ok { // stream cells always cascade
-				b = v * math.Exp((Dinc-d)/m)
+				b = v * math.Exp(-d/m)
 				bs += b
 				gb[i] += b
 				r += b

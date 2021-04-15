@@ -22,7 +22,7 @@ type evaluation struct {
 	dir                       string
 }
 
-func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool) evaluation {
+func newEvaluation(b *subdomain, p *sample, m float64, sid int, print bool) evaluation {
 	var pp evaluation
 	if sid < 0 { // no subwatersheds
 		log.Fatalln("evaluation.newEvaluation: legacy code, should no longer occur")
@@ -45,7 +45,7 @@ func newEvaluation(b *subdomain, p *sample, Dinc, m float64, sid int, print bool
 	pp.fncid = float64(len(b.rtr.SwsCidXR[sid]))
 	pp.dehash(b, p, sid, len(b.rtr.SwsCidXR[sid]), len(p.gw[sid].Qs))
 
-	pp.initialize(Dinc, m, print)
+	pp.initialize(m, print)
 	// fmt.Printf(" **** sid: %d;  Dm0: %f;  s0: %f\n", sid, pp.dm, pp.s0s)
 	pp.ds[pp.cxr[sid]] = -1 // new outlet
 	return pp

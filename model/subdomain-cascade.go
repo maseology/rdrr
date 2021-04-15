@@ -2,13 +2,13 @@ package model
 
 import "math"
 
-func (b *subdomain) buildCascadeFraction(p ...float64) map[int]float64 {
-	// return b.cascGaussian(p[0])
-	return b.cascFuzzy(p[0], p[1], p[2])
-}
+// func (b *subdomain) buildCascadeFraction(p ...float64) map[int]float64 {
+// 	// return b.buildCascadeFractionGaussian(p[0])
+// 	return b.buildCascadeFractionFuzzy(p[0], p[1], p[2])
+// }
 
 // Gaussian variogram model
-func (b *subdomain) cascGaussian(rng float64) map[int]float64 {
+func (b *subdomain) buildCascadeFractionGaussian(rng float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
 		h := math.Pow(b.strc.TEM.TEC[c].G, 2)
@@ -19,7 +19,7 @@ func (b *subdomain) cascGaussian(rng float64) map[int]float64 {
 }
 
 // Fuzzy slope
-func (b *subdomain) cascFuzzy(gradMin, fracMax, mslope float64) map[int]float64 {
+func (b *subdomain) buildCascadeFractionFuzzy(fracMax, mslope float64) map[int]float64 {
 	fc := make(map[int]float64, len(b.cids))
 	for _, c := range b.cids {
 		s := b.strc.TEM.TEC[c].G

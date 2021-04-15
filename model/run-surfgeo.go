@@ -20,7 +20,7 @@ func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, s
 	}
 
 	// add parameterization
-	smpl := b.surfgeoSample(topm, grdMin, kstrm, mcasc, urbDiv, soildepth, ksat)
+	smpl := b.surfgeoSample(topm, kstrm, mcasc, urbDiv, soildepth, ksat)
 	smpl.dir = mdldir
 	if print {
 		tt.Lap("sample build complete")
@@ -38,7 +38,7 @@ func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, s
 	}
 
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
-	of := b.evaluate(&smpl, dinc, topm, print, evalWB)
+	of := b.evaluate(&smpl, topm, print, evalWB)
 	WaitMonitors()
 	return of
 }
