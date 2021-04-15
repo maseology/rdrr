@@ -40,7 +40,7 @@ func (r *results) getTotals(sim, hsto, gsto []float64) {
 
 func (r *results) report(print bool) []float64 {
 	if r.obs == nil {
-		return []float64{}
+		return []float64{-1.}
 	}
 
 	nse := objfunc.NSE(r.obs, r.sim)
