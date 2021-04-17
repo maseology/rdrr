@@ -7,7 +7,7 @@ import (
 )
 
 // RunSurfGeo runs like RunDefault, but adds sampling of surficial geology types to an outlet cellID (=-1 for full-domain model)
-func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv float64, ksat []float64, outlet int, print bool) float64 {
+func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, kstrm, mcasc, soildepth, urbDiv float64, ksat []float64, outlet int, print bool) float64 {
 	tt := mmio.NewTimer()
 
 	// build submodel
@@ -23,17 +23,11 @@ func (d *Domain) RunSurfGeo(mdldir, chkdir string, topm, grdMin, kstrm, mcasc, s
 	smpl := b.surfgeoSample(topm, kstrm, mcasc, urbDiv, soildepth, ksat)
 	smpl.dir = mdldir
 	if print {
+		printSample(&b, &smpl, chkdir)
 		tt.Lap("sample build complete")
 		if len(chkdir) > 0 {
-			mmio.MakeDir(chkdir)
-			b.write(chkdir)
-			smpl.write(chkdir)
 			tt.Lap("sample maps printed")
-			// os.Exit(2)
 		}
-		mmio.FileRename("hyd.png", "hydx.png", true)
-		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))
-		fmt.Printf("\n running model..\n\n")
 		// return -1.
 	}
 

@@ -35,17 +35,18 @@ func (b *subdomain) defaultSample(topm, kstrm, mcasc, soildepth, kfact float64) 
 				gg = 6 // Unknown (variable)
 			}
 			var lu lusg.LandUse
-			var sg lusg.SurfGeo
+			ksat := 1.e-5
+			// var sg lusg.SurfGeo
 			if lu, ok = b.mpr.LU[ll]; !ok {
 				log.Fatalf(" defaultSample.assignHRUs error, no LandUse assigned of type %d", ll)
 			}
-			if sg, ok = b.mpr.SG[gg]; !ok {
+			if ksat, ok = b.mpr.Ksat[gg]; !ok {
 				log.Fatalf(" defaultSample.assignHRUs error, no SurfGeo assigned to type %d", gg)
 			}
 
 			var h hru.HRU
 			drnsto, srfsto, _, _ := lu.Rebuild1(soildepth, b.mpr.Fimp[cid], b.mpr.Ifct[cid])
-			h.Initialize(drnsto, srfsto, b.mpr.Fimp[cid], sg.Ksat*kfact*ts, 0., 0.)
+			h.Initialize(drnsto, srfsto, b.mpr.Fimp[cid], ksat*kfact*ts, 0., 0.)
 			ws[cid] = &h
 		}
 
@@ -85,11 +86,11 @@ func (b *subdomain) defaultSample(topm, kstrm, mcasc, soildepth, kfact float64) 
 				if _, ok := b.mpr.SGx[c]; ok {
 					gg = b.mpr.SGx[c]
 				}
-				if sg, ok := b.mpr.SG[gg]; ok {
-					if sg.Ksat <= 0. {
-						log.Fatalf(" defaultSample.buildTopmodel error: cell %d has an assigned ksat = %v\n", c, sg.Ksat)
+				if ks, ok := b.mpr.Ksat[gg]; ok {
+					if ks <= 0. {
+						log.Fatalf(" defaultSample.buildTopmodel error: cell %d has an assigned ksat = %v\n", c, ks)
 					}
-					ksat[c] = sg.Ksat * kfact * ts // [m/ts]
+					ksat[c] = ks * kfact * ts // [m/ts]
 				} else {
 					log.Fatalf(" defaultSample.buildTopmodel error, no SurfGeo assigned to type %d", gg)
 				}

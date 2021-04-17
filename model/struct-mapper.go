@@ -11,10 +11,10 @@ import (
 
 // MAPR holds mappings of landuse and surficial geology
 type MAPR struct {
-	LU         lusg.LandUseColl // [luid]LandUseColl
-	SG         lusg.SurfGeoColl // [sgid]SurfGeoColl
-	Fimp, Ifct map[int]float64  // fraction impervious; interception factor, total interception=Ifct*Fcov*IntSto
-	LUx, SGx   map[int]int      // cross reference of cid to lu/sg
+	LU lusg.LandUseColl // [luid]LandUseColl
+	// SG         lusg.SurfGeoColl // [sgid]SurfGeoColl
+	Ksat, Fimp, Ifct map[int]float64 // fraction impervious; interception factor, total interception=Ifct*Fcov*IntSto
+	LUx, SGx         map[int]int     // cross reference of cid to lu/sg
 }
 
 // MaprCXR holds cell-based parameters and indices

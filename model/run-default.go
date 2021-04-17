@@ -23,17 +23,11 @@ func (d *Domain) RunDefault(mdldir, chkdir string, topm, kstrm, mcasc, soildepth
 	smpl := b.defaultSample(topm, kstrm, mcasc, soildepth, kfact)
 	smpl.dir = mdldir
 	if print {
+		printSample(&b, &smpl, chkdir)
 		tt.Lap("sample build complete")
 		if len(chkdir) > 0 {
-			mmio.MakeDir(chkdir)
-			b.write(chkdir)
-			smpl.write(chkdir)
 			tt.Lap("sample maps printed")
 		}
-		mmio.FileRename("hyd.png", "hydx.png", true)
-		fmt.Printf(" number of subwatersheds: %d\n", len(smpl.gw))
-		fmt.Printf("\n running model..\n\n")
-		// return -1.
 	}
 
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
