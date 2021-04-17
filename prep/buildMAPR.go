@@ -31,10 +31,9 @@ const ( // canopy types
 func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition, strms []int) *model.MAPR {
 	var wg sync.WaitGroup
 	var lu lusg.LandUseColl
-	var sg lusg.SurfGeoColl
 	// var ilu, isg, ilk map[int]int
 	var ilu, isg map[int]int
-	var fimp, fcov map[int]float64
+	var ksat, fimp, fcov map[int]float64
 
 	readLU := func() {
 		tt := mmio.NewTimer()
@@ -167,7 +166,7 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition, strms []int) *mod
 		}
 		var usg []int
 		isg, usg = loadIndx(sgfp)
-		sg = *lusg.LoadSurfGeo(usg)
+		ksat = lusg.LoadKsat(usg)
 		tt.Lap("SG loaded")
 	}
 
@@ -177,11 +176,10 @@ func BuildMAPR(gobDir, lufp, sgfp string, gd *grid.Definition, strms []int) *mod
 	wg.Wait()
 
 	mpr := model.MAPR{
-		LU:  lu,
-		SG:  sg,
-		LUx: ilu,
-		SGx: isg,
-		// LKx:  ilk,
+		LU:   lu,
+		LUx:  ilu,
+		SGx:  isg,
+		Ksat: ksat,
 		Fimp: fimp,
 		Ifct: fcov,
 	}
