@@ -2,7 +2,7 @@ package model
 
 import "math"
 
-func evalMC(p *evaluation, res resulter, monid []int) {
+func evalMC(p *evaluation, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obs, fcms := make(map[int]monitor, len(monid)), p.ca/p.intvl
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -32,7 +32,7 @@ func evalMC(p *evaluation, res resulter, monid []int) {
 			s1s += p.ws[i].Storage()
 
 			if v, ok := p.strmQs[i]; ok {
-				b := v * math.Exp((-dm-p.drel[i])/p.m[p.gxr[i]])
+				b := v * math.Exp((-dm-p.drel[i])/m)
 				bs += b
 				r += b
 				gb[mt][i] += b

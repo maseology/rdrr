@@ -12,9 +12,9 @@ func main() {
 
 	const (
 		// mdlPrfx = "S:/OWRC-RDRR/owrc."
-		mdlPrfx = "M:/Peel/RDRR-PWRMM21/PWRMM21."          // "S:/Peel/PWRMM21."        //
-		obsfp   = "M:/Peel/RDRR-PWRMM21/dat/obs/HY045.csv" // "S:/Peel/obs/02HB004.csv" //
-		cid0    = 1340114                                  //                                           //
+		mdlPrfx = "S:/Peel/PWRMM21."        //"M:/Peel/RDRR-PWRMM21/PWRMM21."            //
+		obsfp   = "S:/Peel/obs/02HB004.csv" //"M:/Peel/RDRR-PWRMM21/dat/obs/02HC033.csv" //
+		cid0    = 2014386                   //                                           //
 	)
 	// 02HC033 1537675
 	// HY045   1340114
@@ -30,19 +30,17 @@ func main() {
 	dom := model.LoadDomain(mdlPrfx)
 	tt.Print("Master Domain Load complete\n")
 	model.DeleteMonitors(mdlPrfx+"out/", true) // also sets-up the output folder
-	dom.Frc.AddObservation(obsfp, dom.Strc.Acell, cid0)
+	// dom.Frc.AddObservation(obsfp, dom.Strc.Acell, cid0)
 
-	// run model
-	// TMQm, kstrm, mcasc, urbDiv, soildepth := 0.022384, 0.998708, 0.029728, 0.195728, 0.020582
-	// ksat := []float64{1.10e-08, 1.18e-09, 2.13e-08, 1.43e-06, 0.000344009, 1.76e-08, 1.45e-09, 3.68e-06}
-	kstrm, mcasc, urbDiv, soildepth := 0.996729, 0.015932, 0.5, 0.0354585
-	TMQm := []float64{.3484373, .3484373}
-	ksat := []float64{6.15e-08, 2.37e-06, 3.83e-06, 5.45e-05, 1.93e-05, 1.81e-08, 1.81e-09, 1.63e-08}
-	dom.RunSurfGeo(mdlPrfx+"out/", mdlPrfx+"check/", kstrm, mcasc, soildepth, urbDiv, TMQm, ksat, cid0, true)
+	// // run model
+	// // TMQm, grdMin, kstrm, mcasc, urbDiv, soildepth, dinc := 0.221871, 0.073682, 0.979411, 2.13048, 0.667674, 0.086067, 0.961614
+	// TMQm, grdMin, kstrm, mcasc, urbDiv, soildepth, dinc := 0.221, 0.05, 0.995, 2.13048, 0.9, 0.086067, 0.
+	// ksat := []float64{7.73e-09, 4.63e-06, 1.21e-06, 1.30e-05, 0.00577451, 4.92e-08, 0.006880688, 2.53e-08}
+	// dom.RunSurfGeo(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv, ksat, cid0, true)
 
-	// // sample models
-	// model.PrepMC(mdlPrfx + "MC/")
-	// dom.SampleSurfGeo(mdlPrfx, 2500, cid0)
+	// sample models
+	model.PrepMC(mdlPrfx + "MC/")
+	dom.SampleSurfGeo(mdlPrfx, 2500, cid0)
 
 	// // find optimal model
 	// model.OptimizeDefault(nil, 1104986)

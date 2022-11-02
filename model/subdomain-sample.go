@@ -80,7 +80,7 @@ func (b *subdomain) defaultSample(topm, kstrm, mcasc, soildepth, kfact float64) 
 		nsws := len(b.rtr.SwsCidXR)
 		ch := make(chan kv, runtime.NumCPU()/2)
 		getgw := func(sid int) {
-			ksat, grad := make(map[int]float64, len(b.rtr.SwsCidXR[sid])), make(map[int]float64, len(b.rtr.SwsCidXR[sid]))
+			ksat := make(map[int]float64)
 			for _, c := range b.rtr.SwsCidXR[sid] {
 				gg := 6 // default: unknown/variable
 				if _, ok := b.mpr.SGx[c]; ok {
@@ -97,10 +97,9 @@ func (b *subdomain) defaultSample(topm, kstrm, mcasc, soildepth, kfact float64) 
 				// } else {
 				// 	log.Fatalf(" defaultSample.buildTopmodel error, no SurfGeo assigned to cell ID %d", c)
 				// }
-				grad[c] = b.strc.TEM.TEC[c].G
 			}
 			var gwt gwru.TMQ
-			gwt.New(ksat, grad, b.mpr.GW[sid].UCA, b.mpr.GW[sid].StrmXR, b.strc.Wcell, m)
+			gwt.New(ksat, b.rtr.UCA[sid], b.rtr.SwsStrmXR[sid], b.strc.TEM, b.strc.Wcell, m)
 			ch <- kv{k: sid, v: gwt}
 		}
 
@@ -157,7 +156,7 @@ func (b *subdomain) defaultSample(topm, kstrm, mcasc, soildepth, kfact float64) 
 	}
 }
 
-func (b *subdomain) surfgeoSample(kstrm, mcasc, urbDiv, soildepth float64, topm, ksat []float64) sample {
+func (b *subdomain) surfgeoSample(topm, kstrm, mcasc, urbDiv, soildepth float64, ksat []float64) sample {
 	var wg sync.WaitGroup
 
 	ts := b.frc.IntervalSec // [s/ts]
@@ -213,7 +212,7 @@ func (b *subdomain) surfgeoSample(kstrm, mcasc, urbDiv, soildepth float64, topm,
 		}
 	}
 
-	buildTopmodel := func() {
+	buildTopmodel := func(m float64) {
 		// defer fmt.Println("  buildTopmodel complete")
 		defer wg.Done()
 		// if b.frc.q0 <= 0. {
@@ -224,12 +223,11 @@ func (b *subdomain) surfgeoSample(kstrm, mcasc, urbDiv, soildepth float64, topm,
 			k int
 			v gwru.TMQ
 		}
-		ngws := len(b.mpr.GW)
+		nsws := len(b.rtr.SwsCidXR)
 		ch := make(chan kv, runtime.NumCPU()/2)
-		getgw := func(gid int, m float64) {
-			ksatTS := make(map[int]float64, len(b.mpr.GW[gid].CidXR))
-			gradTS := make(map[int]float64, len(b.mpr.GW[gid].CidXR))
-			for _, c := range b.mpr.GW[gid].CidXR {
+		getgw := func(sid int) {
+			ksatTS := make(map[int]float64)
+			for _, c := range b.rtr.SwsCidXR[sid] {
 				gg := 6 // default: unknown/variable
 				if _, ok := b.mpr.SGx[c]; ok {
 					gg = b.mpr.SGx[c]
@@ -238,32 +236,28 @@ func (b *subdomain) surfgeoSample(kstrm, mcasc, urbDiv, soildepth float64, topm,
 					gg = 6
 				}
 				ksatTS[c] = ksat[gg-1] * ts // [m/ts]
-				gradTS[c] = b.strc.TEM.TEC[c].G
 			}
 			var gwt gwru.TMQ
-			gwt.New(ksatTS, gradTS, b.mpr.GW[gid].UCA, b.mpr.GW[gid].StrmXR, b.strc.Wcell, m)
-			ch <- kv{k: gid, v: gwt}
+			gwt.New(ksatTS, b.rtr.UCA[sid], b.rtr.SwsStrmXR[sid], b.strc.TEM, b.strc.Wcell, m)
+			ch <- kv{k: sid, v: gwt}
 		}
 
-		// if b.cid0 >= 0 {
-		// 	for s := range b.rtr.SwsCidXR {
-		// 		go getgw(s)
-		// 	}
-		// } else {
-		// 	if len(b.rtr.SwsCidXR) == 1 {
-		// 		go getgw(-1)
-		// 	} else {
-		// 		for k := range b.rtr.SwsCidXR {
-		// 			go getgw(k)
-		// 		}
-		// 	}
-		// }
-		for k, v := range topm {
-			go getgw(k, v)
+		if b.cid0 >= 0 {
+			for s := range b.rtr.SwsCidXR {
+				go getgw(s)
+			}
+		} else {
+			if len(b.rtr.SwsCidXR) == 1 {
+				go getgw(-1)
+			} else {
+				for k := range b.rtr.SwsCidXR {
+					go getgw(k)
+				}
+			}
 		}
 
-		gw = make(map[int]*gwru.TMQ, ngws)
-		for i := 0; i < ngws; i++ {
+		gw = make(map[int]*gwru.TMQ, nsws)
+		for i := 0; i < nsws; i++ {
 			kv := <-ch
 			k, gwt := kv.k, kv.v
 			gw[k] = &gwt
@@ -274,7 +268,7 @@ func (b *subdomain) surfgeoSample(kstrm, mcasc, urbDiv, soildepth float64, topm,
 
 	wg.Add(2)
 	go assignHRUs()
-	go buildTopmodel()
+	go buildTopmodel(topm)
 	wg.Wait()
 
 	cascf := b.buildCascadeFractionFuzzy(kstrm, mcasc)
@@ -287,8 +281,8 @@ func (b *subdomain) surfgeoSample(kstrm, mcasc, urbDiv, soildepth float64, topm,
 		}
 		strms := func() map[int]bool {
 			strms := make(map[int]bool, b.nstrm)
-			for _, g := range b.mpr.GW {
-				for _, c := range g.StrmXR {
+			for _, g := range b.rtr.SwsStrmXR {
+				for _, c := range g {
 					strms[c] = true
 				}
 			}

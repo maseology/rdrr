@@ -15,14 +15,14 @@ type evaluation struct {
 	ws                        []hru.HRU         // watershed: collection of HRUs
 	t                         []time.Time       // timesteps
 	y, ep                     [][]float64       // yield; demand
-	drel, m, cascf            []float64         // relative depth to WT; cascade fraction
-	ds, xrc, mxr, gxr, mt     []int             // downslope cell ID; meteo to cell xr; consecutive month index
+	drel, cascf               []float64         // relative depth to WT; cascade fraction
+	ds, xrc, mxr, mt          []int             // downslope cell ID; meteo to cell xr; consecutive month index
 	ca, intvl, fncid, dm, s0s float64           // cell area (m²); timestep interval (sec); float number cells; mean depth to WT; initial storage
 	sid, nstep                int               // sws ID; n timesteps
 	dir                       string
 }
 
-func newEvaluation(b *subdomain, p *sample, sid int, print bool) evaluation {
+func newEvaluation(b *subdomain, p *sample, m float64, sid int, print bool) evaluation {
 	var pp evaluation
 	if sid < 0 { // no subwatersheds
 		log.Fatalln("evaluation.newEvaluation: legacy code, should no longer occur")
@@ -34,14 +34,9 @@ func newEvaluation(b *subdomain, p *sample, sid int, print bool) evaluation {
 	if _, ok := b.rtr.SwsCidXR[sid]; !ok {
 		log.Fatalf("subsample.newSubsample error: subwatershed id %d cannot be found.", sid)
 	}
-	// if _, ok := b.mpr.GWx[sid]; !ok {
-	// 	log.Fatalf("subsample.newSubsample error: subwatershed id %d cannot be found in a groundwater reservoir.", sid)
-	// }
-	// gwid := b.mpr.GWx[sid]
-	// if _, ok := p.gw[gwid]; !ok {
-	// 	log.Fatalf("subsample.newSubsample error: gw-zone id %d cannot be found as a groundwater reservoir.", gwid)
-	// }
-
+	if _, ok := p.gw[sid]; !ok {
+		log.Fatalf("subsample.newSubsample error: subwatershed id %d cannot be found as a groundwater reservoir.", sid)
+	}
 	pp.t = b.frc.T
 	pp.mt = b.frc.mt
 	pp.dir = p.dir
@@ -50,7 +45,7 @@ func newEvaluation(b *subdomain, p *sample, sid int, print bool) evaluation {
 	pp.fncid = float64(len(b.rtr.SwsCidXR[sid]))
 	pp.dehash(b, p, sid, len(b.rtr.SwsCidXR[sid]), len(p.gw[sid].Qs))
 
-	pp.initialize(print)
+	pp.initialize(m, print)
 	// fmt.Printf(" **** sid: %d;  Dm0: %f;  s0: %f\n", sid, pp.dm, pp.s0s)
 	pp.ds[pp.cxr[sid]] = -1 // new outlet
 	return pp
@@ -62,7 +57,6 @@ func (pp *evaluation) dehash(b *subdomain, p *sample, sid, ncid, nstrm int) {
 	pp.cxr = make(map[int]int, ncid)         // cellID to slice id cross-reference
 	pp.xrc = make([]int, ncid)               // cellID cross-reference
 	pp.mxr = make([]int, ncid)               // met cellID to slice id cross-reference
-	pp.gxr = make([]int, ncid)               // gw-zone cellID to slice id cross-reference
 	pp.strmQs = make(map[int]float64, nstrm) // saturated lateral discharge (when Dm=0) at stream cells [m/ts]
 	for i, c := range b.rtr.SwsCidXR[sid] {
 		sid := b.rtr.Sws[c] // groundwatershed id
@@ -77,7 +71,6 @@ func (pp *evaluation) dehash(b *subdomain, p *sample, sid, ncid, nstrm int) {
 		pp.cxr[c] = i
 		pp.xrc[i] = c
 		pp.mxr[i] = b.frc.XR[c]
-		pp.gxr[i] = b.mpr.GWx[c]
 		if v, ok := p.gw[sid].Qs[c]; ok {
 			pp.strmQs[i] = v
 		}

@@ -29,7 +29,7 @@ func LoadDomain(mdlprfx string) *Domain {
 		go func() {
 			defer wg.Done()
 			var err error
-			if frc, err = LoadGobFORC(mdlprfx + "domain.FORC.gob"); err != nil {
+			if frc, err = LoadGobFORC(mdlprfx + "FORC.gob"); err != nil {
 				log.Fatalf("%v", err)
 			}
 			frc.mt = make([]int, len(frc.T))
@@ -42,7 +42,7 @@ func LoadDomain(mdlprfx string) *Domain {
 		go func() {
 			defer wg.Done()
 			var err error
-			if strc, err = LoadGobSTRC(mdlprfx + "domain.STRC.gob"); err != nil {
+			if strc, err = LoadGobSTRC(mdlprfx + "STRC.gob"); err != nil {
 				log.Fatalf("%v", err)
 			}
 		}()
@@ -51,7 +51,7 @@ func LoadDomain(mdlprfx string) *Domain {
 		go func() {
 			defer wg.Done()
 			var err error
-			if rtr, err = LoadGobRTR(mdlprfx + "domain.RTR.gob"); err != nil {
+			if rtr, err = LoadGobRTR(mdlprfx + "RTR.gob"); err != nil {
 				log.Fatalf("%v", err)
 			}
 		}()
@@ -60,7 +60,7 @@ func LoadDomain(mdlprfx string) *Domain {
 		go func() {
 			defer wg.Done()
 			var err error
-			if mapr, err = LoadGobMAPR(mdlprfx + "domain.MAPR.gob"); err != nil {
+			if mapr, err = LoadGobMAPR(mdlprfx + "MAPR.gob"); err != nil {
 				log.Fatalf("%v", err)
 			}
 		}()

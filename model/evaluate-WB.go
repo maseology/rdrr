@@ -7,7 +7,7 @@ import (
 )
 
 // evalWB is the main model routine, the others are derivatives to this. m: TOPMODEL parameter
-func evalWB(p *evaluation, res resulter, monid []int) {
+func evalWB(p *evaluation, m float64, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	obsCms, fcms := make(map[int]monitor, len(monid)), p.ca/p.intvl
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
@@ -36,8 +36,8 @@ func evalWB(p *evaluation, res resulter, monid []int) {
 		for i := 0; i < ncid; i++ {
 			s0 := p.ws[i].Storage()
 			y := p.y[p.mxr[i]][k]
-			ep := p.ep[p.mxr[i]][k]               // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
-			d := (dm + p.drel[i]) / p.m[p.gxr[i]] // groundwater deficit (relative to topmodel m)
+			ep := p.ep[p.mxr[i]][k] // p.f[i][doy] // p.ep[k][0] // p.f[i][doy] // p.ep[k][0] * p.f[i][doy]
+			d := dm + p.drel[i]     // groundwater deficit
 			cascf := p.cascf[i]
 			a, r, g := p.ws[i].UpdateWT(y, ep, d < 0.)
 
@@ -49,7 +49,7 @@ func evalWB(p *evaluation, res resulter, monid []int) {
 
 			b := 0.
 			if v, ok := p.strmQs[i]; ok { // stream cells always cascade
-				b = v * math.Exp(-d)
+				b = v * math.Exp(-d/m)
 				bs += b
 				gb[i] += b
 				r += b
