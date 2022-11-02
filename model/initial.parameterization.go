@@ -2,7 +2,7 @@ package model
 
 import (
 	"math"
-	"rdrr2/lusg"
+	"rdrr/lusg"
 	"sort"
 
 	"github.com/maseology/goHydro/hru"

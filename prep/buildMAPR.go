@@ -5,8 +5,8 @@ import (
 	"log"
 	"sync"
 
-	"rdrr2/lusg"
-	"rdrr2/model"
+	"rdrr/lusg"
+	"rdrr/model"
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"

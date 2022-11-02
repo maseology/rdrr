@@ -6,7 +6,7 @@ import (
 	"math"
 	"time"
 
-	"rdrr2/model"
+	"rdrr/model"
 
 	"github.com/maseology/goHydro/gmet"
 	"github.com/maseology/mmio"

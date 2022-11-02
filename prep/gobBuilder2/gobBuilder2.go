@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"rdrr2/model"
-	"rdrr2/prep"
+	"rdrr/model"
+	"rdrr/prep"
 	"sort"
 	"strconv"
 

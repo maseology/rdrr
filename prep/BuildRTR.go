@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"rdrr2/model"
+	"rdrr/model"
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"

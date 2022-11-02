@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"time"
 
-	"rdrr2/model"
-	"rdrr2/opt"
+	"rdrr/model"
+	"rdrr/opt"
 
 	"github.com/maseology/glbopt"
 	"github.com/maseology/mmio"
@@ -19,11 +19,11 @@ import (
 // var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 const (
-	mdlPrfx           = "M:/Peel/RDRR-PWRMM21/PWRMM21."
-	annualavgRecharge = 150. // [mmpyr] -- for initial conditions
+	mdlPrfx           = "S:/Peel/PWRMM21." // "M:/Peel/RDRR-PWRMM21/PWRMM21."
+	annualavgRecharge = 150.               // [mmpyr] -- for initial conditions
 
 	checkmode = false
-	optimize  = false
+	optimize  = true
 )
 
 func main() {
@@ -85,7 +85,7 @@ func main() {
 		rng.Seed(time.Now().UnixNano())
 
 		fmt.Println(" optimizing..")
-		uFinal, _ := glbopt.SCE(4, 5, rng, gen, true)
+		uFinal, _ := glbopt.SCE(8, 5, rng, gen, true)
 
 		TOPMODELm, acasc, maxFcasc, soildepth, dinc := opt.Par5(uFinal)
 		fmt.Printf("\nfinal "+txtfmt, TOPMODELm, acasc, maxFcasc, soildepth, dinc)

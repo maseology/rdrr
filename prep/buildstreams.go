@@ -1,6 +1,6 @@
 package prep
 
-import "rdrr2/model"
+import "rdrr/model"
 
 const strmkm2 = 1. // total drainage area [km²] required to deem a cell a "stream cell"
 
