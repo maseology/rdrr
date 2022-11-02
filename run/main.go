@@ -2,46 +2,101 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"os"
 	"runtime"
+	"time"
 
+	"rdrr2/model"
+	"rdrr2/opt"
+
+	"github.com/maseology/glbopt"
 	"github.com/maseology/mmio"
-	"github.com/maseology/rdrr/model"
+	"github.com/maseology/objfunc"
+	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
+)
+
+// var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
+const (
+	mdlPrfx           = "M:/Peel/RDRR-PWRMM21/PWRMM21."
+	annualavgRecharge = 150. // [mmpyr] -- for initial conditions
+
+	checkmode = false
+	optimize  = false
 )
 
 func main() {
-
-	const (
-		// mdlPrfx = "S:/OWRC-RDRR/owrc."
-		mdlPrfx = "S:/Peel/PWRMM21."        //"M:/Peel/RDRR-PWRMM21/PWRMM21."            //
-		obsfp   = "S:/Peel/obs/02HB004.csv" //"M:/Peel/RDRR-PWRMM21/dat/obs/02HC033.csv" //
-		cid0    = 2014386                   //                                           //
-	)
-	// 02HC033 1537675
-	// HY045   1340114
-	// 02HB004 2014386
-	// 02HB008 1552736
-	// 02HB024 1610724
+	// flag.Parse()
+	// if *cpuprofile != "" {
+	// 	f, err := os.Create(*cpuprofile)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	pprof.StartCPUProfile(f)
+	// 	defer pprof.StopCPUProfile()
+	// }
 
 	fmt.Println("")
 	tt := mmio.NewTimer()
 	defer tt.Lap(fmt.Sprintf("\nRun complete. n processes: %v", runtime.GOMAXPROCS(0)))
 
-	// load data
+	// load domain
 	dom := model.LoadDomain(mdlPrfx)
-	tt.Print("Master Domain Load complete\n")
-	model.DeleteMonitors(mdlPrfx+"out/", true) // also sets-up the output folder
-	// dom.Frc.AddObservation(obsfp, dom.Strc.Acell, cid0)
+	cidout := func() int {
+		for i, c := range dom.Obs.Oqxr {
+			if c == dom.Strc.CID0 {
+				return i
+			}
+		}
+		return -1
+	}()
+	domeval := dom.EvaluateVerbose
 
-	// // run model
-	// // TMQm, grdMin, kstrm, mcasc, urbDiv, soildepth, dinc := 0.221871, 0.073682, 0.979411, 2.13048, 0.667674, 0.086067, 0.961614
-	// TMQm, grdMin, kstrm, mcasc, urbDiv, soildepth, dinc := 0.221, 0.05, 0.995, 2.13048, 0.9, 0.086067, 0.
-	// ksat := []float64{7.73e-09, 4.63e-06, 1.21e-06, 1.30e-05, 0.00577451, 4.92e-08, 0.006880688, 2.53e-08}
-	// dom.RunSurfGeo(mdlPrfx+"out/", mdlPrfx+"check/", TMQm, grdMin, kstrm, mcasc, soildepth, dinc, urbDiv, ksat, cid0, true)
+	tt.Print("Master Domain Load complete")
+	dom.Print()
 
-	// sample models
-	model.PrepMC(mdlPrfx + "MC/")
-	dom.SampleSurfGeo(mdlPrfx, 2500, cid0)
+	evaluate := func(TOPMODELm, acasc, maxFcasc, soildepth, dinc float64, prnt bool) float64 {
 
-	// // find optimal model
-	// model.OptimizeDefault(nil, 1104986)
+		// initialize hydrological elements with parameter assignment
+		lus, xg, xm, cxr, gxr := dom.Parameterize(acasc, soildepth, maxFcasc, dinc, TOPMODELm, prnt)
+		dms := dom.FindDm0s(lus, annualavgRecharge, cxr, xg, prnt)
+
+		// check loaded data
+		if checkmode {
+			dom.PreRunCheck(lus, cxr, xg, xm)
+			os.Exit(22)
+		}
+
+		// run model
+		hyd0 := domeval(lus, dms, xg, xm, gxr, prnt) // [m³/s]
+
+		return 1. - objfunc.NSEsmooth(dom.Obs.Oq[cidout], dom.Obs.ToDaily(dom.Frc.T, hyd0), 3)
+	}
+
+	txtfmt := "parameters:\n\tTMQm=\t\t%v\n\tacasc=\t\t%v\n\tmaxcasc=\t%v\n\tsoildepth=\t%v\n\tdinc=\t\t%v\n\n"
+	if optimize {
+		// optimization
+		gen := func(u []float64) float64 {
+			TOPMODELm, acasc, maxFcasc, soildepth, dinc := opt.Par5(u)
+			return evaluate(TOPMODELm, acasc, maxFcasc, soildepth, dinc, false)
+		}
+		rng := rand.New(mrg63k3a.New())
+		rng.Seed(time.Now().UnixNano())
+
+		fmt.Println(" optimizing..")
+		uFinal, _ := glbopt.SCE(4, 5, rng, gen, true)
+
+		TOPMODELm, acasc, maxFcasc, soildepth, dinc := opt.Par5(uFinal)
+		fmt.Printf("\nfinal "+txtfmt, TOPMODELm, acasc, maxFcasc, soildepth, dinc)
+		fmt.Println(evaluate(TOPMODELm, acasc, maxFcasc, soildepth, dinc, true), []float64{acasc})
+
+	} else {
+
+		TOPMODELm, acasc, maxFcasc, soildepth, dinc := .2657, 0.01, .932, 1.5, -.514
+		// TOPMODELm, acasc, maxFcasc, soildepth, dinc := opt.Par5([]float64{0.027, 0.999, 0.662, 0.998, 0.243})
+		fmt.Printf(txtfmt, TOPMODELm, acasc, maxFcasc, soildepth, dinc)
+		fmt.Println(evaluate(TOPMODELm, acasc, maxFcasc, soildepth, dinc, true))
+
+	}
 }

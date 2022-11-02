@@ -1,0 +1,104 @@
+---
+title: "rdrr report"
+author: "M.Marchildon"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+setwd("E:/Sync/@dev/go/src/rdrr2/run")
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(dygraphs)
+library(xts)
+
+df.obs <- read.csv("M:/Peel/RDRR-PWRMM21/obs/1547060-02HB025.csv") %>% #("M:/Peel/RDRR-PWRMM21/obs/784194-02HB013.csv") %>% #
+  mutate(Date=as.Date(Date), Obs=Flow) %>%
+  select(c(Date,Obs)) # [m³/s]
+
+df.sim <- read.csv("wtrbdgt.csv") %>%
+  mutate(Date=as.POSIXct(date, format="%Y-%m-%d %H:%M:%S"), Sim=cms, BasinRunoff=hyd) %>%
+  select(c(Date,Sim,Ya,AET,Recharge,BasinRunoff,DeltaStorage,Storage,MeanDm)) %>%
+  drop_na()
+
+getBin <- function(fn) {
+  fp <- paste0("M:/Peel/RDRR-PWRMM21/check/", fn)
+  binsize <-  file.info(fp)$size/8
+  binfile <- file(fp, "rb")
+  bindata <- readBin(binfile, double(), n = binsize)
+  data.frame(bindata)
+}
+```
+
+
+## Simulated vs. Observed
+
+```{r obssim}
+df.sim.daily <- df.sim %>%
+  mutate(Date=as.Date(Date)) %>%
+  group_by(Date) %>%
+  summarise(Sim=mean(Sim)) %>%
+  ungroup()
+
+
+df.mrg <- left_join(df.sim.daily, df.obs, by="Date")
+
+z=cbind(df.mrg$Obs, df.mrg$Sim) #, df.mrg$Ya, df.mrg$AET, df.mrg$Recharge, df.mrg$DeltaStorage, df.mrg$Storage, df.mrg$MeanDm)
+x=xts(z, df.mrg$Date)
+names(x) <- c("observed","simulated") #,"AtmsYld","AET","Recharge","DeltaStorage","Storage","MeanDm")
+
+dygraph(x) %>% #, main = "title goes here") %>% 
+  dyRangeSelector(height = 20) %>%
+  dySeries("observed", strokeWidth = 2, color='blue') %>%
+  dySeries("simulated", strokeWidth = 2, color='red') %>%
+  dyLegend(width = 550)
+```
+
+
+
+## Waterbudget
+
+```{r wb1}
+
+
+z=cbind(df.sim$Ya, df.sim$AET, df.sim$Recharge, df.sim$BasinRunoff, df.sim$DeltaStorage, df.sim$Storage, df.sim$MeanDm)
+x=xts(z, df.sim$Date)
+names(x) <- c("AtmsYld","AET","Recharge","Runoff","DeltaStorage","Storage","MeanDm")
+
+dygraph(x) %>% #, main = "title goes here") %>% 
+  dyRangeSelector(height = 20) %>%
+  dyBarSeries("AtmsYld", color="#1f78b480") %>%
+  dySeries("DeltaStorage", strokeWidth = 2, color='cyan') %>%
+  dySeries("Storage", strokeWidth = 2, color='orange') %>%
+  dySeries("AET", strokeWidth = 2, color='green') %>%
+  dySeries("Recharge", strokeWidth = 2, color='brown') %>%
+  dySeries("Runoff", strokeWidth = 2, color='red') %>%
+  dyAxis("x", valueRange = c(-10,NA)) %>%
+  # dyAxis('y2', labelWidth=0) %>% #, valueRange = c(max(df.sim$Ya)*1.5, 0)) %>%
+
+  dyLegend(width = 550)
+
+
+```
+
+
+## Topography
+
+```{r topography}
+
+getBin("Fcasc.bin") %>% ggplot(aes(bindata)) + geom_histogram() + labs(x="Fcasc")
+
+
+a=0.01
+getBin("STRC-dwngrad.bin") %>% ggplot(aes(bindata)) + 
+  geom_histogram() +
+  geom_function(fun = function(x) (1-exp(x**2/-a))*5000 , size=2, alpha=.65) +
+  xlim(c(NA,.4)) +
+  labs(title=paste0("(a = ",a,")"), x="land surface gradient")
+
+
+```

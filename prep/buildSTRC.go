@@ -3,22 +3,22 @@ package prep
 import (
 	"fmt"
 	"log"
-	"sync"
+	"math"
+	"rdrr2/model"
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/goHydro/tem"
 	"github.com/maseology/mmio"
-	"github.com/maseology/rdrr/model"
 )
 
-// Cell collects cell cross-referencing
-type Cell struct {
-	Ki, Cid, Sid, Mid int // array index, cell ID, sws ID, meteo ID
-	// PSIf              [366]float64
-}
+// // Cell collects cell cross-referencing
+// type Cell struct {
+// 	Ki, Cid, Sid, Mid int // array index, cell ID, sws ID, meteo ID
+// 	// PSIf              [366]float64
+// }
 
 // BuildSTRC builds the structural (static) form of the model
-func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc *model.STRC, cells []Cell) {
+func BuildSTRC(gd *grid.Definition, gobDir, demFP string, cid0 int) (*model.STRC, map[int][]int, []int) {
 
 	dem := func() tem.TEM {
 		if mmio.GetExtension(demFP) == ".gob" {
@@ -33,6 +33,7 @@ func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc
 		if err := dem.New(demFP); err != nil {
 			log.Fatalf(" BuildSTRC tem.New() error: %v", err)
 		}
+		gmax := math.Atan(.999)
 		for _, i := range gd.Sactives {
 			if _, ok := dem.TEC[i]; !ok {
 				log.Fatalf(" BuildSTRC error, cell id %d not found in %s", i, demFP)
@@ -40,6 +41,12 @@ func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc
 			if dem.TEC[i].Z == -9999. {
 				// log.Fatalf("no elevation assigned to cell %d", i)
 				fmt.Printf(" WARNING no elevation assigned to cell %d\n", i)
+			}
+			if math.Tan(dem.TEC[i].G) > 1 {
+				fmt.Printf(" WARNING gradient adjusted to cell %d; too steep\n", i)
+				m := dem.TEC[i]
+				m.G = gmax
+				dem.TEC[i] = m
 			}
 		}
 		if gd.Nact != len(dem.TEC) {
@@ -59,86 +66,75 @@ func BuildSTRC(gd *grid.Definition, sws map[int]int, gobDir, demFP string) (strc
 		return dem
 	}()
 
-	strc = &model.STRC{
-		TEM:   &dem,
-		UpCnt: dem.ContributingCellMap(),
-		Acell: gd.Cwidth * gd.Cwidth,
-		Wcell: gd.Cwidth,
-	}
-
-	fmt.Println(" building cell geometry (skipping solirrad calculations)..")
-	type in1 struct {
-		t      tem.TEC
-		k, cid int
-		x, y   float64
-	}
-	generateInput := func(inputStream chan<- in1) {
-		for k, cid := range gd.Sactives {
-			xy := gd.Coord[cid]
-			inputStream <- in1{dem.TEC[cid], k, cid, xy.X, xy.Y}
-		}
-	}
-
-	newStreamer := func(wg *sync.WaitGroup, done <-chan interface{}, inputStream <-chan in1, outputStream chan<- Cell) {
-		defer wg.Done()
-		go func() {
-			for {
-				select {
-				case s := <-inputStream:
-					// latitude, _, err := UTM.ToLatLon(s.x, s.y, 17, "", true)
-					// if err != nil {
-					// 	fmt.Println(s)
-					// 	log.Fatalf(" newGeomStream error: %v -- (x,y)=(%f, %f); cid: %d\n", err, s.x, s.y, s.cid)
-					// }
-					// si := solirrad.New(latitude, math.Tan(s.t.G), math.Pi/2.-s.t.A)
-					// outputStream <- Cell{Ki: s.k, Cid: s.cid, Sid: sws[s.cid], Mid: sws[s.cid], PSIf: si.PSIfactor}
-					outputStream <- Cell{Ki: s.k, Cid: s.cid, Sid: sws[s.cid], Mid: sws[s.cid]}
-				case <-done:
-					return
-				}
+	var strc *model.STRC
+	ds := func() map[int]int {
+		if _, ok := dem.USlp[cid0]; !ok && cid0 >= 0 { // 1-cell model
+			strc = &model.STRC{
+				DwnGrad: map[int]float64{cid0: dem.TEC[cid0].G},
+				UpCnt:   map[int]int{cid0: 1},
+				CIDs:    []int{cid0},
+				DwnXR:   []int{-1},
+				// Acell:   gd.Cwidth * gd.Cwidth,
+				Wcell: gd.Cwidth,
+				CID0:  cid0,
 			}
-		}()
-	}
+			return map[int]int{cid0: -1}
+		} else {
+			cids, ds := dem.DownslopeContributingAreaIDs(cid0)
+			dnslp := func() map[int]float64 {
+				dnslp := make(map[int]float64, dem.NumCells())
+				for cid, tec := range dem.TEC {
+					dnslp[cid] = tec.G
+				}
+				return dnslp
+			}()
+			dsx := func() []int {
+				m := make(map[int]int, len(cids))
+				for i, cid := range cids {
+					m[cid] = i
+				}
+				x := make([]int, len(cids))
+				for i, cid := range cids {
+					if vv, ok := ds[cid]; ok {
+						if vv < 0 {
+							x[i] = -1
+						} else {
+							x[i] = m[vv]
+						}
+						continue
+					} else if cid0 < 0 {
+						x[i] = -1
+						continue
+					}
+					panic("dsx error")
+				}
+				return x
+			}()
 
-	done := make(chan interface{})
-	inputStream := make(chan in1)
-	outputStream := make(chan Cell)
-	var wg sync.WaitGroup
-	wg.Add(64)
-	for k := 0; k < 64; k++ {
-		newStreamer(&wg, done, inputStream, outputStream)
-	}
-	go generateInput(inputStream)
+			strc = &model.STRC{
+				DwnGrad: dnslp,
+				UpCnt:   dem.ContributingCellMap(cid0),
+				CIDs:    cids,
+				DwnXR:   dsx,
+				// Acell:   gd.Cwidth * gd.Cwidth,
+				Wcell: gd.Cwidth,
+				CID0:  cid0,
+			}
+			return ds
+		}
+	}()
 
-	cells = make([]Cell, gd.Nact)
-
-	for k := 0; k < gd.Nact; k++ {
-		c := <-outputStream
-		cells[c.Ki] = c
-	}
-	close(done)
-	wg.Wait()
-	// close(inputStream)
-	// close(outputStream)
-
-	// func() error {
-	// 	f, err := os.Create(demFP + ".Cells.gob")
-	// 	defer f.Close()
-	// 	if err != nil {
-	// 		log.Fatalf(" cells to gob error: %v", err)
-	// 	}
-	// 	enc := gob.NewEncoder(f)
-	// 	err = enc.Encode(cells)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	return nil
-	// }()
-
-	if err := strc.SaveGob(gobDir + "STRC.gob"); err != nil {
+	if err := strc.SaveGob(gobDir + "domain.STRC.gob"); err != nil {
 		log.Fatalf(" BuildSTRC error: %v", err)
 	}
 
-	return
+	if cid0 < 0 {
+		return strc, dem.USlp, dem.Outlets()
+	}
+	ups := make(map[int][]int, len(ds))
+	for c := range ds {
+		ups[c] = dem.USlp[c]
+	}
+	return strc, ups, []int{cid0}
 
 }
