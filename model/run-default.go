@@ -31,7 +31,7 @@ func (d *Domain) RunDefault(mdldir, chkdir string, topm, kstrm, mcasc, soildepth
 	}
 
 	// dt, y, ep, obs, intvl, nstep := b.getForcings()
-	of := b.evaluate(&smpl, topm, print, evalWB)
+	of := b.evaluate(&smpl, print, evalWB)
 	WaitMonitors()
 	return of
 }

@@ -33,7 +33,7 @@ func (d *Domain) OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
 	gen := func(u []float64) float64 {
 		m, _, kstrm, mcasc, soildepth, kfact, _ := par7(u)
 		smpl := b.defaultSample(m, kstrm, mcasc, soildepth, kfact)
-		return b.evaluate(&smpl, m, false, eval)
+		return b.evaluate(&smpl, false, eval)
 	}
 
 	fmt.Println(" optimizing..")
@@ -43,5 +43,5 @@ func (d *Domain) OptimizeDefault(frc *FORC, outlet int) (float64, []float64) {
 	m, _, kstrm, mcasc, soildepth, kfact, _ := par7(uFinal)
 	fmt.Printf("\nfinal parameters:\n\tTMQm:=\t\t%v\n\tkstrm:=\t\t%v\n\tmcasc:=\t\t%v\n\tsoildepth:=\t%v\n\tkfact:=\t\t%v\n\n", m, kstrm, mcasc, soildepth, kfact)
 	final := b.defaultSample(m, kstrm, mcasc, soildepth, kfact)
-	return b.evaluate(&final, m, true, evalWB), []float64{m, kstrm, mcasc, soildepth, kfact}
+	return b.evaluate(&final, true, evalWB), []float64{m, kstrm, mcasc, soildepth, kfact}
 }

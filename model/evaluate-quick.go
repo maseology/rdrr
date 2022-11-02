@@ -2,7 +2,7 @@ package model
 
 import "math"
 
-func eval(p *evaluation, m float64, res resulter, monid []int) {
+func eval(p *evaluation, res resulter, monid []int) {
 	ncid := int(p.fncid)
 	sim, hsto, gsto := make([]float64, p.nstep), make([]float64, p.nstep), make([]float64, p.nstep)
 
@@ -20,7 +20,7 @@ func eval(p *evaluation, m float64, res resulter, monid []int) {
 			s1s += p.ws[i].Storage()
 
 			if v, ok := p.strmQs[i]; ok {
-				b := v * math.Exp((-dm-p.drel[i])/m)
+				b := v * math.Exp((-dm-p.drel[i])/p.m[p.gxr[i]])
 				bs += b
 				r += b
 			}

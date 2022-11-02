@@ -9,16 +9,16 @@ import (
 	"github.com/maseology/rdrr/lusg"
 )
 
-// MAPR holds mappings of landuse and surficial geology
+// MAPR holds mappings of landuse, surficial geology and groundwater zones
 type MAPR struct {
-	LU lusg.LandUseColl // [luid]LandUseColl
-	// SG         lusg.SurfGeoColl // [sgid]SurfGeoColl
-	Ksat, Fimp, Ifct map[int]float64 // fraction impervious; interception factor, total interception=Ifct*Fcov*IntSto
-	LUx, SGx         map[int]int     // cross reference of cid to lu/sg
+	LU               lusg.LandUseColl // [luid]LandUse
+	GW               lusg.GWzoneColl  // [gwid]GWzone
+	Ksat, Fimp, Ifct map[int]float64  // fraction impervious; interception factor, total interception=Ifct*Fcov*IntSto
+	LUx, SGx, GWx    map[int]int      // cross reference of cid to lu/sg
 }
 
-// MaprCXR holds cell-based parameters and indices
-type MaprCXR struct{}
+// // MaprCXR holds cell-based parameters and indices
+// type MaprCXR struct{}
 
 // SaveGob MAPR to gob
 func (m *MAPR) SaveGob(fp string) error {

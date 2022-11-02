@@ -1,6 +1,6 @@
 package model
 
-func (pp *evaluation) initialize(m float64, print bool) {
+func (pp *evaluation) initialize(print bool) {
 	// smpl := func(u float64) float64 {
 	// 	return mmaths.LinearTransform(-100., 10., u)
 	// }
@@ -18,7 +18,11 @@ func (pp *evaluation) initialize(m float64, print bool) {
 	// if print {
 	// 	fmt.Printf(" initial dm = %f\n", pp.dm)
 	// }
-	pp.dm = m
+	ms := 0.
+	for c := range pp.strmQs {
+		ms += pp.m[pp.gxr[c]]
+	}
+	pp.dm = ms / float64(len(pp.strmQs))
 
 	pp.s0s = 0.
 	for i := 0; i < int(pp.fncid); i++ {

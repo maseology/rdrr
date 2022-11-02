@@ -14,19 +14,20 @@ import (
 
 // RTR holds topological info for subwatershed routing
 type RTR struct {
-	SwsCidXR, SwsStrmXR map[int][]int       // cross reference sws to cids; sws to stream cell ids
-	Sws, Dsws           map[int]int         // cross reference of cid to sub-watershed ID; map upsws{downsws}
-	UCA                 map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
+	// SwsCidXR, SwsStrmXR map[int][]int // cross reference sws to cids; sws to stream cell ids
+	SwsCidXR  map[int][]int // cross reference sws to cids
+	Sws, Dsws map[int]int   // cross reference of cid to sub-watershed ID; map upsws{downsws}
+	// UCA                 map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
 }
 
 func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]int, []int) {
 	var wg sync.WaitGroup
-	var swscidxr map[int][]int  // ordered cids, per sws
-	var swsstrmxr map[int][]int // stream cells per sws
-	var sws, dsws map[int]int   // sws mapping; downslope watershed mapping
-	var sids []int              // slice of subwatershed IDs, safely ordered downslope
-	var ord [][]int             // ordered groupings of sws for parallel operations
-	var uca map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
+	var swscidxr map[int][]int // ordered cids, per sws
+	// var swsstrmxr map[int][]int // stream cells per sws
+	var sws, dsws map[int]int // sws mapping; downslope watershed mapping
+	var sids []int            // slice of subwatershed IDs, safely ordered downslope
+	var ord [][]int           // ordered groupings of sws for parallel operations
+	// var uca map[int]map[int]int // unit contributing areas per sws: swsid{cid{upcnt}}
 	if outlet < 0 {
 		// log.Fatalf(" RTR.subset error: outlet cell needs to be provided")
 		sws = make(map[int]int, len(cids))
@@ -54,7 +55,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			copy(a, v)
 			swscidxr[k] = a
 		}
-		uca = r.UCA
+		// uca = r.UCA
 	} else {
 		sws, dsws = make(map[int]int, len(cids)), make(map[int]int, len(r.Dsws))
 		if len(r.Sws) > 0 {
@@ -100,16 +101,16 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 				copy(a, v)
 				swscidxr[k] = a
 			}
-			uca = make(map[int]map[int]int, len(sct))
-			for s := range swscidxr {
-				if _, ok := r.UCA[s]; ok {
-					uca[s] = r.UCA[s]
-				} else if s == outlet {
-					uca[s] = r.UCA[osws]
-				} else {
-					log.Fatalf(" RTR.subset UCA error: unknown sws")
-				}
-			}
+			// uca = make(map[int]map[int]int, len(sct))
+			// for s := range swscidxr {
+			// 	if _, ok := r.UCA[s]; ok {
+			// 		uca[s] = r.UCA[s]
+			// 	} else if s == outlet {
+			// 		uca[s] = r.UCA[osws]
+			// 	} else {
+			// 		log.Fatalf(" RTR.subset UCA error: unknown sws")
+			// 	}
+			// }
 			sids = mmaths.OrderFromToTree(dsws, -1)
 		} else { // entire model domain is one subwatershed to outlet
 			for _, cid := range cids {
@@ -117,7 +118,7 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			}
 			sids = []int{outlet}
 			swscidxr = map[int][]int{outlet: cids}
-			uca = r.UCA
+			// uca = r.UCA
 		}
 	}
 
@@ -154,38 +155,38 @@ func (r *RTR) subset(topo *tem.TEM, cids, strms []int, outlet int) (*RTR, [][]in
 			ord[i] = cpy
 		}
 	}
-	getSWSstrms := func() {
-		defer wg.Done()
-		sst := make(map[int][]int, len(r.SwsStrmXR))
-		for _, c := range strms {
-			if s, ok := sws[c]; ok {
-				if _, ok := sst[s]; !ok {
-					sst[s] = []int{c}
-				} else {
-					sst[s] = append(sst[s], c)
-				}
-			}
-		}
-		swsstrmxr = make(map[int][]int, len(sst))
-		for k, v := range sst {
-			a := make([]int, len(v))
-			copy(a, v)
-			swsstrmxr[k] = a
-		}
-	}
+	// getSWSstrms := func() {
+	// 	defer wg.Done()
+	// 	sst := make(map[int][]int, len(r.SwsStrmXR))
+	// 	for _, c := range strms {
+	// 		if s, ok := sws[c]; ok {
+	// 			if _, ok := sst[s]; !ok {
+	// 				sst[s] = []int{c}
+	// 			} else {
+	// 				sst[s] = append(sst[s], c)
+	// 			}
+	// 		}
+	// 	}
+	// 	swsstrmxr = make(map[int][]int, len(sst))
+	// 	for k, v := range sst {
+	// 		a := make([]int, len(v))
+	// 		copy(a, v)
+	// 		swsstrmxr[k] = a
+	// 	}
+	// }
 
-	wg.Add(2)
+	wg.Add(1)
 	// go getUCA()
 	go getSWSord()
-	go getSWSstrms()
+	// go getSWSstrms()
 	wg.Wait()
 
 	return &RTR{
-		SwsCidXR:  swscidxr,
-		SwsStrmXR: swsstrmxr,
-		Sws:       sws,
-		Dsws:      dsws,
-		UCA:       uca,
+		SwsCidXR: swscidxr,
+		// SwsStrmXR: swsstrmxr,
+		Sws:  sws,
+		Dsws: dsws,
+		// UCA:       uca,
 	}, ord, sids
 }
 

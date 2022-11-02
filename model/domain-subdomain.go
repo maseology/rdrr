@@ -62,21 +62,6 @@ func (d *Domain) newSubDomain(frc *FORC, outlet int) subdomain {
 	return b
 }
 
-// BuildStreams determines stream cells based on const strmkm2
-func BuildStreams(strc *STRC, cids []int) ([]int, int) {
-	strmcthresh := int(strmkm2 * 1000. * 1000. / strc.Acell) // "stream cell" threshold
-	strms, nstrm := []int{}, 0
-	for _, c := range cids {
-		if strc.UpCnt[c] > strmcthresh {
-			strms = append(strms, c)
-			nstrm++
-		}
-	}
-	o := make([]int, nstrm)
-	copy(o, strms)
-	return o, nstrm
-}
-
 // sortMonitorsSWS sorts observation cell IDs by SWS, where d.obs ([]int{cellID}) --> b.obs (map[sid][]int{cellID})
 func sortMonitorsSWS(d *Domain, r *RTR) map[int][]int {
 	if d.mons == nil {

@@ -28,11 +28,12 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 	rng.Seed(time.Now().UnixNano())
 
 	tt := mmio.NewTimer()
+	ngw := len(b.mpr.GW)
 	fmt.Printf(" number of subwatersheds: %d\n", len(b.rtr.SwsCidXR))
-	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSGeoSmplDim)
+	fmt.Printf(" running %d samples from %d dimensions..\n", nsmpl, nSGeoSmplDim+ngw)
 
 	var mu sync.Mutex
-	printParams := func(m, kstrm, mcasc, urbDiv, soildepth float64, ksat []float64, mdir string) {
+	printParams := func(kstrm, mcasc, urbDiv, soildepth float64, m, ksat []float64, mdir string) {
 		mu.Lock()
 		defer mu.Unlock()
 		tw, err := mmio.NewTXTwriter(mdir + "params.txt")
@@ -54,17 +55,17 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 
 	gen := func(u []float64) float64 {
 		mdir := newMCdir()
-		m, kstrm, mcasc, urbDiv, soildepth, ksat := parSurfGeo(u)
-		go printParams(m, kstrm, mcasc, urbDiv, soildepth, ksat, mdir)
-		smpl := b.surfgeoSample(m, kstrm, mcasc, urbDiv, soildepth, ksat)
+		kstrm, mcasc, urbDiv, soildepth, m, ksat := parSurfGeo(u)
+		go printParams(kstrm, mcasc, urbDiv, soildepth, m, ksat, mdir)
+		smpl := b.surfgeoSample(kstrm, mcasc, urbDiv, soildepth, m, ksat)
 		smpl.dir = mdir
-		of := b.evaluate(&smpl, m, false, evalMC)
+		of := b.evaluate(&smpl, false, evalMC)
 		WaitMonitors()
 		compressMC2(mdir)
 		fmt.Print(".")
 		return of
 	}
-	sp := smpln.NewLHC(rng, nsmpl, nSGeoSmplDim, false)
+	sp := smpln.NewLHC(rng, nsmpl, nSGeoSmplDim+ngw, false)
 
 	nPara := runtime.GOMAXPROCS(0) / 2 // ONLY USE FOR SMALLER MODELS !!!
 	if nPara > 1 {                     // ONLY USE FOR SMALLER MODELS !!!
@@ -75,8 +76,8 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 				if k < nsmpl {
 					wg.Add(1)
 					go func(k int) {
-						ut := make([]float64, nSGeoSmplDim)
-						for j := 0; j < nSGeoSmplDim; j++ {
+						ut := make([]float64, nSGeoSmplDim+ngw)
+						for j := 0; j < nSGeoSmplDim+ngw; j++ {
 							ut[j] = sp.U[j][k]
 						}
 						gen(ut)
@@ -89,8 +90,8 @@ func (d *Domain) SampleSurfGeo(outdir string, nsmpl, outlet int) {
 		}
 	} else { // serial
 		for k := 0; k < nsmpl; k++ {
-			ut := make([]float64, nSGeoSmplDim)
-			for j := 0; j < nSGeoSmplDim; j++ {
+			ut := make([]float64, nSGeoSmplDim+ngw)
+			for j := 0; j < nSGeoSmplDim+ngw; j++ {
 				ut[j] = sp.U[j][k]
 			}
 			gen(ut)

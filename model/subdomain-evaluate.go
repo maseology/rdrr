@@ -18,10 +18,10 @@ type stran struct {
 	s int
 }
 
-type version func(p *evaluation, m float64, res resulter, monid []int)
+type version func(p *evaluation, res resulter, monid []int)
 
 // evaluate evaluates a subdomain
-func (b *subdomain) evaluate(p *sample, m float64, print bool, ver version) (of float64) {
+func (b *subdomain) evaluate(p *sample, print bool, ver version) (of float64) {
 
 	nstep := len(b.frc.T)
 
@@ -36,8 +36,8 @@ func (b *subdomain) evaluate(p *sample, m float64, print bool, ver version) (of 
 			rs := newResults(b, nstep)
 			rs.dt, rs.obs = b.frc.T, b.frc.O[0]
 			var res resulter = &rs
-			pp := newEvaluation(b, p, m, b.cid0, print)
-			ver(&pp, m, res, b.mon[b.cid0])
+			pp := newEvaluation(b, p, b.cid0, print)
+			ver(&pp, res, b.mon[b.cid0])
 			of = res.report(print)[0]
 		} else {
 			log.Fatalf("TODO (subdomain.eval): unordered set of subwatersheds.")
@@ -57,7 +57,7 @@ func (b *subdomain) evaluate(p *sample, m float64, print bool, ver version) (of 
 				wg.Add(1)
 				go func(sid int, t []itran) {
 					defer wg.Done()
-					pp := newEvaluation(b, p, m, sid, print)
+					pp := newEvaluation(b, p, sid, print)
 					if len(t) > 0 {
 						pp.sources = make(map[int][]float64, len(t)) // upstream inputs
 						for _, v := range t {
@@ -81,7 +81,7 @@ func (b *subdomain) evaluate(p *sample, m float64, print bool, ver version) (of 
 						if print {
 							fmt.Printf(" printing SWS %d\n\n", sid)
 						}
-						ver(&pp, m, res, b.mon[sid])
+						ver(&pp, res, b.mon[sid])
 						of = res.report(print)[0]
 						// outflw = rs.sim
 					} else {
@@ -89,7 +89,7 @@ func (b *subdomain) evaluate(p *sample, m float64, print bool, ver version) (of 
 						if print {
 							fmt.Printf(" running SWS %d\n", sid)
 						}
-						ver(&pp, m, res, b.mon[sid])
+						ver(&pp, res, b.mon[sid])
 						dsid := -1
 						if d, ok := b.rtr.Dsws[sid]; ok {
 							// if _, ok := transfers[d]; !ok {

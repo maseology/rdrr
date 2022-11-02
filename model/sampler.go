@@ -9,7 +9,7 @@ import (
 )
 
 const nDefltSmplDim = 7
-const nSGeoSmplDim = 13
+const nSGeoSmplDim = 12
 
 func par7(u []float64) (m, grdMin, kstrm, mcasc, soildepth, kfact, dinc float64) {
 	m = mmaths.LogLinearTransform(0.1, 500., u[0])       // topmodel m -- NOTE anything less than 0.01 can lead to overflows
@@ -23,13 +23,15 @@ func par7(u []float64) (m, grdMin, kstrm, mcasc, soildepth, kfact, dinc float64)
 	return
 }
 
-func parSurfGeo(u []float64) (m, kstrm, mcasc, urbDiv, soildepth float64, ksat []float64) {
-	m = mmaths.LogLinearTransform(0.01, 5., u[0])        // topmodel m -- NOTE anything less than 0.01 can lead to overflows
-	kstrm = 1. - mmaths.LinearTransform(.0001, .1, u[1]) // maximum cascade fraction and given to all stream cells (~streamflow recession factor)
-	mcasc = mmaths.LogLinearTransform(.01, 10., u[2])    // slope of fuzzy cascade curve
-	urbDiv = mmaths.LinearTransform(0., 1., u[3])        // urban diversion: cascade fraction over urban areas routed directly to streams, remainder infiltrates
-	soildepth = mmaths.LinearTransform(0., .4, u[4])     // depth of soilzone/ET extinction depth
-	ksat = SurfGeoSample(u[5:])
+func parSurfGeo(u []float64) (kstrm, mcasc, urbDiv, soildepth float64, m, ksat []float64) {
+	kstrm = 1. - mmaths.LinearTransform(.0001, .1, u[0]) // maximum cascade fraction and given to all stream cells (~streamflow recession factor)
+	mcasc = mmaths.LogLinearTransform(.01, 10., u[1])    // slope of fuzzy cascade curve
+	urbDiv = mmaths.LinearTransform(0., 1., u[2])        // urban diversion: cascade fraction over urban areas routed directly to streams, remainder infiltrates
+	soildepth = mmaths.LinearTransform(0., .4, u[3])     // depth of soilzone/ET extinction depth
+	ksat = SurfGeoSample(u[4:12])
+	for i := 0; i < len(u)-nSGeoSmplDim; i++ {
+		m[i] = mmaths.LogLinearTransform(0.01, 5., u[12+i]) // topmodel m -- NOTE anything less than 0.01 can lead to overflows
+	}
 	return
 }
 
