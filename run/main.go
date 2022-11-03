@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"time"
 
-	"rdrr/model"
-	"rdrr/opt"
+	"github.com/maseology/rdrr/model"
+	"github.com/maseology/rdrr/opt"
 
 	"github.com/maseology/glbopt"
 	"github.com/maseology/mmio"
@@ -23,7 +23,7 @@ const (
 	annualavgRecharge = 150.               // [mmpyr] -- for initial conditions
 
 	checkmode = false
-	optimize  = true
+	optimize  = false
 )
 
 func main() {

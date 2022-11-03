@@ -2,11 +2,11 @@ package model
 
 import (
 	"math"
-	"rdrr/lusg"
 	"sort"
 
 	"github.com/maseology/goHydro/hru"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/lusg"
 )
 
 const (
