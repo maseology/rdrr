@@ -20,7 +20,7 @@ const (
 	// defaultSoilDepth = .5    // [m]
 )
 
-func (dom *Domain) Parameterize(acasc, soildepth, maxFcasc, dinc, TOPMODELm float64, prnt bool) ([]*Surface, []int, []int, map[int]int, []int) {
+func (dom *Domain) Parameterize(TOPMODELm []float64, acasc, soildepth, maxFcasc, dinc float64, prnt bool) ([]*Surface, []int, []int, map[int]int, []int) {
 	tt := mmio.NewTimer()
 
 	lus := make([]*Surface, dom.Nc)
@@ -83,6 +83,12 @@ func (dom *Domain) Parameterize(acasc, soildepth, maxFcasc, dinc, TOPMODELm floa
 				if _, ok := mstrm[c]; ok {
 					return 1.
 				}
+				if _, ok := dom.Mpr.LUx[c]; !ok {
+					panic("fcasc lu load error")
+				}
+				if dom.Mpr.LUx[c] == lusg.Urban {
+					return 1.
+				}
 				return UcascGaussian(acasc, s)
 			}
 			panic("fcasc load error")
@@ -125,7 +131,7 @@ func (dom *Domain) Parameterize(acasc, soildepth, maxFcasc, dinc, TOPMODELm floa
 			Drel:  zeta, // temporarily until gamma is determined
 			Dinc:  dinc,
 			Bo:    bos[i], //bo, // omega * tanbeta * ksat * dom.Frc.IntervalSec,
-			Tm:    TOPMODELm,
+			Tm:    TOPMODELm[xg[i]],
 		}
 	}
 

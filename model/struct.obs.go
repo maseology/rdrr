@@ -14,9 +14,9 @@ import (
 
 // OBS holds forcing data
 type OBS struct {
-	Td             []time.Time // [date ID]
-	Oq             [][]float64 // observed discharge (use Oxr for cross-reference)
-	Oqxr, mons, mt []int       // mapping of outlet cell ID to Oq[][]; other cell IDs to montior; month [1,12] cross-reference
+	Td                  []time.Time // [date ID]
+	Oq                  [][]float64 // observed discharge (use Oxr for cross-reference)
+	Oqxr, txr, mons, mt []int       // mapping of outlet cell ID to Oq[][]; other cell IDs to montior; month [1,12] cross-reference
 }
 
 func dayDate(t time.Time) int64 {
@@ -33,24 +33,32 @@ func collectOBS(frc *FORC, mdlprfx string) *OBS {
 		}
 	}
 
-	mt, dicT := make([]int, len(frc.T)), make(map[int64]bool)
+	mt, dicT := make([]int, len(frc.T)), make(map[int64][]int)
 	for k, t := range frc.T {
 		mt[k] = int(t.Month())
-		dicT[dayDate(t)] = true
+		dicT[dayDate(t)] = append(dicT[dayDate(t)], k)
 	}
-	lstT, td := make([]int64, 0, len(dicT)), make([]time.Time, len(dicT))
+	lstT, td, tx := make([]int64, 0, len(dicT)), make([]time.Time, len(dicT)), make([]int, len(frc.T))
 	for u := range dicT {
 		lstT = append(lstT, u)
 	}
 	sort.Slice(lstT, func(i, j int) bool { return lstT[i] < lstT[j] })
-	for i, u := range lstT {
-		td[i] = time.Unix(u, 0)
+	for i, ud := range lstT {
+		td[i] = time.Unix(ud, 0)
+		if a, ok := dicT[ud]; ok {
+			for _, ii := range a {
+				tx[ii] = i
+			}
+		} else {
+			panic("collectOBS error")
+		}
 	}
 
 	return &OBS{
 		Td:   td,
 		Oq:   make([][]float64, 0),
 		Oqxr: make([]int, 0),
+		txr:  tx,
 		mt:   mt,
 		mons: mons,
 	}
@@ -97,19 +105,24 @@ func (obs *OBS) AddFluxCsv(csvdir string, cxr map[int]int, cellarea float64) {
 	}
 }
 
-func (obs *OBS) ToDaily(ts []time.Time, dat []float64) []float64 {
+func (obs *OBS) ToDaily(dat []float64) []float64 {
 	nt := len(obs.Td)
-	dv := make(map[int64]float64, nt)
-	for i := range dat {
-		dv[dayDate(ts[i])] += dat[i]
-	}
 	o := make([]float64, nt)
-	for i, t := range obs.Td {
-		if v, ok := dv[t.Unix()]; ok {
-			o[i] = v
-		} // else {
-		// 	panic("ToDaily error")
-		// }
+	for i, v := range dat {
+		o[obs.txr[i]] += v
 	}
+	// nt := len(obs.Td)
+	// dv := make(map[int64]float64, nt)
+	// for i := range dat {
+	// 	dv[dayDate(ts[i])] += dat[i]
+	// }
+	// o := make([]float64, nt)
+	// for i, t := range obs.Td {
+	// 	if v, ok := dv[t.Unix()]; ok {
+	// 		o[i] = v
+	// 	} // else {
+	// 	// 	panic("ToDaily error")
+	// 	// }
+	// }
 	return o
 }

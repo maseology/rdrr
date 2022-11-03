@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"rdrr/model"
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/goHydro/tem"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/model"
 )
 
 // // Cell collects cell cross-referencing

@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"rdrr/model"
-
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/model"
 )
 
 // BuildRTR returns (and saves) the topological routing scheme amongst sub-basins

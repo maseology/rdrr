@@ -5,11 +5,10 @@ import (
 	"log"
 	"sync"
 
-	"rdrr/lusg"
-	"rdrr/model"
-
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/lusg"
+	"github.com/maseology/rdrr/model"
 )
 
 const ( // canopy types

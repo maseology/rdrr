@@ -6,10 +6,9 @@ import (
 	"math"
 	"time"
 
-	"rdrr/model"
-
 	"github.com/maseology/goHydro/gmet"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/model"
 )
 
 const intvl = 86400 / 4

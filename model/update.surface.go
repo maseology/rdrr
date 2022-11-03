@@ -25,46 +25,13 @@ func (s *Surface) Update(dm, frc, ep float64) (aet, runoff, recharge float64) {
 			}
 			s.Hru.Sma.Sto = s.Hru.Sma.Cap // saturate retention reservoir (drainable porosity)
 
-			// aet, ro, rch = s.Hru.Update(p+x, ep)
 			rp := s.Hru.Sdet.Overflow(p + x)                                     // flush detention storage
 			sri := s.Hru.Fimp * rp                                               // impervious runoff
 			ro = s.Hru.Sma.Overflow(rp-sri) + sri                                // flush retention, compute potential runoff
 			avail := s.Hru.Sdet.Overflow(-ep)                                    // remove ep from detention
 			avail = s.Hru.Sma.Overflow(avail*(1.-s.Hru.Fimp)) + avail*s.Hru.Fimp // remaining available ep (cannot be >0.)
 			aet = ep + avail                                                     // actual et
-			// x := h.Sma.Sto - h.Sma.Cap // excess stored (drainable)
-			// if x < 0. { // fill remaining deficit, assume discharge
-			// 	rch = x
-			// 	x = 0.
-			// }
-			// h.Sma.Sto = h.Sma.Cap // saturate retention reservoir (drainable porosity)
-			// ro = h.Sdet.Overflow(p) + x   // fulfill detention reservoir, add excess to runoff
-			// avail := h.Sdet.Overflow(-ep) // remove ep from detention
-			// // option 1 no evap from gw
-			// aet = ep + avail // actual et
-			// // // // option 2 unlimited evap from gw
-			// // // rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
-			// // // aet = ep     // completely satisfied over a high watertable
-			// // // option 3 limited evap
-			// // dh := h.Perc * math.Exp(dwt) * (1. - h.Fimp)
-			// // if -avail > dh { // (Note: avail and dh cannot be >0.)
-			// // 	avail += dh      // remaining available ep (cannot be >0.)
-			// // 	rch -= dh        // (Note: dh cannot be >0.)
-			// // 	aet = ep + avail // actual et
-			// // } else {
-			// // 	rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
-			// // 	aet = ep     // completely satisfied over a high watertable
-			// // }
-			// // // option 4 limited evap 2
-			// // dwt *= (1. - h.Fimp)
-			// // if avail > dwt {
-			// // 	rch += avail // ep assumed unlimited from a saturated surface (Note: avail cannot be >0.)
-			// // 	aet = ep     // completely satisfied over a high watertable
-			// // } else {
-			// // 	avail -= dwt     // remaining available ep (cannot be >0.)
-			// // 	rch += dwt       // (Note: dwt cannot be >0.)
-			// // 	aet = ep + avail // actual et
-			// // }
+
 		} else {
 			aet, ro, rch = s.Hru.Update(p, ep)
 		}
@@ -75,7 +42,7 @@ func (s *Surface) Update(dm, frc, ep float64) (aet, runoff, recharge float64) {
 
 	s.Hru.Sdet.Sto += r * (1. - s.Fcasc)
 	r *= s.Fcasc
-	// g += s.Hru.InfiltrateSurplus()
+	g += s.Hru.InfiltrateSurplus() // stops cascade towers
 
 	hb := 0.
 	if s.Bo > 0. {

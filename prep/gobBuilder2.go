@@ -1,31 +1,23 @@
-package main
+package prep
 
 import (
 	"fmt"
 	"log"
-	"rdrr/model"
-	"rdrr/prep"
 	"sort"
 	"strconv"
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/model"
 )
 
-const controlFP = "M:/Peel/RDRR-PWRMM21/PWRMM21.rdrr"
-const skipFRC = false
-
-// // model period set gloabally
-// var (
-// 	dtb = time.Date(2010, 10, 1, 0, 0, 0, 0, time.UTC)
-// 	dte = time.Date(2020, 9, 30, 18, 0, 0, 0, time.UTC)
-// )
-
-func main() {
+func GobBuilder(controlFP string, skipFRC bool) {
 	// var wg sync.WaitGroup
 
 	tt := mmio.NewTimer()
 	defer tt.Print("\n\nprep complete!")
+
+	fmt.Println("Building RDRR binaries (*.gob) from ", controlFP)
 
 	// get input file paths
 	var gobDir, gdefFP, hdemFP, swsFP, luFPprfx, sgFP, gwzFP, midFP, ncFP string
@@ -75,7 +67,7 @@ func main() {
 	var outlets []int
 	// go func() {
 	fmt.Print("collecting DEM topography..")
-	strc, upslopes, outlets = prep.BuildSTRC(gd, gobDir, hdemFP, cid0)
+	strc, upslopes, outlets = BuildSTRC(gd, gobDir, hdemFP, cid0)
 	fmt.Printf("  %d outlets; %d cells\n", len(outlets), len(upslopes))
 
 	// strc.PrintAndCheck(mmio.GetFileDir(gobDir))
@@ -88,14 +80,14 @@ func main() {
 
 	// go func() {
 	fmt.Println("building subbasin routing scheme..")
-	rtr := prep.BuildRTR(gobDir, strc, gd, swsFP)
+	rtr := BuildRTR(gobDir, strc, gd, swsFP)
 	// wg.Done()
 	// }()
 	_ = rtr
 
 	// go func() {
 	fmt.Println("\nbuilding land use, surficial geology and gw zone mapping..")
-	mapr := prep.BuildMAPR(gobDir, luFPprfx, sgFP, gwzFP, gd, strc, upslopes)
+	mapr := BuildMAPR(gobDir, luFPprfx, sgFP, gwzFP, gd, strc, upslopes)
 	// 	wg.Done()
 	// }()
 	_ = mapr
@@ -127,7 +119,7 @@ func main() {
 	}
 
 	if !skipFRC {
-		forc := prep.BuildFORC(gobDir, ncFP, cmxr, outlets, strc.Wcell*strc.Wcell)
+		forc := BuildFORC(gobDir, ncFP, cmxr, outlets, strc.Wcell*strc.Wcell)
 
 		_ = forc
 	}
