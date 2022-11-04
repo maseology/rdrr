@@ -1,8 +1,8 @@
 package model
 
 func (dom *Domain) EvaluateQuick(lus []*Surface, dms []float64, xg, xm, gxr []int, prnt bool) []float64 {
-	fm3s := dom.Strc.Wcell * dom.Strc.Wcell / dom.Frc.IntervalSec // [m/timestep] to [m³/s]                                                                                                                            //800                                             //
-	hyd := make([]float64, len(dom.Frc.T))                        // output/plotting
+	println(" running model in quick mode..")
+	hyd := make([]float64, len(dom.Frc.T)) // output/plotting
 
 	for j := range dom.Frc.T {
 		dmg := make([]float64, dom.Ngw)
@@ -29,8 +29,6 @@ func (dom *Domain) EvaluateQuick(lus []*Surface, dms []float64, xg, xm, gxr []in
 			dms[i] += g / dom.Mpr.Fngwc[i]
 		}
 
-		// reset lasts/conversions
-		hyd[j] *= fm3s // [m/timestep] to [m³/s]
 	}
-	return hyd
+	return hyd // [m/timestep]
 }

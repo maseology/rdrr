@@ -11,10 +11,8 @@ import (
 type FORC struct {
 	T      []time.Time // [date ID]
 	Ya, Ea [][]float64 // [staID][DateID] atmospheric exchange terms
-	// O           [][]float64 // observed discharge (use Oxr for cross-reference)
-	XR map[int]int // mapping of model grid cell id to met index
-	// Oxr, mt     []int       // mapping of outlet cell ID to O[][]
-	// mt          []int // month [1,12] cross-reference
+	XR     map[int]int // mapping of model grid cell id to met index
+	// Xt          []int       // cross reference of T-array to the input data array. (-1 means there was missing import dates.)
 	IntervalSec float64
 }
 

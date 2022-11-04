@@ -6,15 +6,6 @@ import (
 	"github.com/maseology/mmio"
 )
 
-// // STRC holds model structural data
-// type STRC struct {
-// 	DwnGrad      map[int]float64 // gradient (slope) of cell
-// 	UpCnt        map[int]int     // cell upslope count (unit contributing area)
-// 	CIDs, DwnXR  []int           // topologically-ordered (grid)cell IDs; downslope cell array index
-// 	Acell, Wcell float64         // cell area, cell width
-// 	CID0         int             // cell id of outlet cell.  <0 for all cells
-// }
-
 // Prints a set of rasters for verification
 func (s *STRC) PrintAndCheck(dir string) []int {
 	ocids := make([]int, len(s.CIDs))

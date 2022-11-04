@@ -11,6 +11,7 @@ func (dom *Domain) PreRunCheck(lus []*Surface, cxr map[int]int, xg, xm []int) {
 
 	ocids := dom.Strc.PrintAndCheck(dom.Dir)
 	dom.Frc.PrintAndCheck(dom.Dir, ocids)
+	dom.Obs.PrintAndCheck(dom.Dir, dom.Frc, ocids)
 
 	fcasc, drel, dinc, bo, tm := make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc)
 	rzsto, detsto, fimp, perc := make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc)

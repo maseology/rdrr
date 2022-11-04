@@ -9,7 +9,7 @@ import (
 
 func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []int, prnt bool) []float64 {
 	nstp := len(dom.Frc.T)
-	fm3s := dom.Strc.Wcell * dom.Strc.Wcell / dom.Frc.IntervalSec                                                                                              // [m/timestep] to [m³/s]                                                                                                                            //800                                             //
+	fm3s := dom.Strc.Wcell * dom.Strc.Wcell / dom.Frc.IntervalSec                                                                                              // [m/timestep] to [m³/s]
 	hyd := make([]float64, nstp)                                                                                                                               // output/plotting
 	gsya, gaet, gro, grch, gsto := make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc) // gridded average outputing
 	lns := make([]string, nstp+1)
@@ -100,8 +100,7 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 			lns[j+1] = fmt.Sprintf("%v,%f,%f,%f,%f,%f,%f,%f,%f", t, hyd[j]*fm3s, hyd[j]/fnc*1000, sya/fnc*1000, saet/fnc*1000, srch/fnc*1000, (sto-stoL)/fnc*1000, sto/fnc*1000, dmm) // [mm]
 		}
 
-		// reset lasts/conversions
-		hyd[j] *= fm3s // [m/timestep] to [m³/s]
+		// reset lasts
 		stoL = sto
 
 		if j == nstp-1 {
@@ -132,6 +131,5 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 		writeFloats(dom.Dir+"/output/final-Storage.bin", gsto)
 	} // output grids
 
-	return hyd
-
+	return hyd // [m/timestep]
 }

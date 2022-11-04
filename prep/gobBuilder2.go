@@ -11,7 +11,7 @@ import (
 	"github.com/maseology/rdrr/model"
 )
 
-func GobBuilder(controlFP string, skipFRC bool) {
+func GobBuilder(controlFP string, skipFRC bool, intvl float64) {
 	// var wg sync.WaitGroup
 
 	tt := mmio.NewTimer()
@@ -66,7 +66,7 @@ func GobBuilder(controlFP string, skipFRC bool) {
 	var upslopes map[int][]int
 	var outlets []int
 	// go func() {
-	fmt.Print("collecting DEM topography..")
+	fmt.Println("collecting DEM topography..")
 	strc, upslopes, outlets = BuildSTRC(gd, gobDir, hdemFP, cid0)
 	fmt.Printf("  %d outlets; %d cells\n", len(outlets), len(upslopes))
 
@@ -119,7 +119,7 @@ func GobBuilder(controlFP string, skipFRC bool) {
 	}
 
 	if !skipFRC {
-		forc := BuildFORC(gobDir, ncFP, cmxr, outlets, strc.Wcell*strc.Wcell)
+		forc := BuildFORC(gobDir, ncFP, cmxr, outlets, strc.Wcell*strc.Wcell, intvl)
 
 		_ = forc
 	}

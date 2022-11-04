@@ -17,14 +17,15 @@ type OBS struct {
 	Td                  []time.Time // [date ID]
 	Oq                  [][]float64 // observed discharge (use Oxr for cross-reference)
 	Oqxr, txr, mons, mt []int       // mapping of outlet cell ID to Oq[][]; other cell IDs to montior; month [1,12] cross-reference
+	cellarea            float64     // (uniform) cell area and timestep
 }
 
 func dayDate(t time.Time) int64 {
 	year, month, day := t.Date()
-	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC).Unix()
+	return time.Date(year, month, day, 0, 0, 0, 0, time.Local).Unix()
 }
 
-func collectOBS(frc *FORC, mdlprfx string) *OBS {
+func collectOBS(frc *FORC, mdlprfx string, cellarea float64) *OBS {
 	var mons []int
 	if _, ok := mmio.FileExists(mdlprfx + "obs"); ok {
 		var err error
@@ -55,17 +56,19 @@ func collectOBS(frc *FORC, mdlprfx string) *OBS {
 	}
 
 	return &OBS{
-		Td:   td,
-		Oq:   make([][]float64, 0),
-		Oqxr: make([]int, 0),
-		txr:  tx,
-		mt:   mt,
-		mons: mons,
+		Td:       td,
+		Oq:       make([][]float64, 0),
+		Oqxr:     make([]int, 0),
+		txr:      tx,
+		mt:       mt,
+		mons:     mons,
+		cellarea: cellarea,
+		// dayfraction: frc.IntervalSec / 84600.,
 	}
 }
 
 // AddFluxCsv reads csv file of "Date","Flow","Flag"
-func (obs *OBS) AddFluxCsv(csvdir string, cxr map[int]int, cellarea float64) {
+func (obs *OBS) AddFluxCsv(csvdir string, cxr map[int]int) {
 	fps, err := mmio.FileList(csvdir)
 	if err != nil {
 		panic(err)
@@ -90,39 +93,32 @@ func (obs *OBS) AddFluxCsv(csvdir string, cxr map[int]int, cellarea float64) {
 		}
 		obs.Oq = append(obs.Oq, make([]float64, nt))
 		obs.Oqxr = append(obs.Oqxr, cid)
+		oi := len(obs.Oq) - 1
 
 		cc := 0
 		for i, t := range obs.Td {
 			if v, ok := c[dayDate(t)]; ok {
-				// obs.Oq[0][i] = v * 86400. / cellarea // [m³/s] to [m/day]-leaving cell
-				obs.Oq[0][i] = v // [m³/s]
+				// obs.Oq[oi][i] = v * 86400. / cellarea // [m³/s] to [m/day]-leaving cell
+				obs.Oq[oi][i] = v // [m³/s]
 				cc++
 			} else {
-				obs.Oq[0][i] = math.NaN()
+				obs.Oq[oi][i] = math.NaN()
 			}
 		}
 		fmt.Printf(" > observation at cellID %d: %d of %d\n", cid, cc, nt)
 	}
 }
 
+// ToDaily imports hyd [m/timestep]
 func (obs *OBS) ToDaily(dat []float64) []float64 {
 	nt := len(obs.Td)
 	o := make([]float64, nt)
 	for i, v := range dat {
 		o[obs.txr[i]] += v
 	}
-	// nt := len(obs.Td)
-	// dv := make(map[int64]float64, nt)
-	// for i := range dat {
-	// 	dv[dayDate(ts[i])] += dat[i]
-	// }
-	// o := make([]float64, nt)
-	// for i, t := range obs.Td {
-	// 	if v, ok := dv[t.Unix()]; ok {
-	// 		o[i] = v
-	// 	} // else {
-	// 	// 	panic("ToDaily error")
-	// 	// }
-	// }
+	for j := range o {
+		o[j] *= obs.cellarea / 86400. // [m³/s]
+	}
+
 	return o
 }

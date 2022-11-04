@@ -21,7 +21,7 @@ type Domain struct {
 }
 
 // LoadDomain loads all data from which sub-domain scale models can be derived
-func LoadDomain(mdlprfx string) *Domain {
+func LoadDomain(mdlprfx string) Domain {
 	fmt.Println("Loading Master Domain..")
 
 	rootdir := mmio.GetFileDir(mdlprfx)
@@ -68,9 +68,9 @@ func LoadDomain(mdlprfx string) *Domain {
 			for i, c := range strc.CIDs {
 				m[c] = i
 			}
-			obs = collectOBS(frc, mdlprfx)
+			obs = collectOBS(frc, mdlprfx, strc.Wcell*strc.Wcell)
 			if mmio.DirExists(rootdir + "/obs/") {
-				obs.AddFluxCsv(rootdir+"/obs/", m, strc.Wcell*strc.Wcell)
+				obs.AddFluxCsv(rootdir+"/obs/", m)
 			}
 		}()
 
@@ -90,7 +90,7 @@ func LoadDomain(mdlprfx string) *Domain {
 	// 	fgnc[i] = mpr.GW[k].Fnc
 	// }
 
-	return &Domain{
+	return Domain{
 		Frc:  frc,
 		Strc: strc,
 		Mpr:  mpr,
