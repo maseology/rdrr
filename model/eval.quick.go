@@ -1,7 +1,6 @@
 package model
 
 func (dom *Domain) EvaluateQuick(lus []*Surface, dms []float64, xg, xm, gxr []int, prnt bool) []float64 {
-	println(" running model in quick mode..")
 	hyd := make([]float64, len(dom.Frc.T)) // output/plotting
 
 	for j := range dom.Frc.T {
