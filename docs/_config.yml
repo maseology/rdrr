@@ -3,3 +3,4 @@ plugins:
 - jekyll-remote-theme # add this line to the plugins list if you already have one
 title: Regionally Distributed Runoff Recharge model
 description: Regionally Distributed Runoff Recharge model is a large-scale high-resolution grid-based numerical model optimized for implementation on parallel computer architectures.
+logo: /assets/img/Riffle_main_transparent.png
