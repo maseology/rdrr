@@ -69,7 +69,7 @@ func collectOBS(frc *FORC, mdlprfx string, cellarea float64) *OBS {
 
 // AddFluxCsv reads csv file of "Date","Flow","Flag"
 func (obs *OBS) AddFluxCsv(csvdir string, cxr map[int]int) {
-	fps, err := mmio.FileList(csvdir)
+	fps, err := mmio.FileListExt(csvdir, ".csv")
 	if err != nil {
 		panic(err)
 	}
@@ -78,11 +78,13 @@ func (obs *OBS) AddFluxCsv(csvdir string, cxr map[int]int) {
 		fn := mmio.FileName(fp, false)
 		ii := strings.Index(fn, "-")
 		if ii <= 0 {
-			log.Fatalf("OBS.AddFluxCsv error: can't find cid in filename: %s", fp)
+			continue
+			// log.Fatalf("OBS.AddFluxCsv error: can't find cid in filename: %s", fp)
 		}
 		cid, err := strconv.Atoi(fn[:ii])
 		if err != nil {
-			log.Fatalf("OBS.AddFluxCsv error: %v", err)
+			continue
+			// log.Fatalf("OBS.AddFluxCsv error: %v", err)
 		}
 		if _, ok := cxr[cid]; !ok {
 			continue
