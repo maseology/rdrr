@@ -10,7 +10,9 @@ func (dom *Domain) PreRunCheck(lus []*Surface, cxr map[int]int, xg, xm []int) {
 	tt := mmio.NewTimer()
 
 	ocids := dom.Strc.PrintAndCheck(dom.Dir)
+
 	dom.Frc.PrintAndCheck(dom.Dir, ocids)
+	dom.Mpr.PrintAndCheck(dom.Dir, ocids)
 	dom.Obs.PrintAndCheck(dom.Dir, dom.Frc, ocids)
 
 	fcasc, drel, dinc, bo, tm := make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc)
@@ -46,8 +48,8 @@ func (dom *Domain) PreRunCheck(lus []*Surface, cxr map[int]int, xg, xm []int) {
 	writeFloats(dom.Dir+"/check/detsto.bin", detsto)
 	writeFloats(dom.Dir+"/check/Fimp.bin", fimp)
 	writeFloats(dom.Dir+"/check/Perc.bin", perc)
-	writeInts(dom.Dir+"/check/xg.indx", xxg)
-	writeInts(dom.Dir+"/check/xm.indx", xxm)
+	writeInts(dom.Dir+"/check/xg.indx", xxg) // TOPMODEL zone reference
+	writeInts(dom.Dir+"/check/xm.indx", xxm) // forcing/sws index
 
 	tt.Print("checkmode complete, see " + dom.Dir + "/check/")
 }

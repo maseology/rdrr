@@ -16,29 +16,67 @@ func (s *Surface) Update(dm, frc, ep float64) (aet, runoff, recharge float64) {
 
 	d := s.Drel + dm
 
-	updateWT := func(p, ep float64, upwardGradient bool) (aet, ro, rch float64) {
-		if upwardGradient {
-			x := s.Hru.Sma.Sto - s.Hru.Sma.Cap // excess stored (drainable)
-			if x < 0. {                        // fill remaining deficit, assume discharge
-				rch = x // groundwater discharge (negative recharge)
-				x = 0.
-			}
-			s.Hru.Sma.Sto = s.Hru.Sma.Cap // saturate retention reservoir (drainable porosity)
+	updateWT := func(p, ep, def float64) (aet, ro, rch float64) {
+		if def <= 0 { // TOPMODEL is super-saturated/high potential for discharge into SMA
 
-			rp := s.Hru.Sdet.Overflow(p + x)                                     // flush detention storage
-			sri := s.Hru.Fimp * rp                                               // impervious runoff
-			ro = s.Hru.Sma.Overflow(rp-sri) + sri                                // flush retention, compute potential runoff
-			avail := s.Hru.Sdet.Overflow(-ep)                                    // remove ep from detention
-			avail = s.Hru.Sma.Overflow(avail*(1.-s.Hru.Fimp)) + avail*s.Hru.Fimp // remaining available ep (cannot be >0.)
-			aet = ep + avail                                                     // actual et
+			// seep to sma (upwelling)
+			negrch := s.Hru.Perc * def // groundwater discharge (negative recharge)
+			s.Hru.Sma.Sto -= negrch
+			aet, ro, rch = s.Hru.Update(p, ep)
+			rch += negrch
 
+			// // satisfy evaporation demand
+			// _, ro, rch = s.Hru.Update(p, 0.) // (ep is used up)
+			// rch += negrch - ep               // gw exchange + groundwater evaporation=negative recharge
+			// aet = ep
+
+			// x := s.Hru.Sma.Sto - s.Hru.Sma.Cap // excess stored (drainable)
+			// negrch := 0.
+
+			// // // saturate retention reservoir (drainable porosity)
+			// // if x < 0. { // fill remaining deficit, assume discharge
+			// // 	negrch = x // groundwater discharge (negative recharge)
+			// // 	x = 0.
+			// // }
+			// // s.Hru.Sma.Sto = s.Hru.Sma.Cap
+
+			// // satisfy evaporation demand
+			// if x < 0. { // sma deficit
+			// 	if ep >= -x {
+			// 		negrch = x // groundwater evaporation (negative recharge)
+			// 		ep += x
+			// 		x = 0.
+			// 		s.Hru.Sma.Sto = s.Hru.Sma.Cap
+			// 	} else {
+			// 		negrch = ep // groundwater evaporation (negative recharge)
+			// 		x += ep
+			// 		ep = 0.
+
+			// 	}
+			// }
+
+			// // // upwelling
+			// // if x < 0. { // fill remaining deficit, assume discharge
+			// // 	dh := -x * (1. - math.Exp(-s.Hru.Perc))
+			// // 	negrch = -dh
+			// // 	x += dh
+			// // }
+
+			// // rp := s.Hru.Sdet.Overflow(p + x)                                     // flush detention storage
+			// // sri := s.Hru.Fimp * rp                                               // impervious runoff
+			// // ro = s.Hru.Sma.Overflow(rp-sri) + sri                                // flush retention, compute potential runoff
+			// // avail := s.Hru.Sdet.Overflow(-ep)                                    // remove ep from detention
+			// // avail = s.Hru.Sma.Overflow(avail*(1.-s.Hru.Fimp)) + avail*s.Hru.Fimp // remaining available ep (cannot be >0.)
+			// // aet = ep + avail                                                     // actual et
+			// aet, ro, rch = s.Hru.Update(p+x, ep)
+			// rch += negrch // adding negative recharge
 		} else {
 			aet, ro, rch = s.Hru.Update(p, ep)
 		}
 		return
 	}
 
-	a, r, g := updateWT(frc, ep, d < 0.) // false) // integration disabled /////////////////////////////////////////////////////
+	a, r, g := updateWT(frc, ep, d) // false) // integration disabled /////////////////////////////////////////////////////
 
 	s.Hru.Sdet.Sto += r * (1. - s.Fcasc)
 	r *= s.Fcasc

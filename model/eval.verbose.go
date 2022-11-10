@@ -9,24 +9,26 @@ import (
 
 func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []int, prnt bool) []float64 {
 	nstp := len(dom.Frc.T)
-	fm3s := dom.Strc.Wcell * dom.Strc.Wcell / dom.Frc.IntervalSec                                                                                              // [m/timestep] to [m³/s]
-	hyd := make([]float64, nstp)                                                                                                                               // output/plotting
-	gsya, gaet, gro, grch, gsto := make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc) // gridded average outputing
+	fm3s := dom.Strc.Wcell * dom.Strc.Wcell / dom.Frc.IntervalSec                                                                                                 // [m/timestep] to [m³/s]
+	hyd := make([]float64, nstp)                                                                                                                                  // output/plotting
+	gsya, gaet, gro, grch, gdelsto := make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc) // gridded average outputing
 	lns := make([]string, nstp+1)
 	// summations
 	fnc := float64(dom.Nc)
-	stoL, shyd, sps := 0., 0., 0.
+	sstoL, shyd, sps := 0., 0., 0.
 	for _, lu := range lus {
-		stoL += lu.Hru.Storage()
+		s := lu.Hru.Storage()
+		// gstoL[gxr[i]] = s * 1000. // [mm]
+		sstoL += s
 	}
 	// fmt.Printf("%30s %10s %10s %10s %10s (%6s) %12s\n", "time", "Ya", "aet", "ro", "rch", "delSto", "wbalHRUs")
 	for j, t := range dom.Frc.T {
 		dmg := make([]float64, dom.Ngw)
 		ins := make([]float64, dom.Nc)
-		saet, sro, srch, sya, sins, sto := 0., 0., 0., 0., 0., 0. // summations
+		saet, sro, srch, sya, sins, ssto := 0., 0., 0., 0., 0., 0. // summations
 		for i := range dom.Strc.CIDs {
-
-			aet, ro, rch := lus[i].Update(dms[xg[i]], ins[i]+dom.Frc.Ya[xm[i]][j], dom.Frc.Ea[xm[i]][j])
+			stoL, ya := lus[i].Hru.Storage(), dom.Frc.Ya[xm[i]][j]
+			aet, ro, rch := lus[i].Update(dms[xg[i]], ins[i]+ya, dom.Frc.Ea[xm[i]][j])
 
 			dmg[xg[i]] -= rch
 			if dom.Strc.DwnXR[i] > -1 {
@@ -36,19 +38,26 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 			}
 
 			// summations
-			sto += lus[i].Hru.Storage()
-			sya += dom.Frc.Ya[xm[i]][j]
+			sto := lus[i].Hru.Storage()
+			ssto += sto
+			sya += ya
 			saet += aet
 			sro += ro
 			srch += rch
 			sins += ins[i]
 
 			//outputs
-			gsya[gxr[i]] += dom.Frc.Ya[xm[i]][j]
+			gsya[gxr[i]] += ya
 			gaet[gxr[i]] += aet
-			gro[gxr[i]] += ro
+			gro[gxr[i]] += ro - ins[i] // generated runoff
 			grch[gxr[i]] += rch
-			// gsto[gxr[i]] += sto
+			gdelsto[gxr[i]] += sto - stoL
+
+			// wbal
+			hruWbal := ya + ins[i] + stoL - (aet + ro + rch + sto)
+			if math.Abs(hruWbal) > nearzero {
+				print("o")
+			}
 		}
 
 		// state update: add recharge to gw reservoirs
@@ -62,8 +71,8 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 		sps += sya / fnc
 
 		// water balances
-		allhruWbal := sya + sins + stoL - (saet + sro + srch + sto)
-		basinWbal := sya/fnc + stoL/fnc - (saet/fnc + hyd[j]/fnc + srch/fnc + sto/fnc) // [m]
+		allhruWbal := sya + sins + sstoL - (saet + sro + srch + ssto)
+		basinWbal := sya/fnc + sstoL/fnc - (saet/fnc + hyd[j]/fnc + srch/fnc + ssto/fnc) // [m]
 		if math.Abs(allhruWbal) > nearzero {
 			print("*")
 		}
@@ -78,7 +87,7 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 				saet/fnc*1000,
 				sro/fnc*1000,
 				srch/fnc*1000,
-				sto/fnc*1000,
+				ssto/fnc*1000,
 				dms,
 				shyd/float64(j+1)*365.24*4*1000,
 				sps/float64(j+1)*365.24*4*1000,
@@ -97,11 +106,11 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 				return o / float64(len(dms))
 			}()
 
-			lns[j+1] = fmt.Sprintf("%v,%f,%f,%f,%f,%f,%f,%f,%f", t, hyd[j]*fm3s, hyd[j]/fnc*1000, sya/fnc*1000, saet/fnc*1000, srch/fnc*1000, (sto-stoL)/fnc*1000, sto/fnc*1000, dmm) // [mm]
+			lns[j+1] = fmt.Sprintf("%v,%f,%f,%f,%f,%f,%f,%f,%f", t, hyd[j]*fm3s, hyd[j]/fnc*1000, sya/fnc*1000, saet/fnc*1000, srch/fnc*1000, (ssto-sstoL)/fnc*1000, ssto/fnc*1000, dmm) // [mm]
 		}
 
 		// reset lasts
-		stoL = sto
+		sstoL = ssto
 
 		if j == nstp-1 {
 			break
@@ -115,21 +124,26 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 		if err := mmio.WriteStrings("wtrbdgt.csv", lns); err != nil {
 			fmt.Println(err)
 		}
+
+		// output grids
 		f := 4 * 365.24 * 1000 / float64(nstp) // [mm]
+		gwbal := make([]float64, dom.Nc)
 		for i := range dom.Strc.CIDs {
 			gsya[gxr[i]] *= f
 			gaet[gxr[i]] *= f
 			gro[gxr[i]] *= f
 			grch[gxr[i]] *= f
-			gsto[gxr[i]] = lus[i].Hru.Storage() * 1000. // [mm]
+			// gdelsto[gxr[i]] *= f
+			gwbal[gxr[i]] = gsya[gxr[i]] - (gaet[gxr[i]] + gro[gxr[i]] + grch[gxr[i]] + gdelsto[gxr[i]])
 		}
 
 		writeFloats(dom.Dir+"/output/annual-Ya.bin", gsya)
 		writeFloats(dom.Dir+"/output/annual-AET.bin", gaet)
 		writeFloats(dom.Dir+"/output/annual-RO.bin", gro)
 		writeFloats(dom.Dir+"/output/annual-Rch.bin", grch)
-		writeFloats(dom.Dir+"/output/final-Storage.bin", gsto)
-	} // output grids
+		writeFloats(dom.Dir+"/output/annual-delSto.bin", gdelsto)
+		writeFloats(dom.Dir+"/output/final-wbal.bin", gwbal)
+	}
 
 	return hyd // [m/timestep]
 }
