@@ -16,6 +16,7 @@ import (
 type OBS struct {
 	Td                  []time.Time // [date ID]
 	Oq                  [][]float64 // observed discharge (use Oxr for cross-reference)
+	cmt                 []float64   // (float) counts of month samples
 	Oqxr, txr, mons, mt []int       // mapping of outlet cell ID to Oq[][]; other cell IDs to montior; month [1,12] cross-reference
 	cellarea            float64     // (uniform) cell area and timestep
 }
@@ -34,9 +35,10 @@ func collectOBS(frc *FORC, mdlprfx string, cellarea float64) *OBS {
 		}
 	}
 
-	mt, dicT := make([]int, len(frc.T)), make(map[int64][]int)
+	mt, cmt, dicT := make([]int, len(frc.T)), make([]float64, 12), make(map[int64][]int)
 	for k, t := range frc.T {
 		mt[k] = int(t.Month())
+		cmt[mt[k]-1]++
 		dicT[dayDate(t)] = append(dicT[dayDate(t)], k)
 	}
 	lstT, td, tx := make([]int64, 0, len(dicT)), make([]time.Time, len(dicT)), make([]int, len(frc.T))

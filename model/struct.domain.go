@@ -22,7 +22,7 @@ type Domain struct {
 
 // LoadDomain loads all data from which sub-domain scale models can be derived
 func LoadDomain(mdlprfx string) Domain {
-	fmt.Println("Loading Master Domain..")
+	fmt.Printf("Loading Master Domain from %srdrr ..\n", mdlprfx)
 
 	rootdir := mmio.GetFileDir(mdlprfx)
 	frc, strc, mpr, obs := func() (*FORC, *STRC, *MAPR, *OBS) {

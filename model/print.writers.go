@@ -39,3 +39,21 @@ func writeFloats(fp string, f []float64) error {
 	}
 	return nil
 }
+
+func write2Floats(fp string, f [][]float64) error {
+	buf := new(bytes.Buffer)
+	for _, v := range f {
+		if err := binary.Write(buf, binary.LittleEndian, v); err != nil {
+			return fmt.Errorf("write2Floats failed: %v", err)
+		}
+	}
+	return nil
+	// buf := new(bytes.Buffer)
+	// if err := binary.Write(buf, binary.LittleEndian, f); err != nil {
+	// 	return fmt.Errorf("WriteFloats failed: %v", err)
+	// }
+	// if err := ioutil.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+	// 	return fmt.Errorf("WriteFloats failed: %v", err)
+	// }
+	// return nil
+}

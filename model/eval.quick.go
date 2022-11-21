@@ -9,7 +9,7 @@ func (dom *Domain) EvaluateQuick(lus []*Surface, dms []float64, xg, xm, gxr []in
 		for i := range dom.Strc.CIDs { // topologically ordered
 
 			// update land surface
-			_, ro, rch := lus[i].Update(dms[xg[i]], ins[i]+dom.Frc.Ya[xm[i]][j], dom.Frc.Ea[xm[i]][j])
+			_, ro, rch := lus[i].Update(dms[xg[i]], ins[i], dom.Frc.Ya[xm[i]][j], dom.Frc.Ea[xm[i]][j])
 
 			// update gw
 			dmg[xg[i]] -= rch

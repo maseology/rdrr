@@ -120,7 +120,6 @@ func GobBuilder(controlFP string, skipFRC bool, intvl float64) {
 
 	if !skipFRC {
 		forc := BuildFORC(gobDir, ncFP, cmxr, outlets, strc.Wcell*strc.Wcell, intvl)
-
 		_ = forc
 	}
 

@@ -3,6 +3,7 @@ package prep
 import (
 	"fmt"
 	"log"
+	"sort"
 	"sync"
 
 	"github.com/maseology/goHydro/grid"
@@ -189,18 +190,8 @@ func BuildMAPR(gobDir, lufp, sgfp, gwfp string, gd *grid.Definition, strc *model
 			}
 			return g.Values(), g.UniqueValues()
 		}
-		var ugw []int
-		igw, ugw = loadIndx(gwfp) // at the moment, indices must be zero-based
-		ngw := func() int {
-			c := 0
-			for _, v := range ugw {
-				if v != -9999 {
-					c++
-				}
-			}
-			return c
-		}()
-		gwuca, fngwc = buildGWzone(strc, upslopes, igw, strc.CIDs, ngw)
+		mgw, _ := loadIndx(gwfp)
+		gwuca, fngwc, igw = buildGWzone(strc, upslopes, mgw, strc.CIDs)
 		tt.Lap("GW zones loaded")
 	}
 
@@ -294,31 +285,36 @@ func relativeCover(canopyID, surfaceID int) float64 {
 	return f
 }
 
-func buildGWzone(strc *model.STRC, upslopes map[int][]int, cgw map[int]int, cids []int, ngw int) (uca, fngwc []float64) {
+func buildGWzone(strc *model.STRC, upslopes map[int][]int, cgw map[int]int, cids []int) (uca, fngwc []float64, agw map[int]int) {
+	xgw := func() map[int]int {
+		d := make(map[int]int)
+		for _, c := range cids {
+			d[cgw[c]]++
+		}
+		u := make([]int, 0, len(d))
+		for k := range d {
+			u = append(u, k)
+		}
+		sort.Ints(u)
+		for i, uu := range u {
+			if _, ok := d[uu]; !ok {
+				panic("buildGWzone mgw error 1")
+			}
+			d[uu] = i
+		}
+		return d
+	}() // gw zoned ID to 0-base array index
+
 	mcids := make(map[int]int, len(cids))
 	mx := make(map[int]int, len(cids))
-	cidxr := make([][]int, ngw) // [gid][cellIDs]
-	// mgw := func() map[int]int {
-	// 	ugw := func() []int {
-	// 		u := make([]int, 0, ngw)
-	// 		for k := range dom.Mpr.Fngwc {
-	// 			u = append(u, k)
-	// 		}
-	// 		sort.Ints(u)
-	// 		return u
-	// 	}()
-	// 	m := make(map[int]int, len(ugw))
-	// 	for i, k := range ugw {
-	// 		m[k] = i
-	// 	}
-	// 	return m
-	// }() // gw zoned ID to 0-base array index
+	cidxr := make([][]int, len(xgw)) // [agid][cellIDs]
 	for i, c := range cids {
 		if _, ok := cgw[c]; !ok {
 			panic("buildGWzone error")
 		}
-		mx[c] = i                      // cell id to array id
-		g := cgw[c]                    // cell id to gw zone id
+		mx[c] = i // cell id to array id
+		// g := cgw[c]                    // cell id to gw zone id; here, indices must be zero-based
+		g := xgw[cgw[c]]               // cell id to gw zone array id
 		mcids[c] = g                   // sub-setting to cids array
 		cidxr[g] = append(cidxr[g], c) // assumes 0-based indexing, may need to cross-reference //////////////////////////////////// see above
 	}
@@ -342,7 +338,7 @@ func buildGWzone(strc *model.STRC, upslopes map[int][]int, cgw map[int]int, cids
 	}()
 
 	// compute unit contributing areas
-	return func() ([]float64, []float64) {
+	uca, fngwc = func() ([]float64, []float64) {
 		fmt.Print(" building unit contributing areas.. ")
 		type col struct {
 			g int
@@ -386,4 +382,6 @@ func buildGWzone(strc *model.STRC, upslopes map[int][]int, cgw map[int]int, cids
 		}
 		return uca, fngwc
 	}()
+
+	return uca, fngwc, mcids
 }

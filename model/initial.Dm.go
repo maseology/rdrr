@@ -8,6 +8,7 @@ func (dom *Domain) FindDm0s(lus []*Surface, mmpyr float64, cxr map[int]int, xg [
 	dms = dom.Drain(lus, dms, xg, 365*4)
 
 	if prnt {
+		writeFloats(dom.Dir+"/check/Dm0.bin", dms)
 		tt.Print("inital Dm computation complete")
 	}
 

@@ -75,10 +75,15 @@ func BuildFORC(gobDir, ncfp string, cmxr map[int]int, outlets []int, carea, intv
 	eao := g.GetAllData("water_potential_evaporation_amount")
 
 	// collect subset of met IDs
-	ssmid := make(map[int]bool)
+	for _, mid := range g.Sids {
+		if mid < 0 {
+			panic("FORC build error 1, nodata mid<0")
+		}
+	}
+	ssmid := make(map[int]int)
 	for _, mid := range cmxr {
-		if _, ok := ssmid[mid]; !ok {
-			ssmid[mid] = true
+		if mid >= 0 {
+			ssmid[mid]++
 		}
 	}
 	nsta := len(ssmid)
@@ -97,6 +102,7 @@ func BuildFORC(gobDir, ncfp string, cmxr map[int]int, outlets []int, carea, intv
 	mixr := make(map[int]int)
 	for i, mid := range g.Sids {
 		if _, ok := ssmid[mid]; !ok {
+			// fmt.Printf("met station ID %d not used\n", mid)
 			continue
 		}
 		ya, ea := make([]float64, nts), make([]float64, nts)

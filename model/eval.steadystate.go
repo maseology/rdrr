@@ -8,11 +8,6 @@ const tolerance = 1.
 
 func (dom *Domain) EvaluateToSteadyState(mmpyr float64, lus []*Surface, cxr map[int]int, xg []int, prnt bool) (dm0 []float64) {
 
-	// lus := make([]Surface, len(luPointers))
-	// for i, ll := range luPointers {
-	// 	lus[i] = *ll
-	// }
-
 	p := mmpyr / 1000. / 365.24 / 4. // [m/6hr] longterm average recharge
 
 	dm0 = make([]float64, dom.Ngw) // initial water deficits (to be solved for)
@@ -41,9 +36,7 @@ func (dom *Domain) EvaluateToSteadyState(mmpyr float64, lus []*Surface, cxr map[
 				ins := make([]float64, dom.Nc)
 				for _, i := range cids {
 
-					_, ro, rch := lus[i].Update(dm, ins[i]+p, 0.)
-
-					// ro += lus[i].Hru.Sdet.Overflow(0.)
+					_, ro, rch := lus[i].Update(dm, ins[i], p, 0.)
 
 					dmg -= rch
 					if douts[i] { // roots and gw res discharge point

@@ -12,7 +12,7 @@ type Surface struct {
 	Fcasc, Drel, Dinc, Bo, Tm float64
 }
 
-func (s *Surface) Update(dm, frc, ep float64) (aet, runoff, recharge float64) {
+func (s *Surface) Update(dm, kin, ya, ep float64) (aet, runoff, recharge float64) {
 
 	d := s.Drel + dm
 
@@ -76,22 +76,31 @@ func (s *Surface) Update(dm, frc, ep float64) (aet, runoff, recharge float64) {
 		return
 	}
 
-	a, r, g := updateWT(frc, ep, d) // false) // integration disabled /////////////////////////////////////////////////////
-
-	s.Hru.Sdet.Sto += r * (1. - s.Fcasc)
-	r *= s.Fcasc
-	g += s.Hru.InfiltrateSurplus() // stops cascade towers
-
-	hb := 0.
-	if s.Bo > 0. {
-		hb = s.Bo * math.Exp((s.Dinc-d)/s.Tm)
-		r += hb
+	if s.Bo > 0. { // stream cells
+		a, r, g := updateWT(ya, ep, d)
+		hb := s.Bo * math.Exp((s.Dinc-d)/s.Tm)
+		r += kin + hb
+		return a, r, g - hb
+	} else {
+		a, r, g := updateWT(kin+ya, ep, d) // false)
+		s.Hru.Sdet.Sto += r * (1. - s.Fcasc)
+		r *= s.Fcasc
+		g += s.Hru.InfiltrateSurplus() // stops cascade towers
+		return a, r, g
 	}
+
+	//
+
+	// hb := 0.
+	// if s.Bo > 0. {
+	// 	hb = s.Bo * math.Exp((s.Dinc-d)/s.Tm)
+	// 	r += hb
+	// }
 
 	// fmt.Printf("  a = %.4f;  r = %.4f;  b = %.4f;  g = %.4f;  s = %.4f\n", a, r-hb, hb, g, s.Hru.Storage())
 
-	return a, r, g - hb
 	// fmt.Printf("do something at surface %d with frc = %.3f, ep = %.3f and dm = %.3f\n", s.ID, frc, ep, *dm)
+	// return a, r, g - hb
 }
 
 // func (s *Surface) SpinUp(done <-chan interface{}, dm *float64, chanSource <-chan float64, nSources int) chan float64 {

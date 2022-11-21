@@ -8,7 +8,7 @@ import (
 )
 
 func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []int, prnt bool) []float64 {
-	nstp := len(dom.Frc.T)
+	nstp := 2 * 4 * 365                                                                                                                                           //len(dom.Frc.T)
 	fm3s := dom.Strc.Wcell * dom.Strc.Wcell / dom.Frc.IntervalSec                                                                                                 // [m/timestep] to [m³/s]
 	hyd := make([]float64, nstp)                                                                                                                                  // output/plotting
 	gsya, gaet, gro, grch, gdelsto := make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc), make([]float64, dom.Nc) // gridded average outputing
@@ -28,7 +28,7 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 		saet, sro, srch, sya, sins, ssto := 0., 0., 0., 0., 0., 0. // summations
 		for i := range dom.Strc.CIDs {
 			stoL, ya := lus[i].Hru.Storage(), dom.Frc.Ya[xm[i]][j]
-			aet, ro, rch := lus[i].Update(dms[xg[i]], ins[i]+ya, dom.Frc.Ea[xm[i]][j])
+			aet, ro, rch := lus[i].Update(dms[xg[i]], ins[i], ya, dom.Frc.Ea[xm[i]][j])
 
 			dmg[xg[i]] -= rch
 			if dom.Strc.DwnXR[i] > -1 {
@@ -88,7 +88,18 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 				sro/fnc*1000,
 				srch/fnc*1000,
 				ssto/fnc*1000,
-				dms,
+				func() []float64 {
+					if len(dms) < 5 {
+						return dms
+					} else {
+						mdms := 0.
+						for _, v := range dms {
+							mdms += v
+						}
+						mdms /= float64(len(dms))
+						return []float64{mdms}
+					}
+				}(),
 				shyd/float64(j+1)*365.24*4*1000,
 				sps/float64(j+1)*365.24*4*1000,
 				shyd/sps,
@@ -125,7 +136,6 @@ func (dom *Domain) EvaluateVerbose(lus []*Surface, dms []float64, xg, xm, gxr []
 			fmt.Println(err)
 		}
 
-		// output grids
 		f := 4 * 365.24 * 1000 / float64(nstp) // [mm]
 		gwbal := make([]float64, dom.Nc)
 		for i := range dom.Strc.CIDs {
