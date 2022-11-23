@@ -63,6 +63,7 @@ func collectOBS(frc *FORC, mdlprfx string, cellarea float64) *OBS {
 		Oqxr:     make([]int, 0),
 		txr:      tx,
 		mt:       mt,
+		cmt:      cmt,
 		mons:     mons,
 		cellarea: cellarea,
 		// dayfraction: frc.IntervalSec / 84600.,
