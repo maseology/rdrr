@@ -18,7 +18,7 @@ import (
 // }
 
 // BuildSTRC builds the structural (static) form of the model
-func BuildSTRC(gd *grid.Definition, gobDir, demFP string, cid0 int) (*model.STRC, map[int][]int, []int) {
+func BuildSTRC(gd *grid.Definition, gobDir, demFP string, cid0 int) (*model.STRC, []int) {
 
 	dem := func() tem.TEM {
 		if mmio.GetExtension(demFP) == ".gob" {
@@ -70,6 +70,7 @@ func BuildSTRC(gd *grid.Definition, gobDir, demFP string, cid0 int) (*model.STRC
 	ds := func() map[int]int {
 		if _, ok := dem.USlp[cid0]; !ok && cid0 >= 0 { // 1-cell model
 			strc = &model.STRC{
+				UpSlps:  dem.USlp,
 				DwnGrad: map[int]float64{cid0: dem.TEC[cid0].G},
 				UpCnt:   map[int]int{cid0: 1},
 				CIDs:    []int{cid0},
@@ -112,6 +113,7 @@ func BuildSTRC(gd *grid.Definition, gobDir, demFP string, cid0 int) (*model.STRC
 			}()
 
 			strc = &model.STRC{
+				UpSlps:  dem.USlp,
 				DwnGrad: dnslp,
 				UpCnt:   dem.ContributingCellMap(cid0),
 				CIDs:    cids,
@@ -129,12 +131,12 @@ func BuildSTRC(gd *grid.Definition, gobDir, demFP string, cid0 int) (*model.STRC
 	}
 
 	if cid0 < 0 {
-		return strc, dem.USlp, dem.Outlets()
+		return strc, dem.Outlets()
 	}
-	ups := make(map[int][]int, len(ds))
+	strc.UpSlps = make(map[int][]int, len(ds))
 	for c := range ds {
-		ups[c] = dem.USlp[c]
+		strc.UpSlps[c] = dem.USlp[c]
 	}
-	return strc, ups, []int{cid0}
+	return strc, []int{cid0}
 
 }

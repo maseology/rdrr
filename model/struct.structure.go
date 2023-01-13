@@ -8,6 +8,7 @@ import (
 
 // STRC holds model structural data
 type STRC struct {
+	UpSlps      map[int][]int   // slice of upslope cells
 	DwnGrad     map[int]float64 // gradient (slope) of cell
 	UpCnt       map[int]int     // cell upslope count (unit contributing area)
 	CIDs, DwnXR []int           // topologically-ordered (grid)cell IDs; downslope cell array index

@@ -6,7 +6,7 @@ import (
 	"github.com/maseology/mmio"
 )
 
-func (dom *Domain) PreRunCheck(lus []*Surface, cxr map[int]int, xg, xm []int) {
+func (dom *Domain) PreRunCheck(lus []*Surface, cxr map[int]int, xg, xm []int) []int {
 	tt := mmio.NewTimer()
 
 	ocids := dom.Strc.PrintAndCheck(dom.Dir)
@@ -27,7 +27,7 @@ func (dom *Domain) PreRunCheck(lus []*Surface, cxr map[int]int, xg, xm []int) {
 		fcasc[i], drel[i], dinc[i], tm[i] = surf.Fcasc, surf.Drel, surf.Dinc, surf.Tm
 		bo[i] = func() float64 {
 			if surf.Bo <= 0. {
-				return -9999.
+				return -9999. // grid null data
 			}
 			return surf.Bo
 		}()
@@ -43,7 +43,7 @@ func (dom *Domain) PreRunCheck(lus []*Surface, cxr map[int]int, xg, xm []int) {
 	mmio.WriteStrings(dom.Dir+"/check/Drel.txt", sDrel)
 	writeFloats(dom.Dir+"/check/Dinc.bin", dinc)
 	writeFloats(dom.Dir+"/check/Bo.bin", bo)
-	writeFloats(dom.Dir+"/check/Tm.bin", tm)
+	writeFloats(dom.Dir+"/check/TOPMODELm.bin", tm)
 	writeFloats(dom.Dir+"/check/rzsto.bin", rzsto)
 	writeFloats(dom.Dir+"/check/detsto.bin", detsto)
 	writeFloats(dom.Dir+"/check/Fimp.bin", fimp)
@@ -52,4 +52,5 @@ func (dom *Domain) PreRunCheck(lus []*Surface, cxr map[int]int, xg, xm []int) {
 	writeInts(dom.Dir+"/check/xm.indx", xxm) // forcing/sws index
 
 	tt.Print("checkmode complete, see " + dom.Dir + "/check/")
+	return ocids
 }

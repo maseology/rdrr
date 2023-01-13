@@ -29,9 +29,14 @@ func GobBuilder(controlFP string, skipFRC bool, intvl float64) {
 		gdefFP = ins.Param["gdeffp"][0]
 		hdemFP = ins.Param["hdemfp"][0]
 		swsFP = ins.Param["swsfp"][0]
-		gwzFP = ins.Param["gwzfp"][0]
-		luFPprfx = ins.Param["lufp"][0]
 		sgFP = ins.Param["sgfp"][0]
+
+		if gfp, ok := ins.Param["gwzfp"]; ok {
+			gwzFP = gfp[0] // groundwater id
+		}
+		if lfp, ok := ins.Param["lufp"]; ok {
+			luFPprfx = lfp[0] // land-use id
+		}
 		if mfp, ok := ins.Param["midfp"]; ok {
 			midFP = mfp[0] // cell-meteorological id
 		}
@@ -63,12 +68,11 @@ func GobBuilder(controlFP string, skipFRC bool, intvl float64) {
 	// get model structure (eg. spatial constraints)
 	// wg.Add(1)
 	var strc *model.STRC
-	var upslopes map[int][]int
 	var outlets []int
 	// go func() {
 	fmt.Println("collecting DEM topography..")
-	strc, upslopes, outlets = BuildSTRC(gd, gobDir, hdemFP, cid0)
-	fmt.Printf("  %d outlets; %d cells\n", len(outlets), len(upslopes))
+	strc, outlets = BuildSTRC(gd, gobDir, hdemFP, cid0)
+	fmt.Printf("  %d outlets; %d cells\n", len(outlets), len(strc.UpSlps))
 
 	// strc.PrintAndCheck(mmio.GetFileDir(gobDir))
 
@@ -78,16 +82,16 @@ func GobBuilder(controlFP string, skipFRC bool, intvl float64) {
 	// wg.Wait()
 	// wg.Add(3)
 
-	// go func() {
-	fmt.Println("building subbasin routing scheme..")
-	rtr := BuildRTR(gobDir, strc, gd, swsFP)
-	// wg.Done()
-	// }()
-	_ = rtr
+	// // go func() {
+	// fmt.Println("building subbasin routing scheme..")
+	// rtr := BuildRTR(gobDir, strc, gd, swsFP)
+	// // wg.Done()
+	// // }()
+	// _ = rtr
 
 	// go func() {
 	fmt.Println("\nbuilding land use, surficial geology and gw zone mapping..")
-	mapr := BuildMAPR(gobDir, luFPprfx, sgFP, gwzFP, gd, strc, upslopes)
+	mapr := BuildMAPR(gobDir, luFPprfx, sgFP, gwzFP, gd, strc, strc.UpSlps)
 	// 	wg.Done()
 	// }()
 	_ = mapr
@@ -100,7 +104,12 @@ func GobBuilder(controlFP string, skipFRC bool, intvl float64) {
 		o := make(map[int]int, gd.Nact)
 		var g grid.Indx
 		g.LoadGDef(gd)
-		g.New(fp, false)
+		if mmio.GetExtension(fp) == ".indx" {
+			g.New(fp, false)
+		} else {
+			g.New(fp, true)
+		}
+
 		m := g.Values()
 		for _, cid := range strc.CIDs {
 			if mm, ok := m[cid]; ok {

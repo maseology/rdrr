@@ -11,8 +11,8 @@ import (
 //  surficial geology: ksat/infiltration rate  uniformly applied to surficial geology category
 //  ground water zone: paramater assigned to gw zone
 type MAPR struct {
-	// LU               lusg.LandUseColl // [luid]LandUse
-	// GW                     map[int]lusg.TOPMODEL // [gwid]GWzone
+	// LU                    lusg.LandUseColl      // [luid]LandUse
+	// GW                    map[int]lusg.TOPMODEL // [gwid]GWzone
 	Ksat, Uca, Fimp, Ifct map[int]float64 // [sgid]percolation rate; [cellid]upslope contributing area/cell count; [cellid]fraction impervious; [cellid]interception factor (~=Fcov*LAI)
 	LUx, SGx, GWx         map[int]int     // cross reference of cid to lu/sg/gw
 	Fngwc                 []float64       // size/area/number of cells for each GWzone

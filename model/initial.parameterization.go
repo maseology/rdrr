@@ -60,7 +60,7 @@ func (dom *Domain) Parameterize(TOPMODELm []float64, acasc, soildepth, maxFcasc,
 			if f, ok := dom.Strc.DwnGrad[c]; ok {
 				return math.Tan(f)
 			}
-			panic("fimp load error")
+			panic("tanbeta load error")
 		}()
 		ksat := func() float64 {
 			if isg, ok := dom.Mpr.SGx[c]; ok {

@@ -25,7 +25,7 @@ func BuildMAPR(gobDir, lufp, sgfp, gwfp string, gd *grid.Definition, strc *model
 	var wg sync.WaitGroup
 	// var lu lusg.LandUseColl
 	// var gw map[int]lusg.TOPMODEL
-	var ilu, isg, igw map[int]int
+	var ilu, isg, igw, icov map[int]int
 	var ksat, fimp, ifct map[int]float64
 	var gwuca, fngwc []float64
 
@@ -33,8 +33,11 @@ func BuildMAPR(gobDir, lufp, sgfp, gwfp string, gd *grid.Definition, strc *model
 	strms, _ := buildStreams(strc, strc.CIDs)
 
 	readLU := func() {
-		tt := mmio.NewTimer()
 		defer wg.Done()
+		if lufp == "" {
+			return
+		}
+		tt := mmio.NewTimer()
 
 		checkforfile := func(fp string) {
 			if _, ok := mmio.FileExists(fp); !ok {
@@ -71,11 +74,16 @@ func BuildMAPR(gobDir, lufp, sgfp, gwfp string, gd *grid.Definition, strc *model
 			g.NewShort(fp, true)
 			return g.Values(), g.UniqueValues()
 		}
+
 		var ulu []int
-		ilu, ulu = loadIndx(lufp + "-surfaceid.bil")
-		icov, _ := loadIndx(lufp + "-canopyid.bil")
-		fimp = loadReal(lufp + "-perimp.bil")
-		ifct = loadReal(lufp + "-percov.bil") // fraction cover (to be adjusted below)
+		if _, ok := mmio.FileExists(lufp + "-surfaceid.bil"); ok {
+			ilu, ulu = loadIndx(lufp + "-surfaceid.bil")
+			icov, _ = loadIndx(lufp + "-canopyid.bil")
+			fimp = loadReal(lufp + "-perimp.bil")
+			ifct = loadReal(lufp + "-percov.bil") // fraction cover (to be adjusted below)
+		} else {
+			ilu, ulu, icov, fimp, ifct = buildLandUseSOLRIS(gd, lufp)
+		}
 
 		// adjust cover (convert to ifct)
 		for k, v := range ifct {
@@ -88,7 +96,7 @@ func BuildMAPR(gobDir, lufp, sgfp, gwfp string, gd *grid.Definition, strc *model
 		for _, c := range strms {
 			ilu[c] = lusg.Channel
 		}
-		if func() bool { // check if channels allready exist in ulu, if not, add
+		if func() bool { // check if channels already exist in ulu, if not, add
 			for _, c := range ulu {
 				if c == lusg.Channel {
 					return false
@@ -135,8 +143,8 @@ func BuildMAPR(gobDir, lufp, sgfp, gwfp string, gd *grid.Definition, strc *model
 	}
 
 	readSG := func() {
-		tt := mmio.NewTimer()
 		defer wg.Done()
+		tt := mmio.NewTimer()
 
 		// load index
 		loadIndx := func(fp string) (map[int]int, []int) {
@@ -166,32 +174,37 @@ func BuildMAPR(gobDir, lufp, sgfp, gwfp string, gd *grid.Definition, strc *model
 	}
 
 	readGW := func() {
-		tt := mmio.NewTimer()
 		defer wg.Done()
+		tt := mmio.NewTimer()
 
-		// load index
-		loadIndx := func(fp string) (map[int]int, []int) {
-			if _, ok := mmio.FileExists(fp); !ok {
-				log.Fatalf(" BuildMAPR.readGW file not found: %s", fp)
-			}
-			fmt.Printf(" loading: %s\n", fp)
-			var g grid.Indx
-			switch mmio.GetExtension(fp) {
-			case ".bil":
-				g.LoadGDef(gd)
-				g.NewShort(fp, true)
-			case ".indx":
-				if _, b := mmio.FileExists(fp + ".gdef"); !b {
-					g.LoadGDef(gd)
+		if gwfp == "" {
+			gwuca, fngwc, igw = buildGWzone(strc, upslopes, nil, strc.CIDs)
+		} else {
+			// load index
+			loadIndx := func(fp string) (map[int]int, []int) {
+				if _, ok := mmio.FileExists(fp); !ok {
+					log.Fatalf(" BuildMAPR.readGW file not found: %s", fp)
 				}
-				g.New(fp, true)
-			default:
-				log.Fatalf("unrecognized file format: " + fp)
+				fmt.Printf(" loading: %s\n", fp)
+				var g grid.Indx
+				switch mmio.GetExtension(fp) {
+				case ".bil":
+					g.LoadGDef(gd)
+					g.NewShort(fp, true)
+				case ".indx":
+					if _, b := mmio.FileExists(fp + ".gdef"); !b {
+						g.LoadGDef(gd)
+					}
+					g.New(fp, true)
+				default:
+					log.Fatalf("unrecognized file format: " + fp)
+				}
+				return g.Values(), g.UniqueValues()
 			}
-			return g.Values(), g.UniqueValues()
+			mgw, _ := loadIndx(gwfp)
+			gwuca, fngwc, igw = buildGWzone(strc, upslopes, mgw, strc.CIDs)
 		}
-		mgw, _ := loadIndx(gwfp)
-		gwuca, fngwc, igw = buildGWzone(strc, upslopes, mgw, strc.CIDs)
+
 		tt.Lap("GW zones loaded")
 	}
 
@@ -286,6 +299,13 @@ func relativeCover(canopyID, surfaceID int) float64 {
 }
 
 func buildGWzone(strc *model.STRC, upslopes map[int][]int, cgw map[int]int, cids []int) (uca, fngwc []float64, agw map[int]int) {
+	if cgw == nil {
+		cgw = make(map[int]int, len(cids))
+		for _, cid := range cids {
+			cgw[cid] = 0 // defaulting to complete gw zone
+		}
+	}
+
 	xgw := func() map[int]int {
 		d := make(map[int]int)
 		for _, c := range cids {
@@ -352,7 +372,7 @@ func buildGWzone(strc *model.STRC, upslopes map[int][]int, cgw map[int]int, cids
 				for _, c := range cids {
 					m[c] = 1
 					for _, u := range upslopes[c] {
-						if cgw[u] == g { // to be kept within gw-zone
+						if xgw[cgw[u]] == g { // to be kept within gw-zone
 							// m[c] += strc.TEM.UnitContributingArea(u)
 							m[c] += strc.UpCnt[u]
 						}
