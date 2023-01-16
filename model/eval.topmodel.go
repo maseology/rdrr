@@ -6,9 +6,10 @@ import (
 	"math"
 )
 
+const minGT0 = 1e-5
+
 func (dom *Domain) TOPMODELonly(lus []*Surface, dms []float64, xg, xm, gxr []int, prnt bool) []float64 {
 	hyd := make([]float64, len(dom.Frc.T)) // output/plotting
-	dext := 1.                             // extinction depth [m]
 
 	for j := range dom.Frc.T {
 		dmg := make([]float64, dom.Ngw)
@@ -16,13 +17,14 @@ func (dom *Domain) TOPMODELonly(lus []*Surface, dms []float64, xg, xm, gxr []int
 		for i, c := range dom.Strc.CIDs { // topologically ordered
 			s := lus[i]
 			d := s.Drel + dms[xg[i]]
+			dext := s.Dinc // extinction depth [m]
 			ya, ea := dom.Frc.Ya[xm[i]][j], dom.Frc.Ea[xm[i]][j]
 			in0 := ins[i]
 
 			ro, rch, ae := in0+ya, 0., 0.
 
 			if d < 0. { // gw discharge
-				f := math.Exp((s.Dinc - d) / s.Tm)
+				f := math.Exp(-d / s.Tm)
 				if math.IsInf(f, 0) {
 					panic("TOPMODELonly: inf")
 				}
@@ -49,13 +51,14 @@ func (dom *Domain) TOPMODELonly(lus []*Surface, dms []float64, xg, xm, gxr []int
 			// route flows
 			if dom.Strc.DwnXR[i] > -1 {
 				ins[dom.Strc.DwnXR[i]] += ro * s.Fcasc
-				ins[i] = ro * (1 - s.Fcasc)
+				ins[i] = ro * (1. - s.Fcasc)
 			} else { // root
 				hyd[j] += ro
+				ins[i] = 0.
 			}
 
 			hruwbal := ya + in0 - ae - ro - rch
-			if math.Abs(hruwbal) > 1e-5 {
+			if math.Abs(hruwbal) > minGT0 {
 				fmt.Printf("%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", c, hruwbal, in0, ya, ae, ro, rch)
 				log.Fatalln("hru wbal error")
 			}
