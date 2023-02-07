@@ -5,10 +5,35 @@ import (
 	"sync"
 )
 
-func (ev *Evaluator) Evaluate(frc *Forcing, nc, nwrkrs, evalid int, outdir string) (hyd []float64) {
-
+// Evaluate a single run
+func (ev *Evaluator) Evaluate(frc *Forcing, nc, nwrkrs int, outdirprfx string) (hyd []float64) {
 	done := make(chan interface{})
 	defer close(done)
+	rin := make(chan realization, nwrkrs)
+	rout := evalstream(done, rin, nwrkrs)
+	return ev.evaluate(rin, rout, frc, nc, outdirprfx)
+}
+
+// pipeline/workers
+func evalstream(done <-chan interface{}, rel <-chan realization, nwrkrs int) <-chan result {
+	evalstream := make(chan result)
+	for i := 0; i < nwrkrs; i++ {
+		go func(i int) {
+			defer close(evalstream)
+			for r := range rel {
+				select {
+				case <-done:
+					return
+				default:
+					evalstream <- r.rdrr()
+				}
+			}
+		}(i)
+	}
+	return evalstream
+}
+
+func (ev *Evaluator) evaluate(rel chan<- realization, res <-chan result, frc *Forcing, nc int, outdirprfx string) (hyd []float64) {
 
 	nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
 	sae, sro, srch := make([]float64, nc), make([]float64, nc), make([]float64, nc)
@@ -25,7 +50,7 @@ func (ev *Evaluator) Evaluate(frc *Forcing, nc, nwrkrs, evalid int, outdir strin
 		}
 	}
 
-	rel := make(chan realization, nwrkrs)
+	// rel := make(chan realization, nwrkrs)
 	prcd := make(chan bool)
 	mth := func() []int {
 		o := make([]int, nt)
@@ -69,7 +94,7 @@ func (ev *Evaluator) Evaluate(frc *Forcing, nc, nwrkrs, evalid int, outdir strin
 		}
 	}()
 
-	r := evalstream(done, rel, nwrkrs)
+	// r := evalstream(done, rel, nwrkrs)
 	var wg sync.WaitGroup
 	for _, inner := range ev.Outer {
 		wg.Add(len(inner))
@@ -79,33 +104,33 @@ func (ev *Evaluator) Evaluate(frc *Forcing, nc, nwrkrs, evalid int, outdir strin
 		}
 		for range inner {
 			go func() {
-				res := <-r
-				is := res.i
+				r := <-res
+				is := r.i
 				// fmt.Printf("received %d\n", is)
 
 				ig := ev.Sgw[is]
 
 				dsc := ev.Dwnas[is]
 				if dsc != nil {
-					xsv[dsc[0]][dsc[1]] = res.q // outlet of current sws to downslope sws
+					xsv[dsc[0]][dsc[1]] = r.q // outlet of current sws to downslope sws
 				} else {
-					hyd = res.q
+					hyd = r.q
 				}
 				for j := 0; j < nt; j++ {
-					dinner[ig][j] += res.d[j] // concurrent safe: this operation modifies the members of the slice, not modifying the slice itself
+					dinner[ig][j] += r.d[j] // concurrent safe: this operation modifies the members of the slice, not modifying the slice itself
 				}
 
 				for i, c := range ev.Scids[is] {
 					for j := 0; j < nbins; j++ {
-						sae[c] += res.ae[i][j]
-						sro[c] += res.ro[i][j]
-						srch[c] += res.rch[i][j]
+						sae[c] += r.ae[i][j]
+						sro[c] += r.ro[i][j]
+						srch[c] += r.rch[i][j]
 					}
 				}
 
 				for _, c := range ev.Mons[is] {
-					if a, ok := res.mons[c]; ok {
-						writeFloats(outdir+fmt.Sprintf("%d.mon.%d.%d.bin", evalid, is, c), a)
+					if a, ok := r.mons[c]; ok {
+						writeFloats(outdirprfx+fmt.Sprintf("mon.%d.%d.bin", is, c), a)
 					} else {
 						panic("wtf")
 					}
@@ -119,34 +144,15 @@ func (ev *Evaluator) Evaluate(frc *Forcing, nc, nwrkrs, evalid int, outdir strin
 		// update state
 		for ig := range ev.Fngwc {
 			for j := 0; j < nt; j++ {
-				deldsv[ig][j] = dinner[ig][j] /// f
+				deldsv[ig][j] = dinner[ig][j]
 			}
 		}
 
 		prcd <- true
 	}
 
-	writeFloats(outdir+fmt.Sprintf("%d-sae.bin", evalid), sae)
-	writeFloats(outdir+fmt.Sprintf("%d-sro.bin", evalid), sro)
-	writeFloats(outdir+fmt.Sprintf("%d-srch.bin", evalid), srch)
+	writeFloats(outdirprfx+"sae.bin", sae)
+	writeFloats(outdirprfx+"sro.bin", sro)
+	writeFloats(outdirprfx+"srch.bin", srch)
 	return hyd
-}
-
-// pipeline
-func evalstream(done <-chan interface{}, rel <-chan realization, n int) <-chan result {
-	evalstream := make(chan result)
-	for i := 0; i < n; i++ {
-		go func(i int) {
-			defer close(evalstream)
-			for r := range rel {
-				select {
-				case <-done:
-					return
-				default:
-					evalstream <- r.rdrr()
-				}
-			}
-		}(i)
-	}
-	return evalstream
 }
