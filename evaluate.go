@@ -19,19 +19,45 @@ func evalstream(done <-chan interface{}, rel <-chan realization, nwrkrs int) <-c
 	evalstream := make(chan result)
 	for i := 0; i < nwrkrs; i++ {
 		go func(i int) {
-			defer close(evalstream)
-			for r := range rel {
+			// defer close(evalstream)
+			for {
 				select {
 				case <-done:
 					return
-				default:
+				case r := <-rel:
 					evalstream <- r.rdrr()
 				}
 			}
+			// for r := range rel {
+			// 	select {
+			// 	case <-done:
+			// 		return
+			// 	default:
+			// 		evalstream <- r.rdrr()
+			// 	}
+			// }
 		}(i)
 	}
 	return evalstream
 }
+
+// func printstream(done <-chan interface{}, res <-chan result, nwrkrs int) {
+// 	// evalstream := make(chan result)
+// 	for i := 0; i < nwrkrs; i++ {
+// 		go func(i int) {
+// 			// defer close(evalstream)
+// 			for r := range res {
+// 				select {
+// 				case <-done:
+// 					return
+// 				default:
+// 					print("")
+// 				}
+// 			}
+// 		}(i)
+// 	}
+// 	// return evalstream
+// }
 
 func (ev *Evaluator) evaluate(rel chan<- realization, res <-chan result, frc *Forcing, nc int, outdirprfx string) (hyd []float64) {
 
@@ -59,6 +85,7 @@ func (ev *Evaluator) evaluate(rel chan<- realization, res <-chan result, frc *Fo
 		}
 		return o
 	}()
+
 	go func() {
 		for ii, inner := range ev.Outer {
 			for _, is := range inner {

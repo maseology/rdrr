@@ -40,7 +40,7 @@ func GenerateSamples(gen func(u []float64) Evaluator, frc *Forcing, nc, n, p, nw
 
 	wg.Add(n)
 	for k := 0; k < n; k++ {
-		// fmt.Printf(" >> releasing sample %d\n", k+1)
+		fmt.Printf(" >> releasing sample %d\n", k+1)
 		go func(k int, outdirprfx string) {
 			ut := make([]float64, p)
 			for j := 0; j < p; j++ {
@@ -52,7 +52,7 @@ func GenerateSamples(gen func(u []float64) Evaluator, frc *Forcing, nc, n, p, nw
 			wg.Done()
 		}(k, fmt.Sprintf("%s.%d.", outdirbatch, k))
 
-		// <-prcd
+		time.Sleep(time.Minute * 5)
 	}
 	wg.Wait()
 }
