@@ -12,14 +12,7 @@ import (
 )
 
 func GenerateSamples(gen func(u []float64) Evaluator, frc *Forcing, nc, n, p, nwrkrs int, outdir string) {
-
-	// set up workers
 	var wg sync.WaitGroup
-	done := make(chan interface{})
-	rin := make(chan realization, nwrkrs)
-	defer close(done)
-	rout := evalstream(done, rin, nwrkrs)
-	// prcd := stagger(done, rin, nwrkrs/2)
 
 	// build sampling plan
 	rng := rand.New(mrg63k3a.New())
@@ -27,7 +20,8 @@ func GenerateSamples(gen func(u []float64) Evaluator, frc *Forcing, nc, n, p, nw
 	sp := smpln.NewLHC(rng, n, p, false) // smpln.NewHalton(s, n)
 
 	outdirbatch := outdir + time.Now().Format("060102150405") // batch number = date
-	func() {                                                  // save sample space
+	println("running batch " + outdirbatch)
+	func() { // save sample space
 		lns := make([]string, n)
 		for k := 0; k < n; k++ {
 			lns[k] = fmt.Sprint(k)
@@ -39,6 +33,7 @@ func GenerateSamples(gen func(u []float64) Evaluator, frc *Forcing, nc, n, p, nw
 	}()
 
 	wg.Add(n)
+	// prcd := make(chan bool)
 	for k := 0; k < n; k++ {
 		fmt.Printf(" >> releasing sample %d\n", k+1)
 		go func(k int, outdirprfx string) {
@@ -48,13 +43,16 @@ func GenerateSamples(gen func(u []float64) Evaluator, frc *Forcing, nc, n, p, nw
 			}
 
 			ev := gen(ut) // generate realization
-			ev.evaluate(rin, rout, frc, nc, outdirprfx)
+			ev.evaluate(frc, nc, nwrkrs, outdirprfx, nil)
+			fmt.Printf(" >>> complete sample %d\n", k+1)
 			wg.Done()
-		}(k, fmt.Sprintf("%s.%d.", outdirbatch, k))
+		}(k, fmt.Sprintf("%s.%05d.", outdirbatch, k))
 
-		time.Sleep(time.Minute * 5)
+		time.Sleep(time.Minute * 5) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// <-prcd
 	}
 	wg.Wait()
+	// close(prcd)
 }
 
 // // breaking to stagger runs

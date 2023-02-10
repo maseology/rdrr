@@ -57,7 +57,8 @@ func (r *realization) rdrr() result {
 			if di < 0. { // gw discharge
 				fc := math.Exp(-di / r.m)
 				if math.IsInf(fc, 0) {
-					panic("evaluate(): inf")
+					// panic("evaluate(): inf")
+					fc = 1000.
 				}
 				b := fc * r.bo[i]
 				ro = x[i].Overflow(b + ya)

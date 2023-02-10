@@ -7,8 +7,11 @@ import (
 
 // Evaluate a single run
 func (ev *Evaluator) Evaluate(frc *Forcing, nc, nwrkrs int, outdirprfx string) (hyd []float64) {
-	ev.evaluate(frc, nc, nwrkrs, outdirprfx, nil)
-	return nil
+	done := make(chan interface{})
+	defer close(done)
+	rin := make(chan realization, nwrkrs)
+	rout := evalstream(done, rin, nwrkrs)
+	return ev.evaluate(rin, rout, frc, nc, outdirprfx)
 }
 
 // pipeline/workers
@@ -38,17 +41,79 @@ func evalstream(done <-chan interface{}, rel <-chan realization, nwrkrs int) <-c
 	return evalstream
 }
 
-func (ev *Evaluator) evaluate(frc *Forcing, nc, nwrkrs int, outdirprfx string, signal chan<- bool) (hyd []float64) {
+func (ev *Evaluator) printstream(done <-chan interface{}, res <-chan result, nc, nt, nwrkrs int, outdirprfx string) {
 
-	done := make(chan interface{})
-	defer close(done)
-	rel := make(chan realization, nwrkrs)
-	res := evalstream(done, rel, nwrkrs)
+	ng := len(ev.Fngwc)
+	sae, sro, srch := make([]float64, nc), make([]float64, nc), make([]float64, nc)
+	hyd := make([]float64, nt)
+
+	var wg sync.WaitGroup
+	for _, inner := range ev.Outer {
+		wg.Add(len(inner))
+		dinner := make([][]float64, ng)
+		for i := 0; i < ng; i++ {
+			dinner[i] = make([]float64, nt)
+		}
+		for range inner {
+			go func() {
+				r := <-res
+				is := r.i
+				// fmt.Printf("received %d\n", is)
+
+				ig := ev.Sgw[is]
+
+				dsc := ev.Dwnas[is]
+				if dsc != nil {
+					xsv[dsc[0]][dsc[1]] = r.q // outlet of current sws to downslope sws
+				} else {
+					hyd = r.q
+				}
+				for j := 0; j < nt; j++ {
+					dinner[ig][j] += r.d[j] // concurrent safe: this operation modifies the members of the slice, not modifying the slice itself
+				}
+
+				for i, c := range ev.Scids[is] {
+					for j := 0; j < nbins; j++ {
+						sae[c] += r.ae[i][j]
+						sro[c] += r.ro[i][j]
+						srch[c] += r.rch[i][j]
+					}
+				}
+
+				for _, c := range ev.Mons[is] {
+					if a, ok := r.mons[c]; ok {
+						writeFloats(outdirprfx+fmt.Sprintf("mon.%d.%d.bin", is, c), a)
+					} else {
+						panic("wtf")
+					}
+				}
+
+				wg.Done()
+			}()
+		}
+		wg.Wait()
+
+		// update state
+		for ig := range ev.Fngwc {
+			for j := 0; j < nt; j++ {
+				deldsv[ig][j] = dinner[ig][j]
+			}
+		}
+
+		prcd <- true
+	}
+
+	writeFloats(outdirprfx+"sae.bin", sae)
+	writeFloats(outdirprfx+"sro.bin", sro)
+	writeFloats(outdirprfx+"srch.bin", srch)
+	writeFloats(outdirprfx+"srch.bin", hyd)
+
+}
+
+func (ev *Evaluator) evaluate(rel chan<- realization, res <-chan result, frc *Forcing) {
 
 	nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
-	sae, sro, srch := make([]float64, nc), make([]float64, nc), make([]float64, nc)
 	deldsv, dm := make([][]float64, ng), make([]float64, ng)
-
 	for i := 0; i < ng; i++ {
 		deldsv[i] = make([]float64, nt) // INITIAL CONDITIONS: saturated gw
 	}
@@ -106,74 +171,7 @@ func (ev *Evaluator) evaluate(frc *Forcing, nc, nwrkrs int, outdirprfx string, s
 		}
 	}()
 
-	// r := evalstream(done, rel, nwrkrs)
-	var wg sync.WaitGroup
-	// var hyd []float64
-	// first := true
-	for _, inner := range ev.Outer {
-		wg.Add(len(inner))
-		// if first {
-		// 	if len(inner) == 1 {
-		// 		signal <- true
-		// 		first = false
-		// 	}
-		// }
-		dinner := make([][]float64, ng)
-		for i := 0; i < ng; i++ {
-			dinner[i] = make([]float64, nt)
-		}
-		for range inner {
-			go func() {
-				r := <-res
-				is := r.i
-				// fmt.Printf("received %d\n", is)
+	for r := range res {
 
-				ig := ev.Sgw[is]
-
-				dsc := ev.Dwnas[is]
-				if dsc != nil {
-					xsv[dsc[0]][dsc[1]] = r.q // outlet of current sws to downslope sws
-				} else {
-					hyd = r.q
-				}
-				for j := 0; j < nt; j++ {
-					dinner[ig][j] += r.d[j] // concurrent safe: this operation modifies the members of the slice, not modifying the slice itself
-				}
-
-				for i, c := range ev.Scids[is] {
-					for j := 0; j < nbins; j++ {
-						sae[c] += r.ae[i][j]
-						sro[c] += r.ro[i][j]
-						srch[c] += r.rch[i][j]
-					}
-				}
-
-				for _, c := range ev.Mons[is] {
-					if a, ok := r.mons[c]; ok {
-						writeFloats(outdirprfx+fmt.Sprintf("mon.%d.%d.bin", is, c), a)
-					} else {
-						panic("wtf")
-					}
-				}
-
-				wg.Done()
-			}()
-		}
-		wg.Wait()
-
-		// update state
-		for ig := range ev.Fngwc {
-			for j := 0; j < nt; j++ {
-				deldsv[ig][j] = dinner[ig][j]
-			}
-		}
-
-		prcd <- true
 	}
-
-	writeFloats(outdirprfx+"sae.bin", sae)
-	writeFloats(outdirprfx+"sro.bin", sro)
-	writeFloats(outdirprfx+"srch.bin", srch)
-	writeFloats(outdirprfx+"hyd.bin", hyd)
-	return hyd
 }
