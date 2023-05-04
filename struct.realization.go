@@ -5,5 +5,5 @@ type realization struct {
 	ts, c, ds, incs, mons                       []int
 	ins                                         [][]float64
 	ya, ea, deld, drel, bo, fcasc, finf, depsto []float64
-	m, dext, eafact, fngwc, d0                  float64
+	m, eafact, fngwc, d0                        float64 //  dext,
 }

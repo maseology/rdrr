@@ -11,11 +11,11 @@ import (
 const nbins = 12
 
 type result struct {
-	i           int
-	ae, ro, rch [][nbins]float64
-	q, d        []float64
-	dmlast      float64
-	mons        map[int][]float64
+	i               int
+	pr, ae, ro, rch [][nbins]float64
+	q, d, s         []float64
+	dmlast          float64
+	mons            map[int][]float64
 }
 
 func (r *realization) rdrr() result {
@@ -23,15 +23,18 @@ func (r *realization) rdrr() result {
 
 	nc, nt := len(r.c), len(r.ya)
 	fnc := float64(nc)
-	sae, sro, srch := make([][nbins]float64, nc), make([][nbins]float64, nc), make([][nbins]float64, nc)
+	spr, sae, sro, srch := make([][nbins]float64, nc), make([][nbins]float64, nc), make([][nbins]float64, nc), make([][nbins]float64, nc)
 	// tae, tro, trch := make([]float64, nt), make([]float64, nt), make([]float64, nt)
 	hyd := make([]float64, nt)
 	dm := r.d0
 
+	// excess storage
 	x := make([]hru.Res, nc)
 	for i, d := range r.depsto {
 		x[i].Cap = d
 	}
+
+	ron := make([]float64, nc) // run-on
 
 	mon := make(map[int][]float64)
 	for _, m := range r.mons {
@@ -41,7 +44,7 @@ func (r *realization) rdrr() result {
 	for j, mj := range r.ts {
 		dm += r.deld[j]
 		ya := r.ya[j]
-		ea := r.ea[j]
+		// ea := r.ea[j]
 		ssae, ssro, ssrch, ssdsto := 0., 0., 0., 0.
 
 		for i, inc := range r.incs {
@@ -49,48 +52,59 @@ func (r *realization) rdrr() result {
 		}
 
 		for i, c := range r.c { // in topological order
-
 			in0 := x[i].Sto
-			di := r.drel[i] + dm
-			ro, ae, rch := 0., 0., 0.
 
-			if di < 0. { // gw discharge
-				fc := math.Exp(-di / r.m)
-				if math.IsInf(fc, 0) {
-					// panic("evaluate(): inf")
-					fc = 1000.
-				}
-				b := fc * r.bo[i]
-				ro = x[i].Overflow(b + ya)
-				rch -= b + ea
-				ae = ea
-				ea = 0.
-			} else {
-				if di < r.dext {
-					ae = (1. - di/r.dext) * ea // linear decay
-					rch -= ae
-					ea -= ae
-				}
-				ro = x[i].Overflow(ya)
-			}
+			ro, ae, rch := x[i].Overflow(ya), 0., 0.
 
-			x[i].Sto += ro * (1. - r.fcasc[i])
-			ro *= r.fcasc[i]
+			// di := r.drel[i] + dm
+			// ro, ae, rch := 0., 0., 0.
 
-			pi := x[i].Sto * r.finf[i] // InfiltrateSurplus excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
-			if pi > di {
-				x[i].Sto -= di
-				rch += di
-			} else {
-				rch += pi
-				x[i].Sto -= pi
-			}
+			// if di < 0. { // gw discharge
+			// 	fc := math.Exp(-di / r.m)
+			// 	if math.IsInf(fc, 0) {
+			// 		panic("evaluate(): inf")
+			// 		fc = 1000.
+			// 	}
+			// 	b := fc * r.bo[i]
+			// 	ro = x[i].Overflow(b + ya)
+			// 	rch -= b //+ ea
+			// 	// ae = ea
+			// 	// ea = 0.
+			// } else {
+			// 	// if di < r.dext {
+			// 	// 	ae = (1. - di/r.dext) * ea // linear decay
+			// 	// 	rch -= ae
+			// 	// 	ea -= ae
+			// 	// }
+			// 	ro = x[i].Overflow(ya)
+			// }
 
-			ae += ea*r.eafact + x[i].Overflow(-ea*r.eafact)
+			// // ae += ea*r.eafact + x[i].Overflow(-ea*r.eafact)
+
+			// x[i].Sto += ro * (1. - r.fcasc[i])
+			// ro *= r.fcasc[i]
+
+			// // // Infiltrate surplus/excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
+			// // pi := x[i].Sto * r.finf[i]
+			// // if pi > x[i].Sto {
+			// // 	rch += x[i].Sto
+			// // 	x[i].Sto = 0.
+			// // } else {
+			// // 	x[i].Sto -= pi
+			// // 	rch += pi
+			// // }
+			// // if pi > di {
+			// // 	x[i].Sto -= di
+			// // 	rch += di
+			// // } else {
+			// // 	rch += pi
+			// // 	x[i].Sto -= pi
+			// // }
 
 			// route flows
 			if r.ds[i] > -1 {
 				x[r.ds[i]].Sto += ro
+				ron[r.ds[i]] += ro
 			} else {
 				hyd[j] = ro
 			}
@@ -110,13 +124,16 @@ func (r *realization) rdrr() result {
 			ssrch += rch
 			ssdsto += x[i].Sto - in0
 
+			spr[i][mj] += ya
 			sae[i][mj] += ae
-			sro[i][mj] += ro
+			sro[i][mj] += ro - ron[i] // generated runoff
 			srch[i][mj] += rch
 
 			// tae[j] += ae
 			// tro[j] += ro
 			// trch[j] += rch
+
+			ron[i] = 0.
 		}
 
 		dd := -ssrch / r.fngwc // state update: adding recharge decreases the deficit of the gw reservoir
@@ -130,11 +147,17 @@ func (r *realization) rdrr() result {
 		}
 	}
 
+	// excess storage
+	xx := make([]float64, nc)
+	for i, r := range x {
+		xx[i] = r.Sto
+	}
+
 	// sub-watershed water budgeting
 	// writeFloats(fmt.Sprintf("wtbdgt-ae-%d.bin", r.i), tae)
 	// writeFloats(fmt.Sprintf("wtbdgt-ro-%d.bin", r.i), tro)
 	// writeFloats(fmt.Sprintf("wtbdgt-rch-%d.bin", r.i), trch)
 
 	// fmt.Printf("  %d elapsed: %v\n", r.i, time.Since(tt))
-	return result{r.i, sae, sro, srch, hyd, r.deld, dm, mon}
+	return result{r.i, spr, sae, sro, srch, hyd, r.deld, xx, dm, mon}
 }

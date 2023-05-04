@@ -60,7 +60,7 @@ func (mp *Mapper) saveGob(fp string) error {
 	return nil
 }
 
-func loadGobMapper(fp string) (*Mapper, error) {
+func LoadGobMapper(fp string) (*Mapper, error) {
 	var mpr Mapper
 	f, err := os.Open(fp)
 	if err != nil {

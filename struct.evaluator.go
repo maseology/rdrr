@@ -5,14 +5,15 @@ import (
 )
 
 type Evaluator struct {
-	Outer, Scids, Sds, Incs, Dwnas, Mons [][]int
-	Drel, Bo, Fcasc, Finf, DepSto        [][]float64
-	Sgw                                  []int
-	M, Fngwc                             []float64
-	Dext, Eafact                         float64
+	Scids, Sds, Incs, Dwnas, Mons [][]int // Outer,
+	Drel, Bo, Fcasc, Finf, DepSto [][]float64
+	Sgw                           []int
+	M, Fngwc, Fnstrm              []float64
+	Eafact, Dext                  float64
+	Nc                            int
 }
 
-func (ev *Evaluator) Checkandprint(gd *grid.Definition, cids, igw []int, chkdirprfx string) {
+func (ev *Evaluator) CheckAndPrint(gd *grid.Definition, cids, igw []int, chkdirprfx string) {
 
 	// output
 	sgw := gd.NullInt32(-9999)

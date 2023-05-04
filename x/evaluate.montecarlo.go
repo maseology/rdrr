@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
+	mrg63k3a "github.com/maseology/goRNG/MRG63k3a"
 	"github.com/maseology/mmio"
 	"github.com/maseology/montecarlo/smpln"
-	mrg63k3a "github.com/maseology/pnrg/MRG63k3a"
 )
 
 func GenerateSamples(gen func(u []float64) Evaluator, frc *Forcing, nc, n, p, nwrkrs int, outdir string) {
@@ -34,20 +34,21 @@ func GenerateSamples(gen func(u []float64) Evaluator, frc *Forcing, nc, n, p, nw
 
 	wg.Add(n)
 	// prcd := make(chan bool)
-	for k := 0; k < n; k++ {
+	for k := 0; k < n; k++ { // n samples
 		fmt.Printf(" >> releasing sample %d\n", k+1)
-		go func(k int, outdirprfx string) {
+		go func(k int, outdirBatchSampl string) {
 			ut := make([]float64, p)
 			for j := 0; j < p; j++ {
 				ut[j] = sp.U[j][k]
 			}
 
 			ev := gen(ut) // generate realization
-			ev.evaluate(frc, nc, nwrkrs, outdirprfx, nil)
+			ev.evaluate(frc, nc, nwrkrs, outdirBatchSampl, nil)
 			fmt.Printf(" >>> complete sample %d\n", k+1)
 			wg.Done()
 		}(k, fmt.Sprintf("%s.%05d.", outdirbatch, k))
 
+		panic("look below")
 		time.Sleep(time.Minute * 5) ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// <-prcd
 	}

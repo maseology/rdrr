@@ -2,35 +2,19 @@ package rdrr
 
 import (
 	"fmt"
+
+	"github.com/maseology/mmio"
 )
 
-func (ev *Evaluator) EvaluateNaive(frc *Forcing, nc, nwrkrs int, outdir string) (hyd []float64) {
-
+func (ev *Evaluator) EvaluateNaive(frc *Forcing, nc, dummy int, outdir string) (hyd []float64) {
 	nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
 	hyds := make([][]float64, ns)
-	sae, sro, srch := make([]float64, nc), make([]float64, nc), make([]float64, nc)
-	deldsv, dm := make([][]float64, ng), make([]float64, ng)
-	for i := 0; i < ng; i++ {
-		deldsv[i] = make([]float64, nt)
-		// dm[i] = 1. // INITIAL CONDITIONS: saturated gw
-	}
-	xsv := make([][][]float64, ns)
-	for is, v := range ev.Incs {
-		xsv[is] = make([][]float64, len(v))
-		for i := range v {
-			xsv[is][i] = make([]float64, nt)
-		}
-	}
-	mth := func() []int {
-		o := make([]int, nt)
-		for i, t := range frc.T {
-			o[i] = int(t.Month()) - 1
-		}
-		return o
-	}()
-
+	spr, sae, sro, srch, lsto := make([]float64, nc), make([]float64, nc), make([]float64, nc), make([]float64, nc), make([]float64, nc)
+	xsv, deldsv, mth := ev.prep(frc.T)
+	dm := make([]float64, ng)
 	nout := 0
-	for ii, inner := range ev.Outer {
+
+	for _, inner := range ev.Outer {
 		for _, is := range inner {
 			println(is)
 			rel := realization{
@@ -51,13 +35,14 @@ func (ev *Evaluator) EvaluateNaive(frc *Forcing, nc, nwrkrs int, outdir string) 
 				fcasc:  ev.Fcasc[is],
 				fngwc:  ev.Fngwc[ev.Sgw[is]],
 				m:      ev.M[ev.Sgw[is]],
-				dext:   ev.Dext,
+				// dext:   ev.Dext,
 				eafact: ev.Eafact,
 				d0:     dm[ev.Sgw[is]],
 			}
-			if ii == 0 {
-				rel.Steady(200., 3) // spin-up
-			}
+			// if ii == 0 {
+			// 	rel.Steady(200., 3) // spin-up
+			// }
+
 			res := rel.rdrr()
 
 			dm[ev.Sgw[is]] = res.dmlast // setting last d of last round to initial d, this should help spinup issues
@@ -72,15 +57,17 @@ func (ev *Evaluator) EvaluateNaive(frc *Forcing, nc, nwrkrs int, outdir string) 
 
 			ig := ev.Sgw[is]
 			for j := 0; j < nt; j++ {
-				deldsv[ig][j] = res.d[j] /// ev.Fngwc[ig]
+				deldsv[ig][j] = res.d[j] // / ev.Fngwc[ig]
 			}
 
 			for i, c := range ev.Scids[is] {
 				for j := 0; j < nbins; j++ {
+					spr[c] += res.pr[i][j]
 					sae[c] += res.ae[i][j]
 					sro[c] += res.ro[i][j]
 					srch[c] += res.rch[i][j]
 				}
+				lsto[c] = res.s[i]
 			}
 
 			for _, c := range ev.Mons[is] {
@@ -90,7 +77,6 @@ func (ev *Evaluator) EvaluateNaive(frc *Forcing, nc, nwrkrs int, outdir string) 
 					panic("wtf")
 				}
 			}
-
 		}
 	}
 	if nout != 1 {
@@ -98,23 +84,14 @@ func (ev *Evaluator) EvaluateNaive(frc *Forcing, nc, nwrkrs int, outdir string) 
 		print("TODO: multiple model outlets")
 	}
 
-	// f := 4 * 365.24 * 1000 / float64(nstp) // [mm]
-	// gwbal := make([]float64, dom.Nc)
-	// for i := range dom.Strc.CIDs {
-	// 	gsya[gxr[i]] *= f
-	// 	gaet[gxr[i]] *= f
-	// 	gro[gxr[i]] *= f
-	// 	grch[gxr[i]] *= f
-	// 	// gdelsto[gxr[i]] *= f
-	// 	gwbal[gxr[i]] = gsya[gxr[i]] - (gaet[gxr[i]] + gro[gxr[i]] + grch[gxr[i]] + gdelsto[gxr[i]])
-	// }
-
-	// mmio.WriteCsvDateFloats("hydALL.csv", "date,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16,i17,i18,i19,i20", frc.T, hyds...)
+	mmio.WriteCsvDateFloats("hydALL.csv", "date,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16,i17,i18,i19,i20", frc.T, hyds...)
 	// mmio.WriteCsvDateFloats("hyd10.csv", "date,i10", frc.T, hyds[10])
 
+	writeFloats(outdir+"spr.bin", spr)
 	writeFloats(outdir+"sae.bin", sae)
 	writeFloats(outdir+"sro.bin", sro)
 	writeFloats(outdir+"srch.bin", srch)
+	writeFloats(outdir+"lsto.bin", lsto)
 
 	return hyd // [m/timestep]
 }

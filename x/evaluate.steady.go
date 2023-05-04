@@ -35,28 +35,38 @@ func (r *realization) Steady(mmpyr float64, breakyear int) {
 				}
 				b := fc * r.bo[i]
 				ro = x[i].Overflow(b + ya)
-				rch -= b + ea
-				ae = ea
+				rch -= b //+ ea
+				// ae = ea
 			} else {
-				if di < r.dext {
-					ae = (1. - di/r.dext) * ea // linear decay
-					rch -= ae
-					ea -= ae
-				}
+				// if di < r.dext {
+				// 	ae = (1. - di/r.dext) * ea // linear decay
+				// 	rch -= ae
+				// 	ea -= ae
+				// }
 				ro = x[i].Overflow(ya)
 			}
+
+			ae += ea*r.eafact + x[i].Overflow(-ea*r.eafact)
 
 			x[i].Sto += ro * (1. - r.fcasc[i])
 			ro *= r.fcasc[i]
 
-			pi := x[i].Sto * r.finf[i] // InfiltrateSurplus excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
-			if pi > di {
-				x[i].Sto -= di
-				rch += di
+			pi := x[i].Sto * r.finf[i]
+			if pi > x[i].Sto {
+				rch += x[i].Sto
+				x[i].Sto = 0.
 			} else {
-				rch += pi
 				x[i].Sto -= pi
+				rch += pi
 			}
+			// pi := x[i].Sto * r.finf[i] // InfiltrateSurplus excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
+			// if pi > di {
+			// 	x[i].Sto -= di
+			// 	rch += di
+			// } else {
+			// 	rch += pi
+			// 	x[i].Sto -= pi
+			// }
 
 			// route flows
 			if r.ds[i] > -1 {

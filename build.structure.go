@@ -110,6 +110,8 @@ func buildSTRC(gdefFP, hdemFP string, cid0 int) Structure {
 		return upcnts
 	}
 
+	gd.ResetActives(cids)
+
 	s := Structure{ // strc arrays are all 0-based indexed, cids is the key to grid cell id
 		GD:      gd,      // grid definition
 		Cids:    cids,    // topologically safe ordered grid cell ids

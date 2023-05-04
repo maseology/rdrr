@@ -54,7 +54,7 @@ func BuildRDRR(controlFP string,
 
 	frc := func(fp string) *Forcing {
 		if _, ok := mmio.FileExists(fp); ok {
-			frc, err := loadGobForcing(fp)
+			frc, err := LoadGobForcing(fp)
 			if err != nil {
 				panic(err)
 			}
@@ -72,6 +72,31 @@ func BuildRDRR(controlFP string,
 	println("  parameterizing with defaults..")
 	par := buildParameters(&strc, &mp)
 
+	func() {
+		fltr := grid.FilterGaussianSmoothing // 5x5 matrix
+		zetaConv := make([]float64, len(par.Zeta))
+		for _, cid := range strc.GD.Sactives {
+			if k, ok := mp.Mx[cid]; ok {
+				r, c := strc.GD.RowCol(cid)
+				dnm := 0.
+				for m := -2; m <= 2; m++ {
+					for n := -2; n <= 2; n++ {
+						if bcid := strc.GD.CellID(r+m, c+n); bcid >= 0 {
+							if kk, ok := mp.Mx[bcid]; ok {
+								zetaConv[k] += par.Zeta[kk] * fltr[m+2][n+2]
+								dnm += fltr[m+2][n+2]
+							}
+						}
+					}
+				}
+				zetaConv[k] /= dnm
+			}
+		}
+		for i, v := range zetaConv {
+			par.Zeta[i] = v
+		}
+	}()
+
 	// summarize
 	if len(chkdir) > 0 {
 		println("\nBuild Summary\n==================================")
@@ -83,6 +108,9 @@ func BuildRDRR(controlFP string,
 
 	// save gobs
 	println("\nSaving gobs..")
+	if err := strc.GD.SaveAs(mdlprfx + "gdef"); err != nil {
+		panic(err)
+	}
 	if err := strc.saveGob(mdlprfx + "structure.gob"); err != nil {
 		panic(err)
 	}
