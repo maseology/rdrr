@@ -10,7 +10,7 @@ import (
 func (s *Structure) loadSWS(swsfp string) Subwatershed {
 
 	sids := func(fp string) []int {
-		fmt.Printf(" loading: %s\n", fp)
+		fmt.Printf("   loading: %s\n", fp)
 		var g grid.Indx
 		g.LoadGDef(s.GD)
 		g.NewShort(fp, true)
@@ -86,12 +86,12 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		scids[k] = v
 	}
 
-	dsws := func() [][]int {
-		dsws := make([][]int, len(scids))
+	dsws := func() []SWStopo {
+		dsws := make([]SWStopo, len(scids))
 		for is, c := range scids {
 			oi := len(c) - 1
 			if sds[is][oi] != -1 {
-				panic("loadSWS wtf")
+				panic("loadSWS SWStopo err")
 			}
 			di := s.Ds[c[oi]]
 			if di > -1 {
@@ -105,23 +105,19 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 					}
 					return -1
 				}()
-				if dsws[is] != nil {
-					panic("loadSWS expecting only 1 outlet per sws")
-				}
-				dsws[is] = []int{ds, dc}
+				dsws[is] = SWStopo{ds, dc}
 			} else {
-				dsws[is] = []int{-1, -1} // model outlet
+				dsws[is] = SWStopo{-1, -1} // model outlet
 			}
 		}
-
 		return dsws
 	}()
 
 	return Subwatershed{
 		Scis: scids,     // set of cell indices per sws
-		Sid:  sids,      // cell index to 0-based sws index
-		Sds:  sds,       // new cell topology per sub-watershed
+		Sds:  sds,       // cell topology per sub-watershed
 		Dsws: dsws,      // [downslope sub-watershed,cell index receiving input], -1 out of model
+		Sid:  sids,      // cell index to 0-based sws index
 		Isws: isws,      // sws index to sub-watersed ID (needed for forcings)
 		Fnsc: fnsc,      // number of cells per sws
 		Ns:   len(xsws), // number od sws's

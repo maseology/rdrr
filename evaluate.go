@@ -2,8 +2,6 @@ package rdrr
 
 import (
 	"fmt"
-	"log"
-	"math"
 
 	"github.com/maseology/goHydro/hru"
 )
@@ -17,108 +15,51 @@ func (ev *Evaluator) evaluate(frc *Forcing, nwrkrs int, outdirprfx string) []flo
 
 	// prep
 	nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
-	spr, sae, sro, srch := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
 	qout := make([][]float64, ns)
-	dmsv := make([]float64, ng)
 	x := make([][]hru.Res, ns)
-	mon := make([]map[int][]float64, ns)
+	rel := make([]*realization, ns)
+	// mon := make([]map[int][]float64, ns)
 	for k, cids := range ev.Scids {
 		qout[k] = make([]float64, nt)
 		x[k] = make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {
 			x[k][i].Cap = d
 		}
-		for _, m := range ev.Mons[k] {
-			mon[k][m] = make([]float64, nt)
+		// for _, m := range ev.Mons[k] {
+		// 	mon[k][m] = make([]float64, nt)
+		// }
+		rel[k] = &realization{
+			x:     x[k],
+			drel:  ev.Drel[k],
+			bo:    ev.Bo[k],
+			finf:  ev.Finf[k],
+			fcasc: ev.Fcasc[k],
+			spr:   make([]float64, len(cids)),
+			sae:   make([]float64, len(cids)),
+			sro:   make([]float64, len(cids)),
+			srch:  make([]float64, len(cids)),
+			cids:  cids,
+			sds:   ev.Sds[k],
+			// m:    ev.M[ev.Sgw[k]],
+			eaf:   ev.Eafact,
+			dextm: ev.Dext / ev.M[ev.Sgw[k]],
+			fnc:   float64(len(cids)),
+			fgnc:  ev.Fngwc[ev.Sgw[k]],
 		}
 	}
 
-	for j := range frc.T {
-		// fmt.Println(t)
-
-		for k, cids := range ev.Scids {
-			ya, ea, dm := frc.Ya[k][j], frc.Ea[k][j], dmsv[ev.Sgw[k]]
-			ssae, ssro, ssrch, ssdsto := 0., 0., 0., 0.
-			m := ev.M[ev.Sgw[k]]
-			for i, c := range cids {
-
-				avail := ea
-				dsto0 := x[k][i].Sto
-				ro, ae, rch := 0., 0., 0.
-				di := ev.Drel[k][i] + dm
-
-				if di < 0. { // gw discharge
-					fc := math.Exp(-di / m)
-					if math.IsInf(fc, 0) {
-						panic("evaluate(): inf")
-						fc = 1000.
-					}
-					b := fc * ev.Bo[k][i]
-					ro = x[k][i].Overflow(b + ya)
-					rch -= b + avail*ev.Eafact
-					ae = avail * ev.Eafact
-					avail -= ae
-				} else {
-					if di < ev.Dext {
-						ae = (1. - di/ev.Dext) * avail // linear decay
-						rch -= ae
-						avail -= ae
-					}
-					ro = x[k][i].Overflow(ya)
-				}
-
-				// Infiltrate surplus/excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
-				pi := x[k][i].Sto * ev.Finf[k][i]
-				x[k][i].Sto -= pi
-				rch += pi
-
-				// evaporate from detention storage
-				if avail > 0. {
-					ae += avail + x[k][i].Overflow(-avail)
-				}
-
-				x[k][i].Sto += ro * (1. - ev.Fcasc[k][i])
-				ro *= ev.Fcasc[k][i]
-
-				// route flows
-				if ids := ev.Sds[k][i]; ids > -1 {
-					x[k][ids].Sto += ro
-					// ron[ids] += ro
-				} else {
-					qout[k][j] += ro
-				}
-				if _, ok := mon[k][c]; ok {
-					mon[k][c][j] = ro
-				}
-
-				// test for water balance
-				hruwbal := ya + dsto0 - x[k][i].Sto - ae - ro - rch
-				if math.Abs(hruwbal) > nearzero {
-					fmt.Printf("%10d%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, i, hruwbal, x[k][i].Sto, dsto0, ya, ae, ro, rch)
-					log.Fatalln("hru wbal error")
-				}
-
-				ssae += ae
-				ssro += ro
-				ssrch += rch
-				ssdsto += x[k][i].Sto - dsto0
-
-				spr[c] += ya
-				sae[c] += ae
-				sro[c] += ro //- (x[k][i].Sto - dsto0) // generated runoff
-				srch[c] += rch
-
-				// ron[i] = 0.
-			}
-			dd := -ssrch / ev.Fngwc[ev.Sgw[k]] // state update: adding recharge decreases the deficit of the gw reservoir
-			dmsv[ev.Sgw[k]] += dd              // state update: adding recharge decreases the deficit of the gw reservoir
-
-			// per timestep subwatershed waterbalance
-			swswbal := ya - (ssae+ssro+ssrch+ssdsto)/float64(len(cids))
-			if math.Abs(swswbal) > nearzero {
-				fmt.Printf("%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, swswbal, ssdsto, ya, ssae, ssro, ssrch)
-				log.Fatalln("sws t wbal error")
-			}
+	// spr, sae, sro, srch := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
+	dms, dmsv := make([]float64, ng), make([]float64, ng)
+	for j, t := range frc.T {
+		fmt.Println(t)
+		for i := 0; i < ng; i++ {
+			dms[i] += dmsv[i]
+			dmsv[i] = 0.
+		}
+		for k := range ev.Scids {
+			q, dd := rel[k].eval(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+			qout[k][j] = q
+			dmsv[ev.Sgw[k]] += dd
 		}
 	}
 
@@ -128,10 +69,15 @@ func (ev *Evaluator) evaluate(frc *Forcing, nwrkrs int, outdirprfx string) []flo
 			hyd[j] += qout[k][j] // / ev.Fnstrm[k]
 		}
 	}
-	lsto := make([]float64, ev.Nc)
+
+	spr, sae, sro, srch, lsto := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
 	for k, cids := range ev.Scids {
 		for i, c := range cids {
-			lsto[c] = x[k][i].Sto
+			spr[c] = rel[k].spr[i]
+			sae[c] = rel[k].sae[i]
+			sro[c] = rel[k].sro[i]
+			srch[c] = rel[k].srch[i]
+			lsto[c] = rel[k].x[i].Sto
 		}
 	}
 
@@ -140,7 +86,7 @@ func (ev *Evaluator) evaluate(frc *Forcing, nwrkrs int, outdirprfx string) []flo
 	writeFloats(outdirprfx+"sro.bin", sro)
 	writeFloats(outdirprfx+"srch.bin", srch)
 	writeFloats(outdirprfx+"lsto.bin", lsto)
-	// writeFloats(outdirprfx+"hyd.bin", hyd)
+	writeFloats(outdirprfx+"hyd.bin", hyd)
 
 	return hyd
 }

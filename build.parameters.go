@@ -13,15 +13,14 @@ const (
 	intsto    = .001
 )
 
-func buildParameters(s *Structure, mp *Mapper) Parameter {
-	zetas, ucas, tanbetas, ksats, depstos := make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc)
+func BuildParameters(s *Structure, mp *Mapper) Parameter {
+	zetas, ucas, tanbetas, depstos := make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc)
 	gammas := make([]float64, len(mp.Fngwc))
 	for i := range s.Cids {
-		ksats[i] = mp.Ksat[i]
 		zetas[i], tanbetas[i], ucas[i] = func() (float64, float64, float64) {
 			tanbeta := math.Tan(s.Dwngrad[i])
 			uca := float64(s.Upcnt[i]) * s.GD.Cwidth
-			zeta := math.Log(uca / ksats[i] / tanbeta)
+			zeta := math.Log(uca / mp.Ksat[i] / tanbeta)
 			if math.IsInf(zeta, 0) {
 				panic("zeta compute error")
 			}
@@ -53,5 +52,5 @@ func buildParameters(s *Structure, mp *Mapper) Parameter {
 			gammas[i] /= mp.Fngwc[i]
 		}
 	}
-	return Parameter{zetas, ucas, tanbetas, ksats, depstos, gammas}
+	return Parameter{zetas, ucas, tanbetas, depstos, gammas}
 }

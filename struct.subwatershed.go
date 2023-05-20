@@ -9,21 +9,34 @@ import (
 )
 
 type Subwatershed struct {
-	Outer, Scis, Sds, Dsws [][]int
-	Sid, Isws, Sgw         []int
-	Fnsc                   []float64
-	Ns                     int
+	Outer, Scis, Sds [][]int
+	Dsws             []SWStopo
+	Sid, Isws, Sgw   []int
+	Fnsc             []float64
+	Ns               int
 }
+
+type SWStopo struct{ Sid, Cid int } // receiving sws id, receiving cell id
 
 func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float64, chkdirprfx string) {
 
 	// summarize
-	fmt.Printf("%d sub-watersheds in %d rounds, ID, number of cells, computionally ordered:\n", w.Ns, len(w.Outer))
-	for k, inner := range w.Outer {
-		fmt.Printf("   round %d (%d)\n", k+1, len(inner))
-		for _, isw := range inner {
-			n := w.Fnsc[isw]
-			fmt.Printf("%10d%15d%15d  (%d %%)\n", isw, w.Isws[isw], int(n), int(100*n/fnc))
+	fmt.Printf("   > %d sub-watersheds in %d rounds, computionally ordered:\n", w.Ns, len(w.Outer))
+	if len(w.Outer) > 10 {
+		for k, inner := range w.Outer {
+			if k < 3 || k == len(w.Outer)-1 {
+				fmt.Printf("    round %d (%d)\n", k+1, len(inner))
+			} else if k == 3 {
+				print("     ...\n")
+			}
+		}
+	} else {
+		println("        ID          SWSID        n cells  (%%of domain)")
+		for k, inner := range w.Outer {
+			fmt.Printf("    round %d (%d)\n", k+1, len(inner))
+			for _, isw := range inner {
+				fmt.Printf("%10d%15d%15d  (%d %%)\n", isw, w.Isws[isw], int(w.Fnsc[isw]), int(100*w.Fnsc[isw]/fnc))
+			}
 		}
 	}
 
@@ -34,13 +47,17 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 		mx[c] = i
 	}
 
-	si, sids, dsws, sgw := gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999)
+	si, sids, dsws, dcid, sgw := gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999)
+	hassgw := w.Sgw != nil
 	for _, c := range gd.Sactives {
 		if i, ok := mx[c]; ok {
 			si[c] = int32(w.Sid[i])
 			sids[c] = int32(w.Isws[w.Sid[i]])
-			dsws[c] = int32(w.Dsws[w.Sid[i]][0])
-			sgw[c] = int32(w.Sgw[w.Sid[i]])
+			dsws[c] = int32(w.Dsws[w.Sid[i]].Sid)
+			dcid[c] = int32(w.Dsws[w.Sid[i]].Cid)
+			if hassgw {
+				sgw[c] = int32(w.Sgw[w.Sid[i]])
+			}
 		}
 	}
 
@@ -55,12 +72,15 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 
 	writeInts(chkdirprfx+"sws.swsi.indx", si)     // zero-based index
 	writeInts(chkdirprfx+"sws.swsids.indx", sids) // original index
-	writeInts(chkdirprfx+"sws.sgw.indx", sgw)     // groundwater index, now projected to sws
-	writeInts(chkdirprfx+"sws.dsws.indx", dsws)   // downslop sws index
-	writeInts(chkdirprfx+"sws.order.indx", sord)  // computational sws ordering
+	if hassgw {
+		writeInts(chkdirprfx+"sws.sgw.indx", sgw) // groundwater index, now projected to sws
+	}
+	writeInts(chkdirprfx+"sws.dsws.indx", dsws)  // downslope sws index
+	writeInts(chkdirprfx+"sws.dcid.indx", dcid)  // receiving cell of downslope sws
+	writeInts(chkdirprfx+"sws.order.indx", sord) // computational sws ordering
 }
 
-func (ws *Subwatershed) saveGob(fp string) error {
+func (ws *Subwatershed) SaveGob(fp string) error {
 	f, err := os.Create(fp)
 	if err != nil {
 		return fmt.Errorf(" mapper.SaveGob %v", err)

@@ -14,20 +14,19 @@ type Mapper struct {
 	Ksat, Fimp, Ifct, Fngwc []float64
 }
 
-func (mp *Mapper) checkandprint(gd *grid.Definition, fnc float64, chkdirprfx string) {
+func (mp *Mapper) Checkandprint(gd *grid.Definition, fnc float64, chkdirprfx string) {
 
 	// summarize
-	fmt.Printf("%d groundwater zones, number of cells:\n", len(mp.Fngwc))
+	fmt.Printf("   %d groundwater zones, number of cells:\n", len(mp.Fngwc))
 	for ig, n := range mp.Fngwc {
-		fmt.Printf("%10d%15d  (%d %%)\n", ig, int(n), int(100*n/fnc))
+		fmt.Printf("%10d%15d  (%.1f %%)\n", ig, int(n), 100*n/fnc)
 	}
 
 	// output
-	aid, ilu, isg, igw, icov := gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999)
+	ilu, isg, igw, icov := gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999)
 	ksat, fimp, ifct := gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.)
 	for _, c := range gd.Sactives {
 		if i, ok := mp.Mx[c]; ok {
-			aid[c] = int32(i)
 			ilu[c] = int32(mp.Ilu[i])
 			isg[c] = int32(mp.Isg[i])
 			igw[c] = int32(mp.Igw[i])
@@ -38,7 +37,6 @@ func (mp *Mapper) checkandprint(gd *grid.Definition, fnc float64, chkdirprfx str
 		}
 	}
 
-	writeInts(chkdirprfx+"mapper.aid.indx", aid)
 	writeInts(chkdirprfx+"mapper.ilu.indx", ilu)
 	writeInts(chkdirprfx+"mapper.isg.indx", isg)
 	writeInts(chkdirprfx+"mapper.igw.indx", igw)
@@ -48,7 +46,7 @@ func (mp *Mapper) checkandprint(gd *grid.Definition, fnc float64, chkdirprfx str
 	writeFloats(chkdirprfx+"mapper.ifct.bil", ifct)
 }
 
-func (mp *Mapper) saveGob(fp string) error {
+func (mp *Mapper) SaveGob(fp string) error {
 	f, err := os.Create(fp)
 	if err != nil {
 		return fmt.Errorf(" mapper.SaveGob %v", err)

@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/maseology/goHydro/gmet"
-	"github.com/maseology/mmio"
 )
 
 func buildForcings(mids []int, ncfp string) Forcing {
-	tt := mmio.NewTimer()
+	tt := time.Now()
 
 	vars := []string{
 		// "air_temperature",
@@ -118,6 +117,6 @@ func buildForcings(mids []int, ncfp string) Forcing {
 		IntervalSec: intvl,
 	}
 
-	tt.Lap("Forcing loaded")
+	fmt.Printf(" Forcing loaded - %v\n", time.Now().Sub(tt))
 	return frc
 }

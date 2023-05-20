@@ -15,7 +15,7 @@ type Structure struct {
 	Nc              int       // number of cells, groundwater zones
 }
 
-func (s *Structure) checkandprint(chkdirprfx string) {
+func (s *Structure) Checkandprint(chkdirprfx string) {
 
 	// output
 	mx := make(map[int]int, s.Nc)
@@ -23,10 +23,11 @@ func (s *Structure) checkandprint(chkdirprfx string) {
 		mx[c] = i
 	}
 
-	cids, ds, upcnt := s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999)
+	aids, cids, ds, upcnt := s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999)
 	dwngrad := s.GD.NullArray(-9999.)
 	for _, c := range s.GD.Sactives {
 		if i, ok := mx[c]; ok {
+			aids[c] = int32(i)
 			cids[c] = int32(s.Cids[i])
 			ds[c] = int32(s.Ds[i])
 			upcnt[c] = int32(s.Upcnt[i])
@@ -34,13 +35,14 @@ func (s *Structure) checkandprint(chkdirprfx string) {
 		}
 	}
 
+	writeInts(chkdirprfx+"structure.aids.indx", aids)
 	writeInts(chkdirprfx+"structure.cids.indx", cids)
 	writeInts(chkdirprfx+"structure.ds.indx", ds)
 	writeInts(chkdirprfx+"structure.upcnt.indx", upcnt)
 	writeFloats(chkdirprfx+"structure.dwngrad.bil", dwngrad)
 }
 
-func (s *Structure) saveGob(fp string) error {
+func (s *Structure) SaveGob(fp string) error {
 	f, err := os.Create(fp)
 	if err != nil {
 		return fmt.Errorf(" structure.Save %v", err)

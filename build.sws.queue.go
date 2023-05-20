@@ -1,8 +1,6 @@
 package rdrr
 
-import (
-	"github.com/maseology/mmaths/slice"
-)
+import "github.com/maseology/mmaths/slice"
 
 func (w *Subwatershed) buildComputationalOrder1(cids, ds []int) {
 	w.Outer = func() [][]int { // topo-safe [order, swsid]; [swsid]cids (all zero-based)
@@ -13,7 +11,7 @@ func (w *Subwatershed) buildComputationalOrder1(cids, ds []int) {
 			if l >= cnt[i] {
 				cnt[i] = l + 1
 			}
-			if dsi := w.Dsws[i][0]; dsi > -1 {
+			if dsi := w.Dsws[i].Sid; dsi > -1 {
 				recurs(dsi, cnt[i])
 			}
 		}

@@ -40,10 +40,10 @@ func buildSTRC(gdefFP, hdemFP string, cid0 int) Structure {
 				log.Fatalf(" BuildSTRC error, cell id %d not found in %s", i, hdemFP)
 			}
 			if dem.TEC[i].Z == -9999. {
-				fmt.Printf(" WARNING no elevation assigned to cell %d\n", i)
+				fmt.Printf("    WARNING no elevation assigned to cell %d\n", i)
 			}
 			if math.Tan(dem.TEC[i].G) > 1 {
-				fmt.Printf(" WARNING gradient adjusted to cell %d; too steep\n", i)
+				fmt.Printf("    WARNING gradient adjusted to cell %d; too steep (grad = %.2f, set to %.2f)\n", i, dem.TEC[i].G, gmax)
 				m := dem.TEC[i]
 				m.G = gmax
 				dem.TEC[i] = m
@@ -56,7 +56,7 @@ func buildSTRC(gdefFP, hdemFP string, cid0 int) Structure {
 	}()
 	_ = dem
 
-	println("         : re-indexing grid ids to topo-safe arrays")
+	println(" > step 3: re-indexing grid ids to topo-safe arrays..")
 	cids, ds := dem.DownslopeContributingAreaIDs(cid0)
 	nc := len(cids)
 

@@ -3,15 +3,17 @@ package rdrr
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/maseology/goHydro/grid"
-	"github.com/maseology/mmio"
 )
 
 func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
-	iksat func([]int) []float64,
-	xlu func(*grid.Definition, string, map[int]int) SurfaceSet,
+	iksat func(*grid.Definition, []int, []int) ([]float64, []int),
+	xlu func(*grid.Definition, string, []int) SurfaceSet,
 ) Mapper {
 	var wg sync.WaitGroup
 
@@ -20,9 +22,15 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 	var ksat, fimp, ifct []float64
 	var fngwc []float64
 
-	mx := make(map[int]int, s.Nc) // grid cell id to array index cross-reference
-	for i, c := range s.Cids {
-		mx[c] = i
+	fileExists := func(path string) (int64, bool) {
+		if fi, err := os.Stat(path); err == nil {
+			return fi.Size(), true
+		} else if os.IsNotExist(err) {
+			return 0, false
+		} else {
+			// log.Fatalf("mmio.FileExists: %v", err)
+			return 0, false
+		}
 	}
 
 	readLU := func(gd *grid.Definition, lufp string) {
@@ -30,67 +38,67 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 		if lufp == "" {
 			return
 		}
-		tt := mmio.NewTimer()
+		tt := time.Now()
 
-		checkforfile := func(fp string) {
-			if _, ok := mmio.FileExists(fp); !ok {
-				log.Fatalf(" getMappings.readLU file not found: %s", fp)
-			}
-		}
+		// checkforfile := func(fp string) {
+		// 	if _, ok := fileExists(fp); !ok {
+		// 		log.Fatalf(" getMappings.readLU file not found: %s", fp)
+		// 	}
+		// }
 
-		// load data
-		loadReal := func(fp string) []float64 {
-			checkforfile(fp)
-			fmt.Printf(" loading: %s\n", fp)
-			var g grid.Real
-			g.NewGD32(fp, gd)
-			m := make(map[int]float64, len(g.A))
-			for k, v := range g.A {
-				if v < 0. {
-					m[k] = 0.
-				} else {
-					m[k] = v
-				}
-			}
-			aout := make([]float64, s.Nc)
-			for i, c := range s.Cids {
-				if v, ok := m[c]; ok {
-					aout[i] = v
-				} else {
-					panic("getMappings.loadReal error: " + fp)
-				}
-			}
-			return aout
-		}
-		// load indices
-		loadIndx := func(fp string) ([]int, []int) {
-			checkforfile(fp)
-			fmt.Printf(" loading: %s\n", fp)
-			var g grid.Indx
-			g.LoadGDef(gd)
-			g.NewShort(fp, true)
-			m := g.Values()
-			aout := make([]int, s.Nc)
-			for i, c := range s.Cids {
-				if v, ok := m[c]; ok {
-					aout[i] = v
-				} else {
-					panic("getMappings.loadIndx error: " + fp)
-				}
-			}
-			return aout, g.UniqueValues()
-		}
-
+		// // load data
+		// loadReal := func(fp string) []float64 {
+		// 	checkforfile(fp)
+		// 	fmt.Printf("   loading: %s\n", fp)
+		// 	var g grid.Real
+		// 	g.NewGD32(fp, gd)
+		// 	m := make(map[int]float64, len(g.A))
+		// 	for k, v := range g.A {
+		// 		if v < 0. {
+		// 			m[k] = 0.
+		// 		} else {
+		// 			m[k] = v
+		// 		}
+		// 	}
+		// 	aout := make([]float64, s.Nc)
+		// 	for i, c := range s.Cids {
+		// 		if v, ok := m[c]; ok {
+		// 			aout[i] = v
+		// 		} else {
+		// 			panic("getMappings.loadReal error: " + fp)
+		// 		}
+		// 	}
+		// 	return aout
+		// }
+		// // load indices
+		// loadIndx := func(fp string) ([]int, []int) {
+		// 	checkforfile(fp)
+		// 	fmt.Printf("   loading: %s\n", fp)
+		// 	var g grid.Indx
+		// 	g.LoadGDef(gd)
+		// 	g.NewShort(fp, true)
+		// 	m := g.Values()
+		// 	aout := make([]int, s.Nc)
+		// 	for i, c := range s.Cids {
+		// 		if v, ok := m[c]; ok {
+		// 			aout[i] = v
+		// 		} else {
+		// 			panic("getMappings.loadIndx error: " + fp)
+		// 		}
+		// 	}
+		// 	return aout, g.UniqueValues()
+		// }
+		// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		var ulu []int
-		if _, ok := mmio.FileExists(lufp + "-surfaceid.bil"); ok {
-			ilu, ulu = loadIndx(lufp + "-surfaceid.bil")
-			icov, _ = loadIndx(lufp + "-canopyid.bil")
-			fimp = loadReal(lufp + "-perimp.bil")
-			ifct = loadReal(lufp + "-percov.bil") // fraction cover (to be adjusted below)
-		} else {
-			ss := xlu(gd, lufp, mx)
-			ilu, ulu, icov, fimp, ifct = ss.Ilu, ss.Ulu, ss.Icov, ss.Fimp, ss.Ifct
-		}
+		// if _, ok := fileExists(lufp + "-surfaceid.bil"); ok {
+		// 	ilu, ulu = loadIndx(lufp + "-surfaceid.bil")
+		// 	icov, _ = loadIndx(lufp + "-canopyid.bil")
+		// 	fimp = loadReal(lufp + "-perimp.bil")
+		// 	ifct = loadReal(lufp + "-percov.bil") // fraction cover (to be adjusted below)
+		// } else {
+		ss := xlu(gd, lufp, s.Cids)
+		ilu, ulu, icov, fimp, ifct = ss.Ilu, ss.Ulu, ss.Icov, ss.Fimp, ss.Ifct
+		// }
 
 		// adjust cover (convert to ifct)
 		for i := range s.Cids {
@@ -113,26 +121,26 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			ulu = append(ulu, Channel)
 		}
 
-		tt.Lap("LU loaded")
+		fmt.Printf(" %s - %v\n", "LU loaded", time.Now().Sub(tt))
 	}
 
 	readSG := func(gd *grid.Definition, sgfp string) {
 		defer wg.Done()
-		tt := mmio.NewTimer()
+		tt := time.Now()
 
 		// load index
 		loadIndx := func(fp string) ([]int, []int) {
-			if _, ok := mmio.FileExists(fp); !ok {
+			if _, ok := fileExists(fp); !ok {
 				log.Fatalf(" getMappings.readSG.loadIndx file not found: %s", fp)
 			}
-			fmt.Printf(" loading: %s\n", fp)
+			fmt.Printf("   loading: %s\n", fp)
 			var g grid.Indx
-			switch mmio.GetExtension(fp) {
+			switch filepath.Ext(fp) {
 			case ".bil":
 				g.LoadGDef(gd)
 				g.NewShort(fp, true)
 			case ".indx":
-				if _, b := mmio.FileExists(fp + ".gdef"); !b {
+				if _, b := fileExists(fp + ".gdef"); !b {
 					g.LoadGDef(gd)
 				}
 				g.New(fp, true)
@@ -151,30 +159,30 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			return aout, g.UniqueValues()
 		}
 		isg, _ = loadIndx(sgfp)
-		ksat = iksat(isg) // same size and order of usg[]
-		tt.Lap("SG loaded")
+		ksat, _ = iksat(gd, s.Cids, isg) // same size and order of usg[]
+		fmt.Printf(" %s - %v\n", "SG loaded", time.Now().Sub(tt))
 	}
 
 	readGW := func(gd *grid.Definition, gwfp string) {
 		defer wg.Done()
-		tt := mmio.NewTimer()
+		tt := time.Now()
 
 		if gwfp == "" { // all 1 GW zone
 			fngwc, igw = s.buildGWzone(nil)
 		} else {
 			// load index
 			loadIndx := func(fp string) (map[int]int, []int) {
-				if _, ok := mmio.FileExists(fp); !ok {
+				if _, ok := fileExists(fp); !ok {
 					log.Fatalf(" getMappings.readGW file not found: %s", fp)
 				}
-				fmt.Printf(" loading: %s\n", fp)
+				fmt.Printf("   loading: %s\n", fp)
 				var g grid.Indx
-				switch mmio.GetExtension(fp) {
+				switch filepath.Ext(fp) {
 				case ".bil":
 					g.LoadGDef(gd)
 					g.NewShort(fp, true)
 				case ".indx":
-					if _, b := mmio.FileExists(fp + ".gdef"); !b {
+					if _, b := fileExists(fp + ".gdef"); !b {
 						g.LoadGDef(gd)
 					}
 					g.New(fp, true)
@@ -195,7 +203,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			fngwc, igw = s.buildGWzone(agw)
 		}
 
-		tt.Lap("GW zones loaded")
+		fmt.Printf(" %s - %v\n", "GW zones loaded", time.Now().Sub(tt))
 	}
 
 	wg.Add(3)
@@ -203,6 +211,11 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 	go readSG(s.GD, sgfp)
 	go readGW(s.GD, gwfp)
 	wg.Wait()
+
+	mx := make(map[int]int, s.Nc) // grid cell id to array index cross-reference
+	for i, c := range s.Cids {
+		mx[c] = i
+	}
 
 	return Mapper{
 		Mx:    mx,
