@@ -3,15 +3,16 @@ package rdrr
 import (
 	"fmt"
 
+	"github.com/maseology/goHydro/forcing"
 	"github.com/maseology/goHydro/hru"
 )
 
 // Evaluate a single run
-func (ev *Evaluator) Evaluate(frc *Forcing, nwrkrs int, outdirprfx string) (hyd []float64) {
+func (ev *Evaluator) Evaluate(frc *forcing.Forcing, nwrkrs int, outdirprfx string) (hyd []float64) {
 	return ev.evaluate(frc, nwrkrs, outdirprfx)
 }
 
-func (ev *Evaluator) evaluate(frc *Forcing, nwrkrs int, outdirprfx string) []float64 {
+func (ev *Evaluator) evaluate(frc *forcing.Forcing, nwrkrs int, outdirprfx string) []float64 {
 
 	// prep
 	nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)

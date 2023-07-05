@@ -1,6 +1,8 @@
 package rdrr
 
-func LoadDomain(mdlprfx string) (*Structure, *Subwatershed, *Mapper, *Parameter, *Forcing) {
+import "github.com/maseology/goHydro/forcing"
+
+func LoadDomain(mdlprfx string) (*Structure, *Subwatershed, *Mapper, *Parameter, *forcing.Forcing) {
 	chkerr := func(err error) {
 		if err != nil {
 			panic(err)
@@ -14,7 +16,7 @@ func LoadDomain(mdlprfx string) (*Structure, *Subwatershed, *Mapper, *Parameter,
 	chkerr(err)
 	par, err := loadGobParameter(mdlprfx + "parameter.gob")
 	chkerr(err)
-	frc, err := LoadGobForcing(mdlprfx + "forcing.gob")
+	frc, err := forcing.LoadGobForcing(mdlprfx + "forcing.gob")
 	chkerr(err)
 
 	return strc, sws, mp, par, frc

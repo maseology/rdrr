@@ -3,6 +3,7 @@ package rdrr
 import (
 	"strconv"
 
+	"github.com/maseology/goHydro/forcing"
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
 )
@@ -10,7 +11,7 @@ import (
 func BuildRDRR(controlFP string,
 	iksat func(*grid.Definition, []int, []int) ([]float64, []int),
 	xlu func(*grid.Definition, string, []int) SurfaceSet,
-) (*Structure, *Mapper, *Subwatershed, *Parameter, *Forcing, string) {
+) (*Structure, *Mapper, *Subwatershed, *Parameter, *forcing.Forcing, string) {
 
 	///////////////////////////////////////////////////////
 	println("load .rdrr file")
@@ -72,17 +73,17 @@ func BuildRDRR(controlFP string,
 		par.Checkandprint(strc.GD, mp.Mx, mp.Igw, chkdir)
 	}
 
-	frc := func(fp string) *Forcing {
+	frc := func(fp string) *forcing.Forcing {
 		println(" > load forcings..")
 		if _, ok := mmio.FileExists(fp); ok {
-			frc, err := LoadGobForcing(fp)
+			frc, err := forcing.LoadGobForcing(fp)
 			if err != nil {
 				panic(err)
 			}
 			return frc
 		}
-		frc := buildForcings(sws.Isws, ncFP) // sws id refers to the climate lists
-		if err := frc.saveGob(fp); err != nil {
+		frc := forcing.GetForcings(sws.Isws, ncFP) // sws id refers to the climate lists
+		if err := frc.SaveGobForcing(fp); err != nil {
 			panic(err)
 		}
 		return &frc
