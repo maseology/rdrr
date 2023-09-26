@@ -3,7 +3,7 @@ package rdrr
 import "github.com/maseology/goHydro/grid"
 
 type Evaluator struct {
-	Scids, Sds                    [][]int // Outer,Incs, Dwnas, Mons
+	Outer, Scids, Sds             [][]int // Incs, Dwnas, Mons
 	Drel, Bo, Fcasc, Finf, DepSto [][]float64
 	Sgw                           []int
 	M, Fngwc                      []float64 // , Fnstrm

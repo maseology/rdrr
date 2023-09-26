@@ -8,7 +8,7 @@ import (
 	"github.com/maseology/mmio"
 )
 
-func BuildRDRR(controlFP string,
+func BuildRDRR(controlFP string, intvl float64,
 	iksat func(*grid.Definition, []int, []int) ([]float64, []int),
 	xlu func(*grid.Definition, string, []int) SurfaceSet,
 ) (*Structure, *Mapper, *Subwatershed, *Parameter, *forcing.Forcing, string) {
@@ -82,7 +82,7 @@ func BuildRDRR(controlFP string,
 			}
 			return frc
 		}
-		frc := forcing.GetForcings(sws.Isws, ncFP) // sws id refers to the climate lists
+		frc := forcing.GetForcings(sws.Isws, intvl, 0, ncFP, "") // sws id refers to the climate lists
 		if err := frc.SaveGobForcing(fp); err != nil {
 			panic(err)
 		}

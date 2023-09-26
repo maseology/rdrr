@@ -16,7 +16,7 @@ type realization struct {
 	eaf, dextm, fnc, fgnc float64 // m,
 }
 
-func (r *realization) eval(ya, ea, dmm float64, j, k int) (float64, float64) {
+func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (float64, float64) {
 	qout, ssae, ssro, ssrch, ssdsto := 0., 0., 0., 0., 0.
 	for i := range r.cids {
 
@@ -30,7 +30,7 @@ func (r *realization) eval(ya, ea, dmm float64, j, k int) (float64, float64) {
 			fc := math.Exp(-dim)
 			if math.IsInf(fc, 0) { // keep m>.01
 				panic("evaluate(): inf")
-				fc = 1000.
+				// fc = 1000.
 			}
 			b := fc * r.bo[i]
 			ro = r.x[i].Overflow(b + ya)
