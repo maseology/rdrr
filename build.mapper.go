@@ -121,7 +121,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			ulu = append(ulu, Channel)
 		}
 
-		fmt.Printf(" %s - %v\n", "LU loaded", time.Now().Sub(tt))
+		fmt.Printf(" %s - %v\n", "LU loaded", time.Since(tt))
 	}
 
 	readSG := func(gd *grid.Definition, sgfp string) {
@@ -160,7 +160,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 		}
 		isg, _ = loadIndx(sgfp)
 		ksat, _ = iksat(gd, s.Cids, isg) // same size and order of usg[]
-		fmt.Printf(" %s - %v\n", "SG loaded", time.Now().Sub(tt))
+		fmt.Printf(" %s - %v\n", "SG loaded", time.Since(tt))
 	}
 
 	readGW := func(gd *grid.Definition, gwfp string) {
@@ -203,7 +203,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			fngwc, igw = s.buildGWzone(agw)
 		}
 
-		fmt.Printf(" %s - %v\n", "GW zones loaded", time.Now().Sub(tt))
+		fmt.Printf(" %s - %v\n", "GW zones loaded", time.Since(tt))
 	}
 
 	wg.Add(3)
