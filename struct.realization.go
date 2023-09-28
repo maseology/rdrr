@@ -14,6 +14,7 @@ type realization struct {
 	spr, sae, sro, srch   []float64
 	cids, sds             []int
 	eaf, dextm, fnc, fgnc float64 // m,
+	cmon                  int
 }
 
 func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (float64, float64) {

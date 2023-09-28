@@ -13,18 +13,21 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 	// defer close(done)
 
 	// prep
-	ng, ns := len(ev.Fngwc), len(ev.Scids)
+	ng, ns, nt := len(ev.Fngwc), len(ev.Scids), len(frc.T)
 	x := make([][]hru.Res, ns)
 	rel := make([]*realization, ns)
-	// mon := make([]map[int][]float64, ns)
+	mons := make([][]float64, ns)
+
 	for k, cids := range ev.Scids {
 		x[k] = make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {
 			x[k][i].Cap = d
 		}
-		// for _, m := range ev.Mons[k] {
-		// 	mon[k][m] = make([]float64, nt)
-		// }
+
+		if ev.Mons[k] >= 0 {
+			mons[k] = make([]float64, nt)
+		}
+
 		rel[k] = &realization{
 			x:     x[k],
 			drel:  ev.Drel[k],
@@ -42,11 +45,13 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
 			fnc:   float64(len(cids)),
 			fgnc:  ev.Fngwc[ev.Sgw[k]],
+			cmon:  ev.Mons[k],
 		}
 	}
 
 	var wg sync.WaitGroup
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
+
 	for j := range frc.T {
 		// fmt.Println(t)
 		for i := 0; i < ng; i++ {
@@ -57,7 +62,10 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			wg.Add(len(inner))
 			for _, k := range inner {
 				go func(k int) {
-					_, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+					q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+					if ev.Mons[k] >= 0 {
+						mons[k][j] = q
+					}
 					dmsv[ev.Sgw[k]] += dd
 					wg.Done()
 				}(k)
@@ -82,6 +90,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 	writeFloats(outdirprfx+"sro.bin", sro)
 	writeFloats(outdirprfx+"srch.bin", srch)
 	writeFloats(outdirprfx+"lsto.bin", lsto)
+	writeMons(outdirprfx+"mon.gob", ev.Mons, mons)
 	// writeFloats(outdirprfx+"hyd.bin", hyd)
 	return hyd
 }
