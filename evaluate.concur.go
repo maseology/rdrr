@@ -43,6 +43,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			srch:  make([]float64, len(cids)),
 			cids:  cids,
 			sds:   ev.Sds[k],
+			rte:   ev.Dsws[k],
 			// m:    ev.M[ev.Sgw[k]],
 			eaf:   ev.Eafact,
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
@@ -70,7 +71,12 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 						mons[k][j] = m
 					}
 					dmsv[ev.Sgw[k]] += dd
-					rel[rel[k].rte.Sid].x[rel[k].rte.Cid].Sto += q
+					func(r SWStopo) {
+						if r.Sid < 0 {
+							return
+						}
+						rel[r.Sid].x[r.Cid].Sto += q
+					}(rel[k].rte)
 					_ = q
 					wg.Done()
 				}(k)

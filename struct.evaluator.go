@@ -4,6 +4,7 @@ import "github.com/maseology/goHydro/grid"
 
 type Evaluator struct {
 	Outer, Scids, Sds             [][]int // Incs, Dwnas
+	Dsws                          []SWStopo
 	Drel, Bo, Fcasc, Finf, DepSto [][]float64
 	Sgw, Mons                     []int
 	M, Fngwc                      []float64 // , Fnstrm

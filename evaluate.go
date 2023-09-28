@@ -36,6 +36,7 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			srch:  make([]float64, len(cids)),
 			cids:  cids,
 			sds:   ev.Sds[k],
+			rte:   ev.Dsws[k],
 			// m:    ev.M[ev.Sgw[k]],
 			eaf:   ev.Eafact,
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
@@ -59,6 +60,12 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 				mons[k][j] = m
 			}
 			qout[k][j] = q
+			func(r SWStopo) {
+				if r.Sid < 0 {
+					return
+				}
+				rel[r.Sid].x[r.Cid].Sto += q
+			}(rel[k].rte)
 			dmsv[ev.Sgw[k]] += dd
 		}
 	}
