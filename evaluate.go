@@ -14,16 +14,16 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 	qout := make([][]float64, ns)
 	x := make([][]hru.Res, ns)
 	rel := make([]*realization, ns)
-	// mon := make([]map[int][]float64, ns)
+	mons := make([][]float64, ns)
 	for k, cids := range ev.Scids {
 		qout[k] = make([]float64, nt)
 		x[k] = make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {
 			x[k][i].Cap = d
 		}
-		// for _, m := range ev.Mons[k] {
-		// 	mon[k][m] = make([]float64, nt)
-		// }
+		if ev.Mons[k] >= 0 {
+			mons[k] = make([]float64, nt)
+		}
 		rel[k] = &realization{
 			x:     x[k],
 			drel:  ev.Drel[k],
@@ -41,6 +41,7 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
 			fnc:   float64(len(cids)),
 			fgnc:  ev.Fngwc[ev.Sgw[k]],
+			cmon:  ev.Mons[k],
 		}
 	}
 
@@ -54,6 +55,9 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 		}
 		for k := range ev.Scids {
 			q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+			if ev.Mons[k] >= 0 {
+				mons[k][j] = q
+			}
 			qout[k][j] = q
 			dmsv[ev.Sgw[k]] += dd
 		}
@@ -82,6 +86,7 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 	writeFloats(outdirprfx+"sro.bin", sro)
 	writeFloats(outdirprfx+"srch.bin", srch)
 	writeFloats(outdirprfx+"lsto.bin", lsto)
+	writeMons(outdirprfx+"mon.gob", ev.Mons, mons)
 	writeFloats(outdirprfx+"hyd.bin", hyd)
 
 	return hyd
