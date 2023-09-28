@@ -1,6 +1,7 @@
 package rdrr
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/maseology/goHydro/forcing"
@@ -24,8 +25,10 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			x[k][i].Cap = d
 		}
 
-		if ev.Mons[k] >= 0 {
+		cmon := -1
+		if len(ev.Mons) > 0 && ev.Mons[k] >= 0 {
 			mons[k] = make([]float64, nt)
+			cmon = ev.Mons[k]
 		}
 
 		rel[k] = &realization{
@@ -45,15 +48,15 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
 			fnc:   float64(len(cids)),
 			fgnc:  ev.Fngwc[ev.Sgw[k]],
-			cmon:  ev.Mons[k],
+			cmon:  cmon,
 		}
 	}
 
 	var wg sync.WaitGroup
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
 
-	for j := range frc.T {
-		// fmt.Println(t)
+	for j, t := range frc.T {
+		fmt.Println(t)
 		for i := 0; i < ng; i++ {
 			dms[i] += dmsv[i]
 			dmsv[i] = 0.
@@ -62,11 +65,13 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			wg.Add(len(inner))
 			for _, k := range inner {
 				go func(k int) {
-					q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
-					if ev.Mons[k] >= 0 {
-						mons[k][j] = q
+					q, m, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+					if len(ev.Mons) > 0 && ev.Mons[k] >= 0 {
+						mons[k][j] = m
 					}
 					dmsv[ev.Sgw[k]] += dd
+					rel[rel[k].rte.Sid].x[rel[k].rte.Cid].Sto += q
+					_ = q
 					wg.Done()
 				}(k)
 			}
@@ -94,30 +99,3 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 	// writeFloats(outdirprfx+"hyd.bin", hyd)
 	return hyd
 }
-
-// // pipeline/workers
-// func evalstream(done <-chan interface{}, rel <-chan realization, nwrkrs int) <-chan result {
-// 	evalstream := make(chan result)
-// 	for i := 0; i < nwrkrs; i++ {
-// 		go func(i int) {
-// 			// defer close(evalstream)
-// 			for {
-// 				select {
-// 				case <-done:
-// 					return
-// 				case r := <-rel:
-// 					evalstream <- r.rdrr()
-// 				}
-// 			}
-// 			// for r := range rel {
-// 			// 	select {
-// 			// 	case <-done:
-// 			// 		return
-// 			// 	default:
-// 			// 		evalstream <- r.rdrr()
-// 			// 	}
-// 			// }
-// 		}(i)
-// 	}
-// 	return evalstream
-// }

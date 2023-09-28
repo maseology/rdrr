@@ -13,13 +13,14 @@ type realization struct {
 	drel, bo, finf, fcasc []float64
 	spr, sae, sro, srch   []float64
 	cids, sds             []int
+	rte                   SWStopo
 	eaf, dextm, fnc, fgnc float64 // m,
 	cmon                  int
 }
 
-func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (float64, float64) {
-	qout, ssae, ssro, ssrch, ssdsto := 0., 0., 0., 0., 0.
-	for i := range r.cids {
+func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qout, qmon, dm float64) {
+	ssae, ssro, ssrch, ssdsto := 0., 0., 0., 0.
+	for i, c := range r.cids {
 
 		avail := ea
 		dsto0 := r.x[i].Sto
@@ -67,6 +68,11 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (float64, float64) {
 			qout += ro
 		}
 
+		// grab monitor
+		if c == r.cmon {
+			qmon = ro
+		}
+
 		// test for water balance
 		hruwbal := ya + dsto0 - r.x[i].Sto - ae - ro - rch
 		if math.Abs(hruwbal) > nearzero {
@@ -91,5 +97,5 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (float64, float64) {
 		fmt.Printf("%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, swswbal, ssdsto, ya, ssae, ssro, ssrch)
 		log.Fatalln("sws t wbal error")
 	}
-	return qout, -ssrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir
+	return qout, qmon, -ssrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir
 }

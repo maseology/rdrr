@@ -54,9 +54,9 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			dmsv[i] = 0.
 		}
 		for k := range ev.Scids {
-			q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+			q, m, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
 			if ev.Mons[k] >= 0 {
-				mons[k][j] = q
+				mons[k][j] = m
 			}
 			qout[k][j] = q
 			dmsv[ev.Sgw[k]] += dd

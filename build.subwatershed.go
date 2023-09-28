@@ -120,6 +120,6 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		Sid:  sids,      // cell index to 0-based sws index
 		Isws: isws,      // sws index to sub-watersed ID (needed for forcings)
 		Fnsc: fnsc,      // number of cells per sws
-		Ns:   len(xsws), // number od sws's
+		Ns:   len(xsws), // number of sws's
 	}
 }
