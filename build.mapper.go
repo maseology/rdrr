@@ -147,10 +147,9 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			default:
 				log.Fatalf("unrecognized file format: " + fp)
 			}
-			m := g.Values()
 			aout := make([]int, s.Nc)
 			for i, c := range s.Cids {
-				if v, ok := m[c]; ok {
+				if v, ok := g.A[c]; ok {
 					aout[i] = v
 				} else {
 					panic("getMappings.readSG.loadIndx error: " + fp)
@@ -189,7 +188,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 				default:
 					log.Fatalf("unrecognized file format: " + fp)
 				}
-				return g.Values(), g.UniqueValues()
+				return g.A, g.UniqueValues()
 			}
 			mgw, _ := loadIndx(gwfp)
 			agw := make([]int, s.Nc)

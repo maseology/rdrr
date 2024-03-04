@@ -14,10 +14,9 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		var g grid.Indx
 		g.LoadGDef(s.GD)
 		g.NewShort(fp, true)
-		m := g.Values()
 		aout := make([]int, s.Nc)
 		for i, c := range s.Cids {
-			if v, ok := m[c]; ok {
+			if v, ok := g.A[c]; ok {
 				aout[i] = v
 			} else {
 				panic("loadIndx error: " + fp)

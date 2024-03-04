@@ -1,7 +1,6 @@
 package rdrr
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/maseology/goHydro/forcing"
@@ -56,8 +55,8 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 	var wg sync.WaitGroup
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
 
-	for j, t := range frc.T {
-		fmt.Println(t)
+	for j := range frc.T {
+		// fmt.Println(t)
 		for i := 0; i < ng; i++ {
 			dms[i] += dmsv[i]
 			dmsv[i] = 0.

@@ -38,7 +38,7 @@ func writeInts(fp string, i []int32) error {
 	return nil
 }
 
-// writes to a float32 map
+// writes float32 map to a gob
 func writeMons(fp string, swsmons []int, qs [][]float64) error {
 	f32 := func(f []float64) []float32 {
 		o := make([]float32, len(f))
