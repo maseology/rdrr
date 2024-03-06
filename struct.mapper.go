@@ -37,13 +37,13 @@ func (mp *Mapper) Checkandprint(gd *grid.Definition, fnc float64, chkdirprfx str
 		}
 	}
 
-	writeInts(chkdirprfx+"mapper.ilu.indx", ilu)
-	writeInts(chkdirprfx+"mapper.isg.indx", isg)
-	writeInts(chkdirprfx+"mapper.igw.indx", igw)
-	writeInts(chkdirprfx+"mapper.icov.indx", icov)
-	writeFloats(chkdirprfx+"mapper.ksat.bil", ksat)
-	writeFloats(chkdirprfx+"mapper.fimp.bil", fimp)
-	writeFloats(chkdirprfx+"mapper.ifct.bil", ifct)
+	writeInts(gd, chkdirprfx+"mapper.ilu.bil", ilu)
+	writeInts(gd, chkdirprfx+"mapper.isg.bil", isg)
+	writeInts(gd, chkdirprfx+"mapper.igw.bil", igw)
+	writeInts(gd, chkdirprfx+"mapper.icov.bil", icov)
+	writeFloats(gd, chkdirprfx+"mapper.ksat.bil", ksat)
+	writeFloats(gd, chkdirprfx+"mapper.fimp.bil", fimp)
+	writeFloats(gd, chkdirprfx+"mapper.ifct.bil", ifct)
 }
 
 func (mp *Mapper) SaveGob(fp string) error {

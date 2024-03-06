@@ -35,11 +35,11 @@ func (s *Structure) Checkandprint(chkdirprfx string) {
 		}
 	}
 
-	writeInts(chkdirprfx+"structure.aids.indx", aids)
-	writeInts(chkdirprfx+"structure.cids.indx", cids)
-	writeInts(chkdirprfx+"structure.ds.indx", ds)
-	writeInts(chkdirprfx+"structure.upcnt.indx", upcnt)
-	writeFloats(chkdirprfx+"structure.dwngrad.bil", dwngrad)
+	writeInts(s.GD, chkdirprfx+"structure.aids.bil", aids)
+	writeInts(s.GD, chkdirprfx+"structure.cids.bil", cids)
+	writeInts(s.GD, chkdirprfx+"structure.ds.bil", ds)
+	writeInts(s.GD, chkdirprfx+"structure.upcnt.bil", upcnt)
+	writeFloats(s.GD, chkdirprfx+"structure.dwngrad.bil", dwngrad)
 }
 
 func (s *Structure) SaveGob(fp string) error {

@@ -6,10 +6,13 @@ import (
 	"encoding/gob"
 	"fmt"
 	"os"
+
+	"github.com/maseology/goHydro/grid"
+	"github.com/maseology/mmio"
 )
 
 // writes to float32
-func writeFloats(fp string, f []float64) error {
+func writeFloats(gd *grid.Definition, fp string, f []float64) error {
 	f32 := func() []float32 {
 		o := make([]float32, len(f))
 		for i, v := range f {
@@ -24,10 +27,15 @@ func writeFloats(fp string, f []float64) error {
 	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
 		return fmt.Errorf("writeFloats failed: %v", err)
 	}
+	if gd != nil {
+		if err := gd.ToHDR(mmio.RemoveExtension(fp)+".hdr", 1, 32); err != nil {
+			return fmt.Errorf("writeInts (hdr) failed: %v", err)
+		}
+	}
 	return nil
 }
 
-func writeInts(fp string, i []int32) error {
+func writeInts(gd *grid.Definition, fp string, i []int32) error {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, i); err != nil {
 		return fmt.Errorf("writeInts failed: %v", err)
@@ -35,11 +43,14 @@ func writeInts(fp string, i []int32) error {
 	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
 		return fmt.Errorf("writeInts failed: %v", err)
 	}
+	if err := gd.ToHDR(mmio.RemoveExtension(fp)+".hdr", 1, 32); err != nil {
+		return fmt.Errorf("writeInts (hdr) failed: %v", err)
+	}
 	return nil
 }
 
 // writes float32 map to a gob
-func writeMons(fp string, swsmons []int, qs [][]float64) error {
+func writeMons(fp string, swsmons [][]int, qs [][]float64) error {
 	f32 := func(f []float64) []float32 {
 		o := make([]float32, len(f))
 		for i, v := range f {
@@ -49,11 +60,12 @@ func writeMons(fp string, swsmons []int, qs [][]float64) error {
 	}
 	m32 := func() map[int][]float32 {
 		o := make(map[int][]float32)
-		for k, c := range swsmons {
-			if c >= 0 {
-				o[c] = f32(qs[k])
+		n := 0
+		for _, cs := range swsmons {
+			for _, c := range cs {
+				o[c] = f32(qs[n])
+				n++
 			}
-
 		}
 		return o
 	}()

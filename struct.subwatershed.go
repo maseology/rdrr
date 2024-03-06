@@ -70,14 +70,14 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 		}
 	}
 
-	writeInts(chkdirprfx+"sws.swsi.indx", si)     // zero-based index
-	writeInts(chkdirprfx+"sws.swsids.indx", sids) // original index
+	writeInts(gd, chkdirprfx+"sws.swsi.bil", si)     // zero-based index
+	writeInts(gd, chkdirprfx+"sws.swsids.bil", sids) // original index
 	if hassgw {
-		writeInts(chkdirprfx+"sws.sgw.indx", sgw) // groundwater index, now projected to sws
+		writeInts(gd, chkdirprfx+"sws.sgw.bil", sgw) // groundwater index, now projected to sws
 	}
-	writeInts(chkdirprfx+"sws.dsws.indx", dsws)  // downslope sws index
-	writeInts(chkdirprfx+"sws.dcid.indx", dcid)  // receiving cell of downslope sws
-	writeInts(chkdirprfx+"sws.order.indx", sord) // computational sws ordering
+	writeInts(gd, chkdirprfx+"sws.dsws.bil", dsws)  // downslope sws index
+	writeInts(gd, chkdirprfx+"sws.dcid.bil", dcid)  // receiving cell of downslope sws
+	writeInts(gd, chkdirprfx+"sws.order.bil", sord) // computational sws ordering
 }
 
 func (ws *Subwatershed) SaveGob(fp string) error {

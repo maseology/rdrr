@@ -9,13 +9,13 @@ import (
 
 func (s *Structure) loadSWS(swsfp string) Subwatershed {
 
-	sids := func(fp string) []int {
+	asids := func(fp string) []int {
 		fmt.Printf("   loading: %s\n", fp)
 		var g grid.Indx
-		g.LoadGDef(s.GD)
-		g.NewShort(fp, true)
+		g.GD = s.GD
+		g.New(fp) //, true)
 		aout := make([]int, s.Nc)
-		for i, c := range s.Cids {
+		for i, c := range s.Cids { // topo-safe cell order
 			if v, ok := g.A[c]; ok {
 				aout[i] = v
 			} else {
@@ -29,7 +29,7 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 	xsws, isws := func() (map[int]int, []int) {
 		d := make(map[int]int)
 		for i := range s.Cids {
-			d[sids[i]]++
+			d[asids[i]]++
 		}
 		u := make([]int, 0, len(d))
 		for k := range d {
@@ -47,21 +47,15 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 
 	fnsc := make([]float64, len(xsws))
 	for i := range s.Cids {
-		if isw, ok := xsws[sids[i]]; ok {
-			sids[i] = isw // reset mapped gw zone IDs to a 0-base array index
+		if isw, ok := xsws[asids[i]]; ok {
+			asids[i] = isw // reset mapped gw zone IDs to a 0-base array index
 			fnsc[isw]++
 		} else {
 			panic("loadSWS isws error")
 		}
 	}
 
-	mcids := make(map[int][]int, len(xsws))
-	for i := range s.Cids { // topo-safe cell order
-		mcids[sids[i]] = append(mcids[sids[i]], i)
-	}
-	scids := make([][]int, len(mcids))
-	sds := make([][]int, len(mcids))
-	newds := func(sid int, scids []int) []int {
+	newds := func(scids []int) []int {
 		m := make(map[int]int, len(scids))
 		dsc := make([]int, len(scids))
 		for i, c := range scids {
@@ -77,11 +71,17 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 				ds[i] = -1
 			}
 		}
-
 		return ds
 	}
+
+	mcids := make(map[int][]int, len(xsws))
+	for i := range s.Cids { // topo-safe cell order
+		mcids[asids[i]] = append(mcids[asids[i]], i)
+	}
+	scids := make([][]int, len(mcids))
+	sds := make([][]int, len(mcids))
 	for k, v := range mcids {
-		sds[k] = newds(k, v)
+		sds[k] = newds(v)
 		scids[k] = v
 	}
 
@@ -94,7 +94,7 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 			}
 			di := s.Ds[c[oi]]
 			if di > -1 {
-				ds := sids[di]
+				ds := asids[di]
 				dc := func() int {
 					dsc := scids[ds]
 					for j := len(dsc) - 1; j >= 0; j-- {
@@ -116,7 +116,7 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		Scis: scids,     // set of cell indices per sws
 		Sds:  sds,       // cell topology per sub-watershed
 		Dsws: dsws,      // [downslope sub-watershed,cell index receiving input], -1 out of model
-		Sid:  sids,      // cell index to 0-based sws index
+		Sid:  asids,     // 0-based cell index to 0-based sws index
 		Isws: isws,      // sws index to sub-watersed ID (needed for forcings)
 		Fnsc: fnsc,      // number of cells per sws
 		Ns:   len(xsws), // number of sws's

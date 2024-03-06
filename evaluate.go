@@ -14,15 +14,16 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 	qout := make([][]float64, ns)
 	x := make([][]hru.Res, ns)
 	rel := make([]*realization, ns)
-	mons := make([][]float64, ns)
+	mons, monq := make([][]int, ns), [][]float64{}
 	for k, cids := range ev.Scids {
 		qout[k] = make([]float64, nt)
 		x[k] = make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {
 			x[k][i].Cap = d
 		}
-		if ev.Mons[k] >= 0 {
-			mons[k] = make([]float64, nt)
+		for range ev.Mons[k] {
+			mons[k] = append(mons[k], len(monq))
+			monq = append(monq, make([]float64, nt))
 		}
 		rel[k] = &realization{
 			x:     x[k],
@@ -48,6 +49,7 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 
 	// spr, sae, sro, srch := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
+	// cnt := 0
 	for j, t := range frc.T {
 		fmt.Println(t)
 		for i := 0; i < ng; i++ {
@@ -55,9 +57,9 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			dmsv[i] = 0.
 		}
 		for k := range ev.Scids {
-			q, m, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
-			if ev.Mons[k] >= 0 {
-				mons[k][j] = m
+			m, q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+			for i, ii := range mons[k] {
+				monq[ii][j] = m[i]
 			}
 			qout[k][j] = q
 			func(r SWStopo) {
@@ -68,6 +70,10 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			}(rel[k].rte)
 			dmsv[ev.Sgw[k]] += dd
 		}
+		// cnt++
+		// if cnt > 10 {
+		// 	break
+		// }
 	}
 
 	hyd = make([]float64, nt)
@@ -88,13 +94,13 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 		}
 	}
 
-	writeFloats(outdirprfx+"spr.bin", spr)
-	writeFloats(outdirprfx+"sae.bin", sae)
-	writeFloats(outdirprfx+"sro.bin", sro)
-	writeFloats(outdirprfx+"srch.bin", srch)
-	writeFloats(outdirprfx+"lsto.bin", lsto)
-	writeMons(outdirprfx+"mon.gob", ev.Mons, mons)
-	writeFloats(outdirprfx+"hyd.bin", hyd)
+	writeFloats(nil, outdirprfx+"spr.bin", spr)
+	writeFloats(nil, outdirprfx+"sae.bin", sae)
+	writeFloats(nil, outdirprfx+"sro.bin", sro)
+	writeFloats(nil, outdirprfx+"srch.bin", srch)
+	writeFloats(nil, outdirprfx+"lsto.bin", lsto)
+	writeMons(outdirprfx+"mon.gob", ev.Mons, monq)
+	writeFloats(nil, outdirprfx+"hyd.bin", hyd)
 
 	return hyd
 }

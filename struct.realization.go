@@ -12,14 +12,14 @@ type realization struct {
 	x                     []hru.Res
 	drel, bo, finf, fcasc []float64
 	spr, sae, sro, srch   []float64
-	cids, sds             []int
+	cids, sds, cmon       []int
 	rte                   SWStopo
 	eaf, dextm, fnc, fgnc float64 // m,
-	cmon                  int
 }
 
-func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qout, qmon, dm float64) {
+func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout, dm float64) {
 	ssae, ssro, ssrch, ssdsto := 0., 0., 0., 0.
+	qmon = make([]float64, len(r.cmon))
 	for i, c := range r.cids {
 
 		avail := ea
@@ -69,8 +69,10 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qout, qmon, dm float6
 		}
 
 		// grab monitor
-		if c == r.cmon {
-			qmon = ro
+		for i, cm := range r.cmon {
+			if c == cm {
+				qmon[i] = ro
+			}
 		}
 
 		// test for water balance
@@ -97,5 +99,5 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qout, qmon, dm float6
 		fmt.Printf("%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, swswbal, ssdsto, ya, ssae, ssro, ssrch)
 		log.Fatalln("sws t wbal error")
 	}
-	return qout, qmon, -ssrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir
+	return qmon, qout, -ssrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir
 }

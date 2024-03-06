@@ -21,6 +21,10 @@ func BuildRDRR(controlFP string, intvl float64,
 		var err error
 		ins := mmio.NewInstruct(rdrrFP)
 		mdlprfx = ins.Param["prfx"][0]
+		if !(mmio.GetFileDir(mdlprfx) != "." && mmio.DirExists(mmio.GetFileDir(mdlprfx))) {
+			mdlprfx = mmio.GetFileDir(rdrrFP) + "/" + mdlprfx
+		}
+
 		gdefFP = ins.Param["gdeffp"][0]
 		hdemFP = ins.Param["hdemfp"][0]
 		swsFP = ins.Param["swsfp"][0]
@@ -36,8 +40,28 @@ func BuildRDRR(controlFP string, intvl float64,
 		if cid0, err = strconv.Atoi(ins.Param["cid0"][0]); err != nil {
 			panic(err)
 		}
+
+		relativeFileCheck := func(fp string) string {
+			if _, ok := mmio.FileExists(fp); !ok {
+				rfp := mmio.GetFileDir(rdrrFP) + "/" + fp
+				if _, ok := mmio.FileExists(rfp); ok {
+					return rfp
+				} else {
+					panic(fp + " cannot be found")
+				}
+			}
+			return fp
+		}
+		gdefFP = relativeFileCheck(gdefFP)
+		hdemFP = relativeFileCheck(hdemFP)
+		swsFP = relativeFileCheck(swsFP)
+		luFP = relativeFileCheck(luFP)
+		sgFP = relativeFileCheck(sgFP)
+		gwzFP = relativeFileCheck(gwzFP)
+		ncFP = relativeFileCheck(ncFP)
 	}(controlFP)
 	chkdir := mmio.GetFileDir(mdlprfx) + "/check/"
+	mmio.MakeDir(chkdir)
 
 	///////////////////////////////////////////////////////
 	println("building model structure..")

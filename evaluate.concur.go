@@ -16,20 +16,16 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 	ng, ns, nt := len(ev.Fngwc), len(ev.Scids), len(frc.T)
 	x := make([][]hru.Res, ns)
 	rel := make([]*realization, ns)
-	mons := make([][]float64, ns)
-
+	mons, monq := make([][]int, ns), [][]float64{}
 	for k, cids := range ev.Scids {
 		x[k] = make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {
 			x[k][i].Cap = d
 		}
-
-		cmon := -1
-		if len(ev.Mons) > 0 && ev.Mons[k] >= 0 {
-			mons[k] = make([]float64, nt)
-			cmon = ev.Mons[k]
+		for range ev.Mons[k] {
+			mons[k] = append(mons[k], len(monq))
+			monq = append(monq, make([]float64, nt))
 		}
-
 		rel[k] = &realization{
 			x:     x[k],
 			drel:  ev.Drel[k],
@@ -48,7 +44,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
 			fnc:   float64(len(cids)),
 			fgnc:  ev.Fngwc[ev.Sgw[k]],
-			cmon:  cmon,
+			cmon:  ev.Mons[k],
 		}
 	}
 
@@ -65,9 +61,9 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			wg.Add(len(inner))
 			for _, k := range inner {
 				go func(k int) {
-					q, m, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
-					if len(ev.Mons) > 0 && ev.Mons[k] >= 0 {
-						mons[k][j] = m
+					m, q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+					for i, ii := range mons[k] {
+						monq[ii][j] = m[i]
 					}
 					dmsv[ev.Sgw[k]] += dd
 					func(r SWStopo) {
@@ -95,12 +91,12 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 		}
 	}
 
-	writeFloats(outdirprfx+"spr.bin", spr)
-	writeFloats(outdirprfx+"sae.bin", sae)
-	writeFloats(outdirprfx+"sro.bin", sro)
-	writeFloats(outdirprfx+"srch.bin", srch)
-	writeFloats(outdirprfx+"lsto.bin", lsto)
-	writeMons(outdirprfx+"mon.gob", ev.Mons, mons)
+	writeFloats(nil, outdirprfx+"spr.bin", spr)
+	writeFloats(nil, outdirprfx+"sae.bin", sae)
+	writeFloats(nil, outdirprfx+"sro.bin", sro)
+	writeFloats(nil, outdirprfx+"srch.bin", srch)
+	writeFloats(nil, outdirprfx+"lsto.bin", lsto)
+	writeMons(outdirprfx+"mon.gob", ev.Mons, monq)
 	// writeFloats(outdirprfx+"hyd.bin", hyd)
 	return hyd
 }

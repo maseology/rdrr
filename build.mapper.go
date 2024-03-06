@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -135,18 +134,9 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			}
 			fmt.Printf("   loading: %s\n", fp)
 			var g grid.Indx
-			switch filepath.Ext(fp) {
-			case ".bil":
-				g.LoadGDef(gd)
-				g.NewShort(fp, true)
-			case ".indx":
-				if _, b := fileExists(fp + ".gdef"); !b {
-					g.LoadGDef(gd)
-				}
-				g.New(fp, true)
-			default:
-				log.Fatalf("unrecognized file format: " + fp)
-			}
+			g.GD = gd
+			g.New(fp)
+
 			aout := make([]int, s.Nc)
 			for i, c := range s.Cids {
 				if v, ok := g.A[c]; ok {
@@ -176,18 +166,8 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 				}
 				fmt.Printf("   loading: %s\n", fp)
 				var g grid.Indx
-				switch filepath.Ext(fp) {
-				case ".bil":
-					g.LoadGDef(gd)
-					g.NewShort(fp, true)
-				case ".indx":
-					if _, b := fileExists(fp + ".gdef"); !b {
-						g.LoadGDef(gd)
-					}
-					g.New(fp, true)
-				default:
-					log.Fatalf("unrecognized file format: " + fp)
-				}
+				g.GD = gd
+				g.New(fp)
 				return g.A, g.UniqueValues()
 			}
 			mgw, _ := loadIndx(gwfp)

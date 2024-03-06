@@ -25,11 +25,11 @@ func (par *Parameter) Checkandprint(gd *grid.Definition, mx map[int]int, igw []i
 		}
 	}
 
-	writeFloats(chkdirprfx+"parameter.zeta.bil", zeta)
-	writeFloats(chkdirprfx+"parameter.uca.bil", uca)
-	writeFloats(chkdirprfx+"parameter.tanbeta.bil", tanbeta)
-	writeFloats(chkdirprfx+"parameter.depsto.bil", depsto)
-	writeFloats(chkdirprfx+"parameter.gamma.bil", gamma)
+	writeFloats(gd, chkdirprfx+"parameter.zeta.bil", zeta)
+	writeFloats(gd, chkdirprfx+"parameter.uca.bil", uca)
+	writeFloats(gd, chkdirprfx+"parameter.tanbeta.bil", tanbeta)
+	writeFloats(gd, chkdirprfx+"parameter.depsto.bil", depsto)
+	writeFloats(gd, chkdirprfx+"parameter.gamma.bil", gamma)
 
 }
 
