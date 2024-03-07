@@ -4,3 +4,6 @@ plugins:
 title: Regionally Distributed Runoff Recharge model
 description: The RDRR model is a large-scale high-resolution grid-based integrated hydrological model optimized for implementation on parallel computer architectures.
 logo: /assets/img/Riffle_main_transparent.png
+markdown: kramdown
+kramdown:
+    math_engine: katex
