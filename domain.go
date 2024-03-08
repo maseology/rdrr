@@ -8,7 +8,7 @@ func LoadDomain(mdlprfx string) (*Structure, *Subwatershed, *Mapper, *Parameter,
 			panic(err)
 		}
 	}
-	strc, err := loadGobStructure(mdlprfx + "structure.gob")
+	strc, err := LoadGobStructure(mdlprfx + "structure.gob")
 	chkerr(err)
 	sws, err := loadGobSubwatershed(mdlprfx + "subwatershed.gob")
 	chkerr(err)

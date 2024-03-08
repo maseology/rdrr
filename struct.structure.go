@@ -54,7 +54,7 @@ func (s *Structure) SaveGob(fp string) error {
 	return nil
 }
 
-func loadGobStructure(fp string) (*Structure, error) {
+func LoadGobStructure(fp string) (*Structure, error) {
 	var strc Structure
 	f, err := os.Open(fp)
 	if err != nil {
