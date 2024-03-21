@@ -11,20 +11,17 @@ import (
 func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {
 	// prep
 	nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
-	qout := make([][]float64, ns)
+	// qout := make([][]float64, ns)
 	x := make([][]hru.Res, ns)
 	rel := make([]*realization, ns)
 	mons, monq := make([][]int, ns), [][]float64{}
 	for k, cids := range ev.Scids {
-		qout[k] = make([]float64, nt)
+		// qout[k] = make([]float64, nt)
 		x[k] = make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {
 			x[k][i].Cap = d
 		}
-		for range ev.Mons[k] {
-			mons[k] = append(mons[k], len(monq))
-			monq = append(monq, make([]float64, nt))
-		}
+
 		rel[k] = &realization{
 			x:     x[k],
 			drel:  ev.Drel[k],
@@ -36,19 +33,28 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			sro:   make([]float64, len(cids)),
 			srch:  make([]float64, len(cids)),
 			cids:  cids,
-			sds:   ev.Sds[k],
+			cds:   ev.Sds[k],
 			rte:   ev.Dsws[k],
 			// m:    ev.M[ev.Sgw[k]],
 			eaf:   ev.Eafact,
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
 			fnc:   float64(len(cids)),
 			fgnc:  ev.Fngwc[ev.Sgw[k]],
-			cmon:  ev.Mons[k],
+			// cmon:  ev.Mons[k],
+		}
+
+		if ev.Mons != nil {
+			for range ev.Mons[k] {
+				mons[k] = append(mons[k], len(monq))
+				monq = append(monq, make([]float64, nt))
+			}
+			rel[k].cmon = ev.Mons[k]
 		}
 	}
 
 	// spr, sae, sro, srch := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
+	hyd = make([]float64, nt)
 	// cnt := 0
 	for j, t := range frc.T {
 		fmt.Println(t)
@@ -56,19 +62,29 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			dms[i] += dmsv[i]
 			dmsv[i] = 0.
 		}
-		for k := range ev.Scids {
-			m, q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
-			for i, ii := range mons[k] {
-				monq[ii][j] = m[i]
-			}
-			qout[k][j] = q
-			func(r SWStopo) {
-				if r.Sid < 0 {
-					return
+		for _, inner := range ev.Outer {
+			for _, k := range inner {
+				m, q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+				for i, ii := range mons[k] {
+					monq[ii][j] = m[i]
 				}
-				rel[r.Sid].x[r.Cid].Sto += q
-			}(rel[k].rte)
-			dmsv[ev.Sgw[k]] += dd
+				dmsv[ev.Sgw[k]] += dd
+				func(r SWStopo) {
+					if r.Sid < 0 {
+						hyd[j] = q
+					} else {
+						rel[r.Sid].x[r.Cid].Sto += q
+					}
+				}(rel[k].rte)
+				// qout[k][j] = q
+				// func(r SWStopo) {
+				// 	if r.Sid < 0 {
+				// 		return
+				// 	}
+				// 	rel[r.Sid].x[r.Cid].Sto += q
+				// }(rel[k].rte)
+				// dmsv[gid] += dd
+			}
 		}
 		// cnt++
 		// if cnt > 10 {
@@ -76,12 +92,12 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 		// }
 	}
 
-	hyd = make([]float64, nt)
-	for j := range frc.T {
-		for k := range ev.Scids {
-			hyd[j] += qout[k][j] // / ev.Fnstrm[k]
-		}
-	}
+	// hyd = make([]float64, nt)
+	// for j := range frc.T {
+	// 	for k := range ev.Scids {
+	// 		hyd[j] += qout[k][j] // / ev.Fnstrm[k]
+	// 	}
+	// }
 
 	spr, sae, sro, srch, lsto := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
 	for k, cids := range ev.Scids {
@@ -99,8 +115,10 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 	writeFloats(nil, outdirprfx+"sro.bin", sro)
 	writeFloats(nil, outdirprfx+"srch.bin", srch)
 	writeFloats(nil, outdirprfx+"lsto.bin", lsto)
-	writeMons(outdirprfx+"mon.gob", ev.Mons, monq)
 	writeFloats(nil, outdirprfx+"hyd.bin", hyd)
+	if ev.Mons != nil {
+		writeMons(outdirprfx+"mon.gob", ev.Mons, monq)
+	}
 
 	return hyd
 }

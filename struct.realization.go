@@ -12,7 +12,7 @@ type realization struct {
 	x                     []hru.Res
 	drel, bo, finf, fcasc []float64
 	spr, sae, sro, srch   []float64
-	cids, sds, cmon       []int
+	cids, cds, cmon       []int
 	rte                   SWStopo
 	eaf, dextm, fnc, fgnc float64 // m,
 }
@@ -62,7 +62,7 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout,
 		ro *= r.fcasc[i]
 
 		// route flows
-		if ids := r.sds[i]; ids > -1 {
+		if ids := r.cds[i]; ids > -1 {
 			r.x[ids].Sto += ro
 		} else {
 			qout += ro

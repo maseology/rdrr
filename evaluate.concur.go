@@ -22,10 +22,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 		for i, d := range ev.DepSto[k] {
 			x[k][i].Cap = d
 		}
-		for range ev.Mons[k] {
-			mons[k] = append(mons[k], len(monq))
-			monq = append(monq, make([]float64, nt))
-		}
+
 		rel[k] = &realization{
 			x:     x[k],
 			drel:  ev.Drel[k],
@@ -37,20 +34,28 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			sro:   make([]float64, len(cids)),
 			srch:  make([]float64, len(cids)),
 			cids:  cids,
-			sds:   ev.Sds[k],
+			cds:   ev.Sds[k],
 			rte:   ev.Dsws[k],
 			// m:    ev.M[ev.Sgw[k]],
 			eaf:   ev.Eafact,
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
 			fnc:   float64(len(cids)),
 			fgnc:  ev.Fngwc[ev.Sgw[k]],
-			cmon:  ev.Mons[k],
+			// cmon:  ev.Mons[k],
+		}
+
+		if ev.Mons != nil {
+			for range ev.Mons[k] {
+				mons[k] = append(mons[k], len(monq))
+				monq = append(monq, make([]float64, nt))
+			}
+			rel[k].cmon = ev.Mons[k]
 		}
 	}
 
 	var wg sync.WaitGroup
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
-
+	hyd = make([]float64, nt)
 	for j := range frc.T {
 		// fmt.Println(t)
 		for i := 0; i < ng; i++ {
@@ -68,11 +73,11 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 					dmsv[ev.Sgw[k]] += dd
 					func(r SWStopo) {
 						if r.Sid < 0 {
-							return
+							hyd[j] = q
+						} else {
+							rel[r.Sid].x[r.Cid].Sto += q
 						}
-						rel[r.Sid].x[r.Cid].Sto += q
 					}(rel[k].rte)
-					_ = q
 					wg.Done()
 				}(k)
 			}
@@ -80,23 +85,28 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 		}
 	}
 
-	spr, sae, sro, srch, lsto := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
-	for k, cids := range ev.Scids {
-		for i, c := range cids {
-			spr[c] = rel[k].spr[i]
-			sae[c] = rel[k].sae[i]
-			sro[c] = rel[k].sro[i]
-			srch[c] = rel[k].srch[i]
-			lsto[c] = rel[k].x[i].Sto
+	if len(outdirprfx) > 0 {
+		spr, sae, sro, srch, lsto := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
+		for k, cids := range ev.Scids {
+			for i, c := range cids {
+				spr[c] = rel[k].spr[i]
+				sae[c] = rel[k].sae[i]
+				sro[c] = rel[k].sro[i]
+				srch[c] = rel[k].srch[i]
+				lsto[c] = rel[k].x[i].Sto
+			}
+		}
+
+		writeFloats(nil, outdirprfx+"spr.bin", spr)
+		writeFloats(nil, outdirprfx+"sae.bin", sae)
+		writeFloats(nil, outdirprfx+"sro.bin", sro)
+		writeFloats(nil, outdirprfx+"srch.bin", srch)
+		writeFloats(nil, outdirprfx+"lsto.bin", lsto)
+		// writeFloats(outdirprfx+"hyd.bin", hyd)
+		if ev.Mons != nil {
+			writeMons(outdirprfx+"mon.gob", ev.Mons, monq)
 		}
 	}
 
-	writeFloats(nil, outdirprfx+"spr.bin", spr)
-	writeFloats(nil, outdirprfx+"sae.bin", sae)
-	writeFloats(nil, outdirprfx+"sro.bin", sro)
-	writeFloats(nil, outdirprfx+"srch.bin", srch)
-	writeFloats(nil, outdirprfx+"lsto.bin", lsto)
-	writeMons(outdirprfx+"mon.gob", ev.Mons, monq)
-	// writeFloats(outdirprfx+"hyd.bin", hyd)
 	return hyd
 }
