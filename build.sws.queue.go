@@ -2,7 +2,7 @@ package rdrr
 
 import "github.com/maseology/mmaths/slice"
 
-func (w *Subwatershed) buildComputationalOrder1(cids, ds []int) {
+func (w *Subwatershed) buildComputationalOrder1() {
 	w.Outer = func() [][]int { // topo-safe [order, swsid]; [swsid]cids (all zero-based)
 
 		var recurs func(i, l int)

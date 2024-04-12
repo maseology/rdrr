@@ -20,6 +20,15 @@ type SWStopo struct{ Sid, Cid int } // receiving sws id, receiving cell id
 
 func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float64, chkdirprfx string) {
 
+	// checking routing
+	for _, j := range w.Dsws {
+		if j.Sid > -1 {
+			if j.Cid > len(w.Scis[j.Sid]) {
+				panic("Subwatershed.checkandprint routing error")
+			}
+		}
+	}
+
 	// summarize
 	fmt.Printf("   > %d sub-watersheds in %d rounds, computionally ordered:\n", w.Ns, len(w.Outer))
 	if len(w.Outer) > 10 {
@@ -70,8 +79,8 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 		}
 	}
 
-	writeInts(gd, chkdirprfx+"sws.swsi.bil", si)     // zero-based index
-	writeInts(gd, chkdirprfx+"sws.swsids.bil", sids) // original index
+	writeInts(gd, chkdirprfx+"sws.aid.bil", si)   // zero-based index
+	writeInts(gd, chkdirprfx+"sws.sid.bil", sids) // original index
 	if hassgw {
 		writeInts(gd, chkdirprfx+"sws.sgw.bil", sgw) // groundwater index, now projected to sws
 	}

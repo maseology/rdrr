@@ -11,9 +11,20 @@ import (
 	"github.com/maseology/mmio"
 )
 
-// writes to float32
-func writeFloats(gd *grid.Definition, fp string, f []float64) error {
-	f32 := func() []float32 {
+// writes to binary
+func writeFloats(fp string, f []float64) error {
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, f); err != nil {
+		return fmt.Errorf("writeFloats failed: %v", err)
+	}
+	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+		return fmt.Errorf("writeFloats failed: %v", err)
+	}
+	return nil
+}
+
+func writeFloats32(gd *grid.Definition, fp string, f []float64) error {
+	f32 := func() []float32 { // ** due to round-off error, outputting as float32 causes waterbalance issues **
 		o := make([]float32, len(f))
 		for i, v := range f {
 			o[i] = float32(v)
@@ -28,7 +39,7 @@ func writeFloats(gd *grid.Definition, fp string, f []float64) error {
 		return fmt.Errorf("writeFloats failed: %v", err)
 	}
 	if gd != nil {
-		if err := gd.ToHDR(mmio.RemoveExtension(fp)+".hdr", 1, 32); err != nil {
+		if err := gd.ToHDRfloat(mmio.RemoveExtension(fp)+".hdr", 1, 32); err != nil {
 			return fmt.Errorf("writeInts (hdr) failed: %v", err)
 		}
 	}
@@ -49,7 +60,7 @@ func writeInts(gd *grid.Definition, fp string, i []int32) error {
 	return nil
 }
 
-// writes float32 map to a gob
+// writes float32 map of user define stream flow monitoring to a Go binary (*.gob)
 func writeMons(fp string, swsmons [][]int, qs [][]float64) error {
 	f32 := func(f []float64) []float32 {
 		o := make([]float32, len(f))

@@ -11,7 +11,7 @@ import (
 type Mapper struct {
 	Mx                      map[int]int
 	Ilu, Isg, Igw, Icov     []int
-	Ksat, Fimp, Ifct, Fngwc []float64
+	Ksat, Fimp, Fint, Fngwc []float64
 }
 
 func (mp *Mapper) Checkandprint(gd *grid.Definition, fnc float64, chkdirprfx string) {
@@ -24,7 +24,7 @@ func (mp *Mapper) Checkandprint(gd *grid.Definition, fnc float64, chkdirprfx str
 
 	// output
 	ilu, isg, igw, icov := gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999)
-	ksat, fimp, ifct := gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.)
+	ksat, fimp, fint := gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.)
 	for _, c := range gd.Sactives {
 		if i, ok := mp.Mx[c]; ok {
 			ilu[c] = int32(mp.Ilu[i])
@@ -33,17 +33,17 @@ func (mp *Mapper) Checkandprint(gd *grid.Definition, fnc float64, chkdirprfx str
 			icov[c] = int32(mp.Icov[i])
 			ksat[c] = mp.Ksat[i]
 			fimp[c] = mp.Fimp[i]
-			ifct[c] = mp.Ifct[i]
+			fint[c] = mp.Fint[i]
 		}
 	}
 
-	writeInts(gd, chkdirprfx+"mapper.ilu.bil", ilu)
-	writeInts(gd, chkdirprfx+"mapper.isg.bil", isg)
-	writeInts(gd, chkdirprfx+"mapper.igw.bil", igw)
-	writeInts(gd, chkdirprfx+"mapper.icov.bil", icov)
-	writeFloats(gd, chkdirprfx+"mapper.ksat.bil", ksat)
-	writeFloats(gd, chkdirprfx+"mapper.fimp.bil", fimp)
-	writeFloats(gd, chkdirprfx+"mapper.ifct.bil", ifct)
+	writeInts(gd, chkdirprfx+"mapper.ilu.bil", ilu)       // land use type index
+	writeInts(gd, chkdirprfx+"mapper.isg.bil", isg)       // surficial geology type index
+	writeInts(gd, chkdirprfx+"mapper.igw.bil", igw)       // groundwater reservoir index
+	writeInts(gd, chkdirprfx+"mapper.icov.bil", icov)     // canopy cover type index
+	writeFloats32(gd, chkdirprfx+"mapper.ksat.bil", ksat) // vertical percolation rates
+	writeFloats32(gd, chkdirprfx+"mapper.fimp.bil", fimp) // fraction of impervious cover
+	writeFloats32(gd, chkdirprfx+"mapper.fint.bil", fint) // interception cover factor
 }
 
 func (mp *Mapper) SaveGob(fp string) error {

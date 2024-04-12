@@ -28,7 +28,7 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 			return zeta, tanbeta, uca
 		}()
 		depstos[i] = func() float64 {
-			s := soildepth*porosity*fc + mp.Fimp[i]*depsto + intsto*mp.Ifct[i]
+			s := soildepth*porosity*fc + mp.Fimp[i]*depsto + intsto*mp.Fint[i]
 			switch mp.Ilu[i] {
 			case Channel:
 				// rzsto = 0.
@@ -36,9 +36,9 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 			case Waterbody, Lake: // Open water
 				s = soildepth
 			case Noflow:
-				s = math.MaxFloat64
+				s = 1e10 // math.MaxFloat64
 			case Urban: // (assumed drained/serviced)
-				s = soildepth*porosity*fc*(1.-mp.Fimp[i]) + mp.Fimp[i]*depsto + intsto*mp.Ifct[i]
+				s = soildepth*porosity*fc*(1.-mp.Fimp[i]) + mp.Fimp[i]*depsto + intsto*mp.Fint[i]
 			case ShortVegetation, TallVegetation, Forest, Swamp, Wetland, SparseVegetation, DenseVegetation, Agriculture, Meadow, Marsh, Barren:
 				// do nothing
 			default:

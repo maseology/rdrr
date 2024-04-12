@@ -48,16 +48,17 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout,
 			ro = r.x[i].Overflow(ya)
 		}
 
+		// evaporate from detention/surface storage
+		if avail > 0. {
+			ae += avail + r.x[i].Overflow(-avail)
+		}
+
 		// Infiltrate surplus/excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
 		pi := r.x[i].Sto * r.finf[i]
 		r.x[i].Sto -= pi
 		rch += pi
 
-		// evaporate from detention storage
-		if avail > 0. {
-			ae += avail + r.x[i].Overflow(-avail)
-		}
-
+		// cascade portion of storage
 		r.x[i].Sto += ro * (1. - r.fcasc[i])
 		ro *= r.fcasc[i]
 

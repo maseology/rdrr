@@ -23,23 +23,33 @@ func (s *Structure) Checkandprint(chkdirprfx string) {
 		mx[c] = i
 	}
 
-	aids, cids, ds, upcnt := s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999)
+	aid, cid, ads, nus, upcnt := s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999)
 	dwngrad := s.GD.NullArray(-9999.)
 	for _, c := range s.GD.Sactives {
+		nus[c] = 0
+	}
+	for _, c := range s.GD.Sactives {
 		if i, ok := mx[c]; ok {
-			aids[c] = int32(i)
-			cids[c] = int32(s.Cids[i])
-			ds[c] = int32(s.Ds[i])
+			if s.Cids[i] != c {
+				panic("structure.Checkandprint cell ID error")
+			}
+			cid[c] = int32(s.Cids[i])
+			aid[c] = int32(i)
+			ads[c] = int32(s.Ds[i])
 			upcnt[c] = int32(s.Upcnt[i])
 			dwngrad[c] = s.Dwngrad[i]
+			if s.Ds[i] >= 0 {
+				nus[s.Cids[s.Ds[i]]]++
+			}
 		}
 	}
 
-	writeInts(s.GD, chkdirprfx+"structure.aids.bil", aids)
-	writeInts(s.GD, chkdirprfx+"structure.cids.bil", cids)
-	writeInts(s.GD, chkdirprfx+"structure.ds.bil", ds)
-	writeInts(s.GD, chkdirprfx+"structure.upcnt.bil", upcnt)
-	writeFloats(s.GD, chkdirprfx+"structure.dwngrad.bil", dwngrad)
+	writeInts(s.GD, chkdirprfx+"structure.aid.bil", aid)             // ordered/topologically-sorted cell ID
+	writeInts(s.GD, chkdirprfx+"structure.ads.bil", ads)             // down-slope cell array index
+	writeInts(s.GD, chkdirprfx+"structure.nus.bil", nus)             // number of (upslope) cells contributing runoff to current cell
+	writeInts(s.GD, chkdirprfx+"structure.cid.bil", cid)             // grid cell ID
+	writeInts(s.GD, chkdirprfx+"structure.upcnt.bil", upcnt)         // count of upslope/contributing cells
+	writeFloats32(s.GD, chkdirprfx+"structure.dwngrad.bil", dwngrad) // cell gradient
 }
 
 func (s *Structure) SaveGob(fp string) error {

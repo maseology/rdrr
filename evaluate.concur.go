@@ -97,11 +97,11 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			}
 		}
 
-		writeFloats(nil, outdirprfx+"spr.bin", spr)
-		writeFloats(nil, outdirprfx+"sae.bin", sae)
-		writeFloats(nil, outdirprfx+"sro.bin", sro)
-		writeFloats(nil, outdirprfx+"srch.bin", srch)
-		writeFloats(nil, outdirprfx+"lsto.bin", lsto)
+		writeFloats(outdirprfx+"spr.bin", spr)
+		writeFloats(outdirprfx+"sae.bin", sae)
+		writeFloats(outdirprfx+"sro.bin", sro)
+		writeFloats(outdirprfx+"srch.bin", srch)
+		writeFloats(outdirprfx+"lsto.bin", lsto)
 		// writeFloats(outdirprfx+"hyd.bin", hyd)
 		if ev.Mons != nil {
 			writeMons(outdirprfx+"mon.gob", ev.Mons, monq)

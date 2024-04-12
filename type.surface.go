@@ -22,5 +22,5 @@ const (
 
 type SurfaceSet struct {
 	Ilu, Ulu, Icov []int
-	Fimp, Ifct     []float64
+	Fimp, Fint     []float64
 }

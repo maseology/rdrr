@@ -122,3 +122,37 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		Ns:   len(xsws), // number of sws's
 	}
 }
+
+func (w *Subwatershed) UpdateDS(s *Structure) {
+	newds := func(scids []int) []int {
+		m := make(map[int]int, len(scids))
+		dsc := make([]int, len(scids))
+		for i, c := range scids {
+			dsc[i] = s.Ds[c]
+			m[c] = i
+		}
+
+		ds := make([]int, len(dsc))
+		for i, k := range dsc {
+			if ids, ok := m[k]; ok {
+				ds[i] = ids
+			} else {
+				ds[i] = -1
+			}
+		}
+		return ds
+	}
+
+	mcids := make(map[int][]int, w.Ns)
+	for i := range s.Cids { // topo-safe cell order
+		mcids[w.Sid[i]] = append(mcids[w.Sid[i]], i)
+	}
+	scids := make([][]int, len(mcids))
+	sds := make([][]int, len(mcids))
+	for k, v := range mcids {
+		sds[k] = newds(v)
+		scids[k] = v
+	}
+	w.Sds = sds
+	w.Scis = scids
+}

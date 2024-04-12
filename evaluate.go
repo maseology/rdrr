@@ -7,7 +7,7 @@ import (
 	"github.com/maseology/goHydro/hru"
 )
 
-// Evaluate a single run
+// Evaluate a single run, no concurrency
 func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {
 	// prep
 	nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
@@ -110,12 +110,12 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 		}
 	}
 
-	writeFloats(nil, outdirprfx+"spr.bin", spr)
-	writeFloats(nil, outdirprfx+"sae.bin", sae)
-	writeFloats(nil, outdirprfx+"sro.bin", sro)
-	writeFloats(nil, outdirprfx+"srch.bin", srch)
-	writeFloats(nil, outdirprfx+"lsto.bin", lsto)
-	writeFloats(nil, outdirprfx+"hyd.bin", hyd)
+	writeFloats(outdirprfx+"spr.bin", spr)
+	writeFloats(outdirprfx+"sae.bin", sae)
+	writeFloats(outdirprfx+"sro.bin", sro)
+	writeFloats(outdirprfx+"srch.bin", srch)
+	writeFloats(outdirprfx+"lsto.bin", lsto)
+	writeFloats(outdirprfx+"hyd.bin", hyd)
 	if ev.Mons != nil {
 		writeMons(outdirprfx+"mon.gob", ev.Mons, monq)
 	}

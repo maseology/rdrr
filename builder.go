@@ -62,6 +62,7 @@ func BuildRDRR(controlFP string, intvl float64,
 	}(controlFP)
 	chkdir := mmio.GetFileDir(mdlprfx) + "/check/"
 	mmio.MakeDir(chkdir)
+	chkdir += mmio.FileName(mdlprfx, true) // adding prefix
 
 	///////////////////////////////////////////////////////
 	println("building model structure..")
@@ -74,7 +75,7 @@ func BuildRDRR(controlFP string, intvl float64,
 
 	println("\n > loading sub-watersheds (computational queuing)..")
 	sws := strc.loadSWS(swsFP)
-	sws.buildComputationalOrder1(strc.Cids, strc.Ds)
+	sws.buildComputationalOrder1()
 	// sws.checkandprint(strc.GD, strc.Cids, float64(strc.Nc), chkdir)
 
 	////////////////////////////////////////

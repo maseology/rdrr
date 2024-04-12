@@ -30,11 +30,11 @@ func (ev *Evaluator) CheckAndPrint(gd *grid.Definition, cids, igw []int, chkdirp
 		}
 	}
 
-	writeInts(gd, chkdirprfx+"evaluator.sgw.bil", sgw)
-	writeFloats(gd, chkdirprfx+"evaluator.drel.bil", drel)
-	writeFloats(gd, chkdirprfx+"evaluator.bo.bil", bo)
-	writeFloats(gd, chkdirprfx+"evaluator.fcasc.bil", fcasc)
-	writeFloats(gd, chkdirprfx+"evaluator.finf.bil", finf)
-	writeFloats(gd, chkdirprfx+"evaluator.depsto.bil", dsto)
-	writeFloats(gd, chkdirprfx+"evaluator.TOPMODEL-m.bil", m)
+	writeInts(gd, chkdirprfx+"evaluator.sgw.bil", sgw)          // groundwater index, now projected to sws
+	writeFloats32(gd, chkdirprfx+"evaluator.drel.bil", drel)    // groundwater deficit relative to the regional mean (deltaD)
+	writeFloats32(gd, chkdirprfx+"evaluator.bo.bil", bo)        // groundwater flux to surface/channels
+	writeFloats32(gd, chkdirprfx+"evaluator.fcasc.bil", fcasc)  // fraction of excess storage to runoff
+	writeFloats32(gd, chkdirprfx+"evaluator.finf.bil", finf)    // fraction of excess storage to infiltrate assuming a falling head through a unit length per timestep
+	writeFloats32(gd, chkdirprfx+"evaluator.depsto.bil", dsto)  // depression storage
+	writeFloats32(gd, chkdirprfx+"evaluator.TOPMODEL-m.bil", m) // TOPMODEL parameter m
 }

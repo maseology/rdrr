@@ -20,16 +20,16 @@ func (par *Parameter) Checkandprint(gd *grid.Definition, mx map[int]int, igw []i
 			zeta[c] = par.Zeta[i]
 			uca[c] = par.Uca[i]
 			tanbeta[c] = par.Tanbeta[i]
-			depsto[c] = par.DepSto[i]
 			gamma[c] = par.Gamma[igw[i]]
+			depsto[c] = par.DepSto[i]
 		}
 	}
 
-	writeFloats(gd, chkdirprfx+"parameter.zeta.bil", zeta)
-	writeFloats(gd, chkdirprfx+"parameter.uca.bil", uca)
-	writeFloats(gd, chkdirprfx+"parameter.tanbeta.bil", tanbeta)
-	writeFloats(gd, chkdirprfx+"parameter.depsto.bil", depsto)
-	writeFloats(gd, chkdirprfx+"parameter.gamma.bil", gamma)
+	writeFloats32(gd, chkdirprfx+"parameter.zeta.bil", zeta)       // soil-topographic index
+	writeFloats32(gd, chkdirprfx+"parameter.uca.bil", uca)         // unit contributing area
+	writeFloats32(gd, chkdirprfx+"parameter.tanbeta.bil", tanbeta) // surface slope angle
+	writeFloats32(gd, chkdirprfx+"parameter.gamma.bil", gamma)     // groundwater reservoir average soil-topographic index
+	writeFloats32(gd, chkdirprfx+"parameter.depsto.bil", depsto)   // depression storage
 
 }
 

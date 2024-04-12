@@ -18,7 +18,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 
 	// data generally comes in raster format, here they're recast as arrays
 	var ilu, isg, igw, icov []int
-	var ksat, fimp, ifct []float64
+	var ksat, fimp, fint []float64
 	var fngwc []float64
 
 	fileExists := func(path string) (int64, bool) {
@@ -93,15 +93,15 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 		// 	ilu, ulu = loadIndx(lufp + "-surfaceid.bil")
 		// 	icov, _ = loadIndx(lufp + "-canopyid.bil")
 		// 	fimp = loadReal(lufp + "-perimp.bil")
-		// 	ifct = loadReal(lufp + "-percov.bil") // fraction cover (to be adjusted below)
+		// 	fint = loadReal(lufp + "-percov.bil") // fraction cover (to be adjusted below)
 		// } else {
 		ss := xlu(gd, lufp, s.Cids)
-		ilu, ulu, icov, fimp, ifct = ss.Ilu, ss.Ulu, ss.Icov, ss.Fimp, ss.Ifct
+		ilu, ulu, icov, fimp, fint = ss.Ilu, ss.Ulu, ss.Icov, ss.Fimp, ss.Fint
 		// }
 
-		// adjust cover (convert to ifct)
+		// adjust cover (convert to fint; note ss.Fint originally held canopy cover fraction)
 		for i := range s.Cids {
-			ifct[i] *= relativeCover(icov[i], ilu[i])
+			fint[i] *= relativeCover(icov[i], ilu[i])
 		}
 
 		// force stream cells to Channel type
@@ -204,7 +204,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 		Icov:  icov,
 		Ksat:  ksat,
 		Fimp:  fimp,
-		Ifct:  ifct,
+		Fint:  fint,
 		Fngwc: fngwc,
 	}
 }
