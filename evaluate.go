@@ -99,13 +99,14 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 	// 	}
 	// }
 
-	spr, sae, sro, srch, lsto := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
+	spr, sae, sro, srch, sgwd, lsto := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
 	for k, cids := range ev.Scids {
 		for i, c := range cids {
 			spr[c] = rel[k].spr[i]
 			sae[c] = rel[k].sae[i]
 			sro[c] = rel[k].sro[i]
 			srch[c] = rel[k].srch[i]
+			sgwd[c] = rel[k].sgwd[i]
 			lsto[c] = rel[k].x[i].Sto
 		}
 	}
@@ -114,6 +115,7 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 	writeFloats(outdirprfx+"sae.bin", sae)
 	writeFloats(outdirprfx+"sro.bin", sro)
 	writeFloats(outdirprfx+"srch.bin", srch)
+	writeFloats(outdirprfx+"sgwd.bin", sgwd)
 	writeFloats(outdirprfx+"lsto.bin", lsto)
 	writeFloats(outdirprfx+"hyd.bin", hyd)
 	if ev.Mons != nil {

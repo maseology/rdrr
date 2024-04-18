@@ -7,23 +7,23 @@ import (
 )
 
 type realization struct {
-	x                     []hru.Res
-	drel, bo, finf, fcasc []float64
-	spr, sae, sro, srch   []float64
-	cids, cds, cmon       []int
-	rte                   SWStopo
-	eaf, dextm, fnc, fgnc float64 // m,
+	x                         []hru.Res
+	drel, bo, finf, fcasc     []float64
+	spr, sae, sro, srch, sgwd []float64
+	cids, cds, cmon           []int
+	rte                       SWStopo
+	eaf, dextm, fnc, fgnc     float64 // m,
 }
 
 func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout, dm float64) {
 	// ssae, ssro, ssdsto := 0., 0., 0.
-	ssrch := 0.
+	ssnetrch := 0.
 	qmon = make([]float64, len(r.cmon))
 	for i, c := range r.cids {
 
 		avail := ea
 		// dsto0 := r.x[i].Sto
-		ro, ae, rch := 0., 0., 0.
+		ro, ae, rch, gwd := 0., 0., 0., 0.
 		dim := r.drel[i] + dmm
 
 		// gw discharge, including evaporation from gw reservoir
@@ -37,13 +37,14 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout,
 
 			b := fc * r.bo[i]            // groundwater flux to cell
 			ro = r.x[i].Overflow(b + ya) // runoff
-			rch -= b + avail*r.eaf       // evaporation from saturated lands
+			// rch -= b + avail*r.eaf       // evaporation from saturated lands
+			gwd += b + avail*r.eaf // evaporation from saturated lands
 			ae = avail * r.eaf
 			avail -= ae
 		} else {
 			if dim < r.dextm {
 				ae = (1. - dim/r.dextm) * avail // linear decay
-				rch -= ae
+				gwd += ae                       // rch -= ae
 				avail -= ae
 			}
 			ro = r.x[i].Overflow(ya)
@@ -78,29 +79,30 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout,
 		}
 
 		// // test for water balance
-		// hruwbal := ya + dsto0 - r.x[i].Sto - ae - ro - rch
+		// hruwbal := ya + gwd + dsto0 - r.x[i].Sto - ae - ro - rch
 		// if math.Abs(hruwbal) > nearzero {
-		// 	fmt.Printf("%10d%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, i, hruwbal, r.x[i].Sto, dsto0, ya, ae, ro, rch)
+		// 	fmt.Printf("%10d%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, i, hruwbal, r.x[i].Sto, dsto0, ya, gwd, ae, ro, rch)
 		// 	log.Fatalln("hru wbal error")
 		// }
-
-		// ssae += ae
-		// ssro += ro
-		// ssdsto += r.x[i].Sto - dsto0
 
 		r.spr[i] += ya
 		r.sae[i] += ae
 		r.sro[i] += ro
 		r.srch[i] += rch
-		ssrch += rch
+		r.sgwd[i] += gwd
+		ssnetrch += rch - gwd
+
+		// ssae += ae
+		// ssro += ro
+		// ssdsto += r.x[i].Sto - dsto0
 	}
 
 	// // per timestep subwatershed waterbalance
-	// swswbal := ya - (ssae+ssro+ssrch+ssdsto)/r.fnc
+	// swswbal := ya - (ssae+ssro+ssnetrch+ssdsto)/r.fnc
 	// if math.Abs(swswbal) > nearzero {
-	// 	fmt.Printf("%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, swswbal, ssdsto, ya, ssae, ssro, ssrch)
+	// 	fmt.Printf("%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, swswbal, ssdsto, ya, ssae, ssro, ssnetrch)
 	// 	log.Fatalln("sws t wbal error")
 	// }
 
-	return qmon, qout, -ssrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir
+	return qmon, qout, -ssnetrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir
 }
