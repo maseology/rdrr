@@ -33,6 +33,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 			sae:   make([]float64, len(cids)),
 			sro:   make([]float64, len(cids)),
 			srch:  make([]float64, len(cids)),
+			sgwd:  make([]float64, len(cids)),
 			cids:  cids,
 			cds:   ev.Sds[k],
 			rte:   ev.Dsws[k],
