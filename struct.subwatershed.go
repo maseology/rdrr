@@ -13,6 +13,7 @@ type Subwatershed struct {
 	Dsws             []SWStopo
 	Sid, Isws, Sgw   []int
 	Fnsc             []float64
+	Islake           []bool
 	Ns               int
 }
 
@@ -30,13 +31,13 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 	}
 
 	// summarize
-	fmt.Printf("   > %d sub-watersheds in %d rounds, computionally ordered:\n", w.Ns, len(w.Outer))
+	fmt.Printf("   %d sub-watersheds in %d rounds, computionally ordered:\n", w.Ns, len(w.Outer))
 	if len(w.Outer) > 10 {
 		for k, inner := range w.Outer {
 			if k < 3 || k == len(w.Outer)-1 {
-				fmt.Printf("    round %d (%d)\n", k+1, len(inner))
+				fmt.Printf("        round %d (%d)\n", k+1, len(inner))
 			} else if k == 3 {
-				print("     ...\n")
+				print("         ...\n")
 			}
 		}
 	} else {

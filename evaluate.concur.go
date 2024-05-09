@@ -3,8 +3,8 @@ package rdrr
 import (
 	"sync"
 
-	"github.com/maseology/goHydro/forcing"
 	"github.com/maseology/goHydro/hru"
+	"github.com/maseology/rdrr/forcing"
 )
 
 func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {

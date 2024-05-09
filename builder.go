@@ -1,11 +1,12 @@
 package rdrr
 
 import (
+	"fmt"
 	"strconv"
 
-	"github.com/maseology/goHydro/forcing"
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
+	"github.com/maseology/rdrr/forcing"
 )
 
 func BuildRDRR(controlFP string, intvl float64,
@@ -14,9 +15,9 @@ func BuildRDRR(controlFP string, intvl float64,
 ) (*Structure, *Mapper, *Subwatershed, *Parameter, *forcing.Forcing, string) {
 
 	///////////////////////////////////////////////////////
-	println("load .rdrr file")
-	var mdlprfx, gdefFP, hdemFP, swsFP, luFP, sgFP, gwzFP, ncFP string
-	var cid0 int
+	println("loading .rdrr control file")
+	var mdlprfx, gdefFP, hdemFP, swsFP, luFP, sgFP, gwzFP, ncfp string
+	cid0, lakfrac := -1, -1.
 	func(rdrrFP string) { // getFilePaths
 		var err error
 		ins := mmio.NewInstruct(rdrrFP)
@@ -36,9 +37,19 @@ func BuildRDRR(controlFP string, intvl float64,
 		if lfp, ok := ins.Param["lufp"]; ok {
 			luFP = lfp[0] // land-use id
 		}
-		ncFP = ins.Param["ncfp"][0]
-		if cid0, err = strconv.Atoi(ins.Param["cid0"][0]); err != nil {
-			panic(err)
+		if mfp, ok := ins.Param["ncfp"]; ok {
+			ncfp = mfp[0] // input climate data (netCDF)
+		}
+
+		if _, ok := ins.Param["cid0"]; ok { // outlet cell ID, <0 keeps while model domain
+			if cid0, err = strconv.Atoi(ins.Param["cid0"][0]); err != nil {
+				panic(err)
+			}
+		}
+		if _, ok := ins.Param["lakefrac"]; ok {
+			if lakfrac, err = strconv.ParseFloat(ins.Param["lakefrac"][0], 64); err != nil {
+				panic(err)
+			}
 		}
 
 		relativeFileCheck := func(fp string) string {
@@ -58,36 +69,48 @@ func BuildRDRR(controlFP string, intvl float64,
 		luFP = relativeFileCheck(luFP)
 		sgFP = relativeFileCheck(sgFP)
 		gwzFP = relativeFileCheck(gwzFP)
-		ncFP = relativeFileCheck(ncFP)
+		if len(ncfp) > 0 {
+			ncfp = relativeFileCheck(ncfp)
+		}
 	}(controlFP)
 	chkdir := mmio.GetFileDir(mdlprfx) + "/check/"
 	mmio.MakeDir(chkdir)
 	chkdir += mmio.FileName(mdlprfx, true) // adding prefix
 
-	///////////////////////////////////////////////////////
+	////////////////////////////////////////
+	// BUILD
+	////////////////////////////////////////
+
 	println("building model structure..")
 	strc := buildSTRC(gdefFP, hdemFP, cid0)
-	// strc.Checkandprint(chkdir)
 
 	println(" > set grid mappings..")
 	mp := strc.buildMapper(luFP, sgFP, gwzFP, iksat, xlu)
-	// mp.Checkandprint(strc.GD, float64(strc.Nc), chkdir)
 
 	println("\n > loading sub-watersheds (computational queuing)..")
 	sws := strc.loadSWS(swsFP)
 	sws.buildComputationalOrder1()
-	// sws.checkandprint(strc.GD, strc.Cids, float64(strc.Nc), chkdir)
 
 	////////////////////////////////////////
+	// ADJUST
 	////////////////////////////////////////
 
-	// // re-project groundwater zones to sub-watersheds
-	// println(" > re-mapping unique groundwater reservoirs to subwatersheds..")
-	// mp.Fngwc, mp.Igw = sws.remapGWzones(&mp)
+	// re-project groundwater zones to sub-watersheds
+	println(" > re-mapping unique groundwater reservoirs to subwatersheds..")
+	mp.Fngwc, mp.Igw = sws.remapGWzones(&mp)
+
+	// set Lake HRUs
+	if lakfrac > 0 {
+		println(" > re-mapping lakes to subwatersheds..")
+		sws.remapLakes(&mp, lakfrac)
+	}
+
+	////////////////////////////////////////
+	// SET DEFAUTS
+	////////////////////////////////////////
 
 	println(" > parameterizing with defaults..")
 	par := BuildParameters(&strc, &mp)
-	// par.Checkandprint(strc.GD, mp.Mx, mp.Igw, chkdir)
 
 	// summarize
 	if len(chkdir) > 0 {
@@ -98,8 +121,15 @@ func BuildRDRR(controlFP string, intvl float64,
 		par.Checkandprint(strc.GD, mp.Mx, mp.Igw, chkdir)
 	}
 
+	////////////////////////////////////////
+	// CLIMATE FORCINGS
+	////////////////////////////////////////
+
 	frc := func(fp string) *forcing.Forcing {
-		println(" > load forcings..")
+		if len(fp) == 0 {
+			return nil
+		}
+		println("\n > load forcings..")
 		if _, ok := mmio.FileExists(fp); ok {
 			frc, err := forcing.LoadGobForcing(fp)
 			if err != nil {
@@ -107,7 +137,16 @@ func BuildRDRR(controlFP string, intvl float64,
 			}
 			return frc
 		}
-		frc := forcing.GetForcings(sws.Isws, intvl, 0, ncFP, "") // sws id refers to the climate lists
+		var frc forcing.Forcing
+		switch mmio.GetExtension(ncfp) {
+		case ".nc":
+			frc = forcing.GetForcings(sws.Isws, intvl, 0, ncfp, "") // sws id refers to the climate lists
+		case "":
+			return nil
+		default:
+			fmt.Printf(" Load forcing ERROR: unknown file type: %s.  File %s not created.", ncfp, fp)
+			return nil
+		}
 		if err := frc.SaveGobForcing(fp); err != nil {
 			panic(err)
 		}

@@ -34,7 +34,7 @@ func buildSTRC(gdefFP, hdemFP string, cid0 int) Structure {
 		if err := dem.New(hdemFP); err != nil {
 			log.Fatalf(" BuildSTRC tem.New() error: %v", err)
 		}
-		gmax, nwarn := math.Atan(.999), 0
+		gmax, nwarn, ngadj := math.Atan(.999), 0, 0
 		for _, i := range gd.Sactives {
 			if _, ok := dem.TEC[i]; !ok {
 				log.Fatalf(" BuildSTRC error, cell id %d not found in %s", i, hdemFP)
@@ -45,7 +45,7 @@ func buildSTRC(gdefFP, hdemFP string, cid0 int) Structure {
 			}
 			if math.Tan(dem.TEC[i].G) > 1 {
 				fmt.Printf("    WARNING gradient adjusted to cell %d; too steep (grad = %.2f, set to %.2f)\n", i, dem.TEC[i].G, gmax)
-				nwarn++
+				ngadj++
 				m := dem.TEC[i]
 				m.G = gmax
 				dem.TEC[i] = m
@@ -54,7 +54,10 @@ func buildSTRC(gdefFP, hdemFP string, cid0 int) Structure {
 		if gd.Nact != len(dem.TEC) {
 			panic("tem build todo 1")
 		}
-		if nwarn > 0 {
+		if ngadj > 0 {
+			fmt.Printf("    %d gradient adjustments made covering %.3f%% of model domain\n", ngadj, float64(ngadj)/float64(gd.Nact)*100)
+		}
+		if nwarn+ngadj > 0 {
 			println()
 		}
 		return dem

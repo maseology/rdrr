@@ -8,6 +8,7 @@ type Evaluator struct {
 	Drel, Bo, Fcasc, Finf, DepSto [][]float64
 	Sgw                           []int
 	M, Fngwc                      []float64 // , Fnstrm
+	IsLake                        []bool
 	Eafact, Dext                  float64
 	Nc                            int
 }
@@ -15,7 +16,7 @@ type Evaluator struct {
 func (ev *Evaluator) CheckAndPrint(gd *grid.Definition, cids, igw []int, chkdirprfx string) {
 
 	// output
-	sgw := gd.NullInt32(-9999)
+	sgw, sds := gd.NullInt32(-9999), gd.NullInt32(-9999)
 	drel, bo, fcasc, finf, dsto, m := gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.)
 	for k, scids := range ev.Scids {
 		for i, sc := range scids {
@@ -27,10 +28,12 @@ func (ev *Evaluator) CheckAndPrint(gd *grid.Definition, cids, igw []int, chkdirp
 			dsto[c] = ev.DepSto[k][i]
 			m[c] = ev.M[igw[sc]]
 			sgw[c] = int32(ev.Sgw[k])
+			sds[c] = int32(ev.Sds[k][i])
 		}
 	}
 
 	writeInts(gd, chkdirprfx+"evaluator.sgw.bil", sgw)          // groundwater index, now projected to sws
+	writeInts(gd, chkdirprfx+"evaluator.sds.bil", sds)          // downslope cell ID by SWS, <0 is routed to down-SWS
 	writeFloats32(gd, chkdirprfx+"evaluator.drel.bil", drel)    // groundwater deficit relative to the regional mean (deltaD)
 	writeFloats32(gd, chkdirprfx+"evaluator.bo.bil", bo)        // groundwater flux to surface/channels
 	writeFloats32(gd, chkdirprfx+"evaluator.fcasc.bil", fcasc)  // fraction of excess storage to runoff

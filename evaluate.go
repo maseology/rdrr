@@ -3,62 +3,31 @@ package rdrr
 import (
 	"fmt"
 
-	"github.com/maseology/goHydro/forcing"
-	"github.com/maseology/goHydro/hru"
+	"github.com/gosuri/uiprogress"
+	"github.com/maseology/rdrr/forcing"
 )
 
 // Evaluate a single run, no concurrency
 func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {
-	// prep
-	nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
-	// qout := make([][]float64, ns)
-	x := make([][]hru.Res, ns)
-	rel := make([]*realization, ns)
-	mons, monq := make([][]int, ns), [][]float64{}
-	for k, cids := range ev.Scids {
-		// qout[k] = make([]float64, nt)
-		x[k] = make([]hru.Res, len(cids))
-		for i, d := range ev.DepSto[k] {
-			x[k][i].Cap = d
-		}
 
-		rel[k] = &realization{
-			x:     x[k],
-			drel:  ev.Drel[k],
-			bo:    ev.Bo[k],
-			finf:  ev.Finf[k],
-			fcasc: ev.Fcasc[k],
-			spr:   make([]float64, len(cids)),
-			sae:   make([]float64, len(cids)),
-			sro:   make([]float64, len(cids)),
-			srch:  make([]float64, len(cids)),
-			sgwd:  make([]float64, len(cids)),
-			cids:  cids,
-			cds:   ev.Sds[k],
-			rte:   ev.Dsws[k],
-			// m:    ev.M[ev.Sgw[k]],
-			eaf:   ev.Eafact,
-			dextm: ev.Dext / ev.M[ev.Sgw[k]],
-			fnc:   float64(len(cids)),
-			fgnc:  ev.Fngwc[ev.Sgw[k]],
-			// cmon:  ev.Mons[k],
-		}
+	nt, ng := len(frc.T), len(ev.Fngwc)
+	rel, mons, monq := ev.buildRealization(nt)
+	// qout := make([][]float64, len(ev.Scids))
+	// for k := range ev.Scids {
+	// 	qout[k] = make([]float64, nt)
+	// }
 
-		if ev.Mons != nil {
-			for range ev.Mons[k] {
-				mons[k] = append(mons[k], len(monq))
-				monq = append(monq, make([]float64, nt))
-			}
-			rel[k].cmon = ev.Mons[k]
-		}
-	}
-
-	// spr, sae, sro, srch := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
 	hyd = make([]float64, nt)
-	// cnt := 0
+	uiprogress.Start()
+	timestep := make(chan string)
+	bar := uiprogress.AddBar(nt).AppendCompleted().PrependElapsed()
+	bar.PrependFunc(func(b *uiprogress.Bar) string {
+		return <-timestep
+	})
 	for j, t := range frc.T {
-		fmt.Println(t)
+		// fmt.Println(t)
+		timestep <- fmt.Sprint(t)
 		for i := 0; i < ng; i++ {
 			dms[i] += dmsv[i]
 			dmsv[i] = 0.
@@ -66,15 +35,23 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 		for _, inner := range ev.Outer {
 			for _, k := range inner {
 				m, q, dd := rel[k].rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[ev.Sgw[k]]/ev.M[ev.Sgw[k]], j, k)
+				lfact := 1.
+				if ev.IsLake[k] {
+					lfact = rel[k].fnc // volume adjustment for lakes
+				}
 				for i, ii := range mons[k] {
 					monq[ii][j] = m[i]
 				}
-				dmsv[ev.Sgw[k]] += dd
+				dmsv[ev.Sgw[k]] += dd * lfact
 				func(r SWStopo) {
 					if r.Sid < 0 {
-						hyd[j] = q
+						hyd[j] = q * lfact
 					} else {
-						rel[r.Sid].x[r.Cid].Sto += q
+						if ev.IsLake[r.Sid] {
+							rel[r.Sid].x[0].Sto += q * lfact / rel[r.Sid].fnc
+						} else {
+							rel[r.Sid].x[r.Cid].Sto += q * lfact
+						}
 					}
 				}(rel[k].rte)
 				// qout[k][j] = q
@@ -87,11 +64,13 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 				// dmsv[gid] += dd
 			}
 		}
-		// cnt++
-		// if cnt > 10 {
+		bar.Incr()
+		// if j > 10 {
 		// 	break
 		// }
 	}
+	close(timestep)
+	uiprogress.Stop()
 
 	// hyd = make([]float64, nt)
 	// for j := range frc.T {
@@ -102,13 +81,24 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 
 	spr, sae, sro, srch, sgwd, lsto := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
 	for k, cids := range ev.Scids {
-		for i, c := range cids {
-			spr[c] = rel[k].spr[i]
-			sae[c] = rel[k].sae[i]
-			sro[c] = rel[k].sro[i]
-			srch[c] = rel[k].srch[i]
-			sgwd[c] = rel[k].sgwd[i]
-			lsto[c] = rel[k].x[i].Sto
+		if ev.IsLake[k] {
+			for _, c := range cids {
+				spr[c] = rel[k].spr[0]
+				sae[c] = rel[k].sae[0]
+				sro[c] = rel[k].sro[0]
+				srch[c] = rel[k].srch[0]
+				sgwd[c] = rel[k].sgwd[0]
+				lsto[c] = rel[k].x[0].Sto
+			}
+		} else {
+			for i, c := range cids {
+				spr[c] = rel[k].spr[i]
+				sae[c] = rel[k].sae[i]
+				sro[c] = rel[k].sro[i]
+				srch[c] = rel[k].srch[i]
+				sgwd[c] = rel[k].sgwd[i]
+				lsto[c] = rel[k].x[i].Sto
+			}
 		}
 	}
 

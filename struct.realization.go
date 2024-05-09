@@ -12,7 +12,7 @@ type realization struct {
 	spr, sae, sro, srch, sgwd []float64
 	cids, cds, cmon           []int
 	rte                       SWStopo
-	eaf, dextm, fnc, fgnc     float64 // m,
+	eaf, dextm, fnc, fgnc     float64 // m
 }
 
 func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout, dm float64) {
@@ -20,7 +20,6 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout,
 	ssnetrch := 0.
 	qmon = make([]float64, len(r.cmon))
 	for i, c := range r.cids {
-
 		avail := ea
 		// dsto0 := r.x[i].Sto
 		ro, ae, rch, gwd := 0., 0., 0., 0.
@@ -44,7 +43,8 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout,
 		} else {
 			if dim < r.dextm {
 				ae = (1. - dim/r.dextm) * avail // linear decay
-				gwd += ae                       // rch -= ae
+				// rch -= ae
+				gwd += ae
 				avail -= ae
 			}
 			ro = r.x[i].Overflow(ya)

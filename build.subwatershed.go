@@ -113,13 +113,14 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 	}()
 
 	return Subwatershed{
-		Scis: scids,     // set of cell indices per sws
-		Sds:  sds,       // cell topology per sub-watershed
-		Dsws: dsws,      // [downslope sub-watershed,cell index receiving input], -1 out of model
-		Sid:  asids,     // 0-based cell index to 0-based sws index
-		Isws: isws,      // sws index to sub-watersed ID (needed for forcings)
-		Fnsc: fnsc,      // number of cells per sws
-		Ns:   len(xsws), // number of sws's
+		Scis:   scids, // set of cell indices per sws
+		Sds:    sds,   // cell topology per sub-watershed
+		Dsws:   dsws,  // [downslope sub-watershed,cell index receiving input], -1 out of model
+		Sid:    asids, // 0-based cell index to 0-based sws index
+		Isws:   isws,  // sws index to sub-watersed ID (needed for forcings)
+		Fnsc:   fnsc,  // number of cells per sws
+		Islake: make([]bool, len(xsws)),
+		Ns:     len(xsws), // number of sws's
 	}
 }
 
