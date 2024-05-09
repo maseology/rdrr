@@ -119,9 +119,9 @@ $$
 Initial watershed average soil moisture deficit can, in principle, be determined from streamflow records by re-arranging equations in Beven (2012):
 
 $$
-	%\overline{D}_{t=0} = -m \ln\left(\frac{Q_{t=0}}{Q_o}\right),
-	%\overline{D}_{t=0} = -m\left[\gamma +\ln\left(\frac{Q_{t=0}}{\sum_{i=1}^Ml_ia_i}\right)\right],
-	\overline{D}_{t=0} = -m\left[\gamma +\ln\left(\frac{Q_{t=0}}{A}\right)\right],
+	%\overline{D}\_{t=0} = -m \ln\left(\frac{Q\_{t=0}}{Q\_o}\right),
+	%\overline{D}\_{t=0} = -m\left[\gamma +\ln\left(\frac{Q\_{t=0}}{\sum\_{i=1}^Ml\_ia\_i}\right)\right],
+	\overline{D}\_{t=0} = -m\left[\gamma +\ln\left(\frac{Q\_{t=0}}{A}\right)\right],
 $$
 
 where $Q_{t=0}$ is the measured stream flow known at the beginning of the model run. The parameter $m$ can be pre-determined from baseflow recession analysis (Beven et.al., 1995; Beven, 2012) and has been incorporated into the [ORMGP R-shiny recession analysis](/shinyapps-manual/) tools.
@@ -139,7 +139,7 @@ where $Q_{t=0}$ is the measured stream flow known at the beginning of the model 
 Before every time step, average moisture deficit of every groundwater reservoir is updated at time $t$ by:
 
 $$
-	\overline{D}_t = \frac{1}{A}\sum_i A_i D_i - G_{t-1} + B_{t-1} - Q_{t-1},
+	\overline{D}\_t = \frac{1}{A}\sum\_i A\_i D\_i - G\_{t-1} + B\_{t-1} - Q\_{t-1},
 $$
 
 where $G_{t-1}$ is the total groundwater recharge computed during the previous time step [m], $B_{t-1}$ is the basin-wide (normalized) groundwater discharge to streams, also computed during the previous time step [m], and $Q_{t-1}$ are any additional sources(+)/sinks(-) such as groundwater pumping or exchange between other groundwater reservoirs.
@@ -192,13 +192,13 @@ $$
 where $\Delta S$ is the change in (moisture) storage, $P$ is "active" precipitation (which includes direct inputs rainfall $+$ snowmelt and indirect inputs such as runoff originating from upslope areas), which is the source of water to the grid cell. $E$ is total evaporation (transpiration $+$ evaporation from soil and interception stores), $G$ is *net* groundwater recharge (meaning it accounts for groundwater discharge), $R$ is excess water that is allowed to translate laterally (runoff). All of $E$, $R$, and $G$ are dependent on moisture storage $(S)$ and $S_\text{max}$: the water storage capacity of the grid cell. Both $E$ and $G$ have functional relationships to $S$ and $S_\text{max}$, and are dependent on other variables, whereas $R$ only occurs when there is excess water remaining $(\text{i.e., }S>S_\text{max})$, strictly speaking:
 
 <!-- $$
-    \Delta S = P-\left(E+G\right)\propto f\left(S,S_\text{max}\right)-R|_{S>S_\text{max}}
+    \Delta S = P-\left(E+G\right)\propto f\left(S,S\_\text{max}\right)-R|\_{S>S\_\text{max}}
 $$ -->
 
 $$
-    \Delta S = \underbrace{P}_{\substack{\text{sources}}}
-        - \underbrace{f\left(E_a,K_\text{sat},S,S_\text{max}\right)}_{\text{sinks}}
-        - \underbrace{R|_{S>S_\text{max}}}_{\text{excess}}
+    \Delta S = \underbrace{P}\_{\substack{\text{sources}}}
+        - \underbrace{f\left(E\_a,K\_\text{sat},S,S\_\text{max}\right)}\_{\text{sinks}}
+        - \underbrace{R|\_{S>S\_\text{max}}}\_{\text{excess}}
 $$
 
 
@@ -243,10 +243,9 @@ $$
 
 <br>
 
-<!-- ![Schematic diagram of a computational element.](../fig/sma.svg) -->
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/OWRC/interpolants/main/modelling/fig/sma.svg" alt="Conceptual soil moisture accounting scheme." width="85%">
+<img src="https://raw.githubusercontent.com/OWRC/interpolants/main/modelling/fig/sma.png" alt="Conceptual soil moisture accounting scheme." width="85%">
 </p>
 
 <br>
@@ -269,7 +268,7 @@ $$
   g=\min\left(S_h,K_\text{sat}\Delta t\right)+S_k^+\left[1-\exp\left(\frac{-K_\text{sat}}{L}\Delta t\right)\right].
 $$
 
-It is important that the second term of the groundwater recharge equation remain to control so-called _**cascade towers**_ which occur when confluences in the cascade network create unrealistically high stages. (This is mainly a consequence of the simplicity of the overland flow scheme applied here---normally, the pressure term in the shallow water equations provides this control physically.) Here the interface length $L=10\text{ cm}$ globally.
+It is important that the second term of the groundwater recharge equation remain to control so-called _**cascade towers**_ which occur when confluences in the cascade network create unrealistically high stages. (This is mainly a consequence of the simplicity of the overland flow scheme applied here--normally, the pressure term in the shallow water equations provides this control physically.) Here the interface length $L=10\text{ cm}$ globally.
 
 
 
