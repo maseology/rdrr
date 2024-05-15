@@ -24,6 +24,6 @@ func (w *Subwatershed) remapLakes(mp *Mapper, lakfrac float64) {
 		for _, i := range lsids {
 			w.Islake[i] = true
 		}
-		fmt.Printf("   %d subwatersheds mapped as lakes", len(lsids))
+		fmt.Printf("   %d subwatersheds mapped as lakes\n", len(lsids))
 	}
 }

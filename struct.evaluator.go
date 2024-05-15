@@ -8,9 +8,9 @@ type Evaluator struct {
 	Drel, Bo, Fcasc, Finf, DepSto [][]float64
 	Sgw                           []int
 	M, Fngwc                      []float64 // , Fnstrm
-	IsLake                        []bool
 	Eafact, Dext                  float64
 	Nc                            int
+	// IsLake                        []bool
 }
 
 func (ev *Evaluator) CheckAndPrint(gd *grid.Definition, cids, igw []int, chkdirprfx string) {

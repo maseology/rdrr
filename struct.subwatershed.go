@@ -57,7 +57,7 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 		mx[c] = i
 	}
 
-	si, sids, dsws, dcid, sgw := gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999)
+	si, sids, dsws, dcid, sgw, islak := gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999)
 	hassgw := w.Sgw != nil
 	for _, c := range gd.Sactives {
 		if i, ok := mx[c]; ok {
@@ -65,6 +65,9 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 			sids[c] = int32(w.Isws[w.Sid[i]])
 			dsws[c] = int32(w.Dsws[w.Sid[i]].Sid)
 			dcid[c] = int32(w.Dsws[w.Sid[i]].Cid)
+			if w.Islake[w.Sid[i]] {
+				islak[c] = 1
+			}
 			if hassgw {
 				sgw[c] = int32(w.Sgw[w.Sid[i]])
 			}
@@ -85,9 +88,10 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 	if hassgw {
 		writeInts(gd, chkdirprfx+"sws.sgw.bil", sgw) // groundwater index, now projected to sws
 	}
-	writeInts(gd, chkdirprfx+"sws.dsws.bil", dsws)  // downslope sws index
-	writeInts(gd, chkdirprfx+"sws.dcid.bil", dcid)  // receiving cell of downslope sws
-	writeInts(gd, chkdirprfx+"sws.order.bil", sord) // computational sws ordering
+	writeInts(gd, chkdirprfx+"sws.dsws.bil", dsws)    // downslope sws index
+	writeInts(gd, chkdirprfx+"sws.dcid.bil", dcid)    // receiving cell of downslope sws
+	writeInts(gd, chkdirprfx+"sws.order.bil", sord)   // computational sws ordering
+	writeInts(gd, chkdirprfx+"sws.islake.bil", islak) // shows which sws is deemed a lake
 }
 
 func (ws *Subwatershed) SaveGob(fp string) error {
@@ -102,7 +106,7 @@ func (ws *Subwatershed) SaveGob(fp string) error {
 	return nil
 }
 
-func loadGobSubwatershed(fp string) (*Subwatershed, error) {
+func LoadGobSubwatershed(fp string) (*Subwatershed, error) {
 	var rtr Subwatershed
 	f, err := os.Open(fp)
 	if err != nil {

@@ -111,7 +111,7 @@ func build(g *gmet.GMET, mids []int, intvl float64, offset int) Forcing {
 			ys[ii] = ya
 			es[ii] = ea
 		} else {
-			panic("loadForcings error: met index does not contain sws index")
+			panic(fmt.Sprintf("loadForcings error: met index does not contain sws index %d", s))
 		}
 	}
 

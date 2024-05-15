@@ -2,6 +2,7 @@ package rdrr
 
 import (
 	"fmt"
+	"log"
 	"sort"
 
 	"github.com/maseology/goHydro/grid"
@@ -15,12 +16,20 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		g.GD = s.GD
 		g.New(fp) //, true)
 		aout := make([]int, s.Nc)
+		nrm := 0
 		for i, c := range s.Cids { // topo-safe cell order
 			if v, ok := g.A[c]; ok {
+				if v < 0 {
+					nrm++
+					continue
+				}
 				aout[i] = v
 			} else {
 				panic("loadIndx error: " + fp)
 			}
+		}
+		if nrm > 0 {
+			log.Fatalf("    ERROR: %d cells (%.3f%%) were not assigned a positive SWS ID.\n     Likely due to the trimming of small SWSs.\n     Re-assign GDEF to the SWS layer to avoid this message.", nrm, float64(nrm)*100./float64(s.Nc))
 		}
 		return aout
 	}(swsfp)

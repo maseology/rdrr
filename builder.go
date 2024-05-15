@@ -112,9 +112,12 @@ func BuildRDRR(controlFP string, intvl float64,
 	println(" > parameterizing with defaults..")
 	par := BuildParameters(&strc, &mp)
 
-	// summarize
+	////////////////////////////////////////
+	// SUMMARIZE
+	////////////////////////////////////////
+
 	if len(chkdir) > 0 {
-		println("\nBuild Summary\n==================================")
+		println("\nBuilding summary rasters\n==================================")
 		strc.Checkandprint(chkdir)
 		mp.Checkandprint(strc.GD, float64(strc.Nc), chkdir)
 		sws.checkandprint(strc.GD, strc.Cids, float64(strc.Nc), chkdir)
@@ -129,8 +132,8 @@ func BuildRDRR(controlFP string, intvl float64,
 		if len(fp) == 0 {
 			return nil
 		}
-		println("\n > load forcings..")
 		if _, ok := mmio.FileExists(fp); ok {
+			println("\n > load forcings..")
 			frc, err := forcing.LoadGobForcing(fp)
 			if err != nil {
 				panic(err)
@@ -140,13 +143,20 @@ func BuildRDRR(controlFP string, intvl float64,
 		var frc forcing.Forcing
 		switch mmio.GetExtension(ncfp) {
 		case ".nc":
-			frc = forcing.GetForcings(sws.Isws, intvl, 0, ncfp, "") // sws id refers to the climate lists
+			fmt.Printf("\n > load forcings from %s..\n", ncfp)
+			vars := []string{
+				"water_potential_evaporation_amount", // PE
+				"rainfall_amount",
+				"surface_snow_melt_amount",
+			}
+			frc = forcing.GetForcings(sws.Isws, intvl, 0, ncfp, "", vars) // sws id refers to the climate lists
 		case "":
 			return nil
 		default:
 			fmt.Printf(" Load forcing ERROR: unknown file type: %s.  File %s not created.", ncfp, fp)
 			return nil
 		}
+		frc.ToBil(strc.GD, strc.Cids, sws.Scis, chkdir)
 		if err := frc.SaveGobForcing(fp); err != nil {
 			panic(err)
 		}

@@ -8,7 +8,7 @@ import (
 	"github.com/maseology/mmio"
 )
 
-func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string) Forcing {
+func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string, vars []string) Forcing {
 	tt := time.Now()
 
 	fmt.Println(" loading: " + ncfp)
@@ -17,17 +17,17 @@ func GetForcings(mids []int, intvl float64, offset int, ncfp, prfx string) Forci
 		var err error
 		switch mmio.GetExtension(fp) {
 		case ".nc":
-			// vars := []string{"precipitation_amount"}
-			vars := []string{
-				// "air_temperature",
-				// "air_pressure",
-				// "relative_humidity",
-				// "wind_speed",
-				"water_potential_evaporation_amount",
-				"rainfall_amount",
-				// "snowfall_amount",
-				"surface_snow_melt_amount",
-			}
+			// // vars := []string{"precipitation_amount"}
+			// vars := []string{
+			// 	// "air_temperature",
+			// 	// "air_pressure",
+			// 	// "relative_humidity",
+			// 	// "wind_speed",
+			// 	"water_potential_evaporation_amount",
+			// 	"rainfall_amount",
+			// 	// "snowfall_amount",
+			// 	"surface_snow_melt_amount",
+			// }
 			g, err = gmet.LoadNC(fp, prfx, vars)
 		case ".csv":
 			g, err = gmet.LoadCsv(fp, "precipitation_amount")

@@ -1,29 +1,15 @@
 package forcing
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/gob"
 	"fmt"
 	"os"
+
+	"github.com/maseology/goHydro/grid"
+	"github.com/maseology/mmio"
 )
-
-func (frc *Forcing) CheckAndPrint() {
-	fmt.Println("Forcing summary:")
-	nt := len(frc.T)
-	fmt.Printf(" %v to %v, 6-hourly (%d timesteps)\n", frc.T[0], frc.T[nt-1], nt)
-	nsta := len(frc.Ya)
-	fmt.Printf(" model timestep interval: %ds, %d stations\n", int64(frc.IntervalSec), nsta)
-
-	sy, se := 0., 0.
-	for i := 0; i < nsta; i++ {
-		for j := range frc.T {
-			sy += frc.Ya[i][j]
-			se += frc.Ea[i][j]
-		}
-	}
-	sy *= 365.24 * 4. / float64(nt) / float64(nsta)
-	se *= 365.24 * 4. / float64(nt) / float64(nsta)
-	fmt.Printf(" totals (m/yr): Ya: %.5f   Ea: %.5f\n", sy, se)
-}
 
 func (frc *Forcing) SaveGobForcing(fp string) error {
 	f, err := os.Create(fp)
@@ -50,4 +36,45 @@ func LoadGobForcing(fp string) (*Forcing, error) {
 	}
 	f.Close()
 	return &frc, nil
+}
+
+func (frc *Forcing) ToBil(gd *grid.Definition, gcids []int, scids [][]int, chkdirprfx string) {
+	println(" > printing forcing rasters..")
+
+	mya, mpe := make(map[int]float64, len(scids)), make(map[int]float64, len(scids))
+	f := 365.24 * 4. / float64(len(frc.T))
+	for i := range scids {
+		for j := range frc.T {
+			mya[i] += frc.Ya[i][j]
+			mpe[i] += frc.Ea[i][j]
+		}
+		mya[i] *= f
+		mpe[i] *= f
+	}
+
+	sya, spe := gd.NullArray(-9999.), gd.NullArray(-9999.)
+	for i, cids := range scids {
+		for _, a := range cids {
+			c := gcids[a]
+			sya[c] = mya[i] * 1000.
+			spe[c] = mpe[i] * 1000.
+		}
+	}
+
+	writeBil32(gd, chkdirprfx+"forcing.sya.bil", sya) // mean precipitation/atmospheric yeild (mm/yr)
+	writeBil32(gd, chkdirprfx+"forcing.spe.bil", spe) // mean potential evaporation (mm/yr)
+}
+
+func writeBil32(gd *grid.Definition, fp string, f []float64) {
+	f32 := func() []float32 {
+		o := make([]float32, len(f))
+		for i, v := range f {
+			o[i] = float32(v)
+		}
+		return o
+	}()
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, f32)
+	os.WriteFile(fp, buf.Bytes(), 0644)
+	gd.ToHDRfloat(mmio.RemoveExtension(fp)+".hdr", 1, 32)
 }

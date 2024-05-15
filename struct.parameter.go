@@ -27,7 +27,7 @@ func (par *Parameter) Checkandprint(gd *grid.Definition, mx map[int]int, igw []i
 
 	writeFloats32(gd, chkdirprfx+"parameter.zeta.bil", zeta)       // soil-topographic index
 	writeFloats32(gd, chkdirprfx+"parameter.uca.bil", uca)         // unit contributing area
-	writeFloats32(gd, chkdirprfx+"parameter.tanbeta.bil", tanbeta) // surface slope angle
+	writeFloats32(gd, chkdirprfx+"parameter.tanbeta.bil", tanbeta) // surface gradient
 	writeFloats32(gd, chkdirprfx+"parameter.gamma.bil", gamma)     // groundwater reservoir average soil-topographic index
 	writeFloats32(gd, chkdirprfx+"parameter.depsto.bil", depsto)   // depression storage
 

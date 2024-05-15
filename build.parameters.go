@@ -1,7 +1,7 @@
 package rdrr
 
 import (
-	"log"
+	"fmt"
 	"math"
 )
 
@@ -18,7 +18,7 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 	gammas := make([]float64, len(mp.Fngwc))
 	for i := range s.Cids {
 		zetas[i], tanbetas[i], ucas[i] = func() (float64, float64, float64) {
-			tanbeta := math.Tan(s.Dwngrad[i])
+			tanbeta := math.Tan(s.Dwnslope[i])
 			uca := float64(s.Upcnt[i]) * s.GD.Cwidth
 			zeta := math.Log(uca / mp.Ksat[i] / tanbeta)
 			if math.IsInf(zeta, 0) {
@@ -29,6 +29,10 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 		}()
 		depstos[i] = func() float64 {
 			s := soildepth*porosity*fc + mp.Fimp[i]*depsto + intsto*mp.Fint[i]
+			switch mp.Isg[i] {
+			case 21, 22:
+				s += .1 // adding drift complex to precambrian bedrock
+			}
 			switch mp.Ilu[i] {
 			case Channel:
 				// rzsto = 0.
@@ -42,7 +46,7 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 			case ShortVegetation, TallVegetation, Forest, Swamp, Wetland, SparseVegetation, DenseVegetation, Agriculture, Meadow, Marsh, Barren:
 				// do nothing
 			default:
-				log.Fatalf(" buildParameters.depstos: no value assigned to ID %d", mp.Ilu[i])
+				panic(fmt.Sprintf(" buildParameters.depstos: no value assigned to ID %d", mp.Ilu[i]))
 			}
 			return s
 		}()
@@ -50,7 +54,16 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 	for i := 0; i < len(mp.Fngwc); i++ {
 		if mp.Fngwc[i] > 0. {
 			gammas[i] /= mp.Fngwc[i]
+			if math.IsNaN(gammas[i]) {
+				panic(" buildParameters.depstos: gamma is NaN")
+			}
 		}
 	}
-	return Parameter{zetas, ucas, tanbetas, depstos, gammas}
+	return Parameter{
+		Zeta:    zetas,
+		Uca:     ucas,
+		Tanbeta: tanbetas,
+		DepSto:  depstos,
+		Gamma:   gammas,
+	}
 }
