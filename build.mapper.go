@@ -147,8 +147,8 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			}
 			return aout, g.UniqueValues()
 		}
-		isg, _ = loadIndx(sgfp)
-		ksat, _ = iksat(gd, s.Cids, isg) // same size and order of usg[]
+		isgt, _ := loadIndx(sgfp)
+		ksat, isg = iksat(gd, s.Cids, isgt) // same size and order of usg[]
 		fmt.Printf(" > %s - %v\n", "SG loaded", time.Since(tt))
 	}
 

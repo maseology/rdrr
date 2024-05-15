@@ -30,7 +30,7 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 		depstos[i] = func() float64 {
 			s := soildepth*porosity*fc + mp.Fimp[i]*depsto + intsto*mp.Fint[i]
 			switch mp.Isg[i] {
-			case 21, 22:
+			case BedrockWithDrift:
 				s += .1 // adding drift complex to precambrian bedrock
 			}
 			switch mp.Ilu[i] {

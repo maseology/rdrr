@@ -17,7 +17,7 @@ const (
 	Lake
 	Barren
 	SparseVegetation
-	DenseVegetation
+	DenseVegetation // 15
 )
 
 type SurfaceSet struct {
