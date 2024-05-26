@@ -56,10 +56,6 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 	// 	}
 	// }
 
-	// spr, sae, sro, srch := make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc), make([]float64, ev.Nc)
-	dms, dmsv := make([]float64, ng), make([]float64, ng)
-	hyd = make([]float64, nt)
-
 	uiprogress.Start()
 	timestep := make(chan string)
 	bar := uiprogress.AddBar(nt).AppendCompleted().PrependElapsed()
@@ -67,6 +63,8 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 		return <-timestep
 	})
 
+	dms, dmsv := make([]float64, ng), make([]float64, ng)
+	hyd = make([]float64, nt)
 	for j, t := range frc.T {
 		// fmt.Println(t)
 		timestep <- fmt.Sprint(t)

@@ -3,7 +3,6 @@ package rdrr
 import (
 	"sync"
 
-	"github.com/maseology/goHydro/hru"
 	"github.com/maseology/rdrr/forcing"
 )
 
@@ -13,46 +12,49 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 	// defer close(done)
 
 	// prep
-	ng, ns, nt := len(ev.Fngwc), len(ev.Scids), len(frc.T)
-	x := make([][]hru.Res, ns)
-	rel := make([]*realization, ns)
-	mons, monq := make([][]int, ns), [][]float64{}
-	for k, cids := range ev.Scids {
-		x[k] = make([]hru.Res, len(cids))
-		for i, d := range ev.DepSto[k] {
-			x[k][i].Cap = d
-		}
+	nt, ng := len(frc.T), len(ev.Fngwc)
+	rel, mons, monq := ev.buildRealization(nt)
 
-		rel[k] = &realization{
-			x:     x[k],
-			drel:  ev.Drel[k],
-			bo:    ev.Bo[k],
-			finf:  ev.Finf[k],
-			fcasc: ev.Fcasc[k],
-			spr:   make([]float64, len(cids)),
-			sae:   make([]float64, len(cids)),
-			sro:   make([]float64, len(cids)),
-			srch:  make([]float64, len(cids)),
-			sgwd:  make([]float64, len(cids)),
-			cids:  cids,
-			cds:   ev.Sds[k],
-			rte:   ev.Dsws[k],
-			// m:    ev.M[ev.Sgw[k]],
-			eaf:   ev.Eafact,
-			dextm: ev.Dext / ev.M[ev.Sgw[k]],
-			fnc:   float64(len(cids)),
-			fgnc:  ev.Fngwc[ev.Sgw[k]],
-			// cmon:  ev.Mons[k],
-		}
+	// ng, ns, nt := len(ev.Fngwc), len(ev.Scids), len(frc.T)
+	// x := make([][]hru.Res, ns)
+	// rel := make([]*realization, ns)
+	// mons, monq := make([][]int, ns), [][]float64{}
+	// for k, cids := range ev.Scids {
+	// 	x[k] = make([]hru.Res, len(cids))
+	// 	for i, d := range ev.DepSto[k] {
+	// 		x[k][i].Cap = d
+	// 	}
 
-		if ev.Mons != nil {
-			for range ev.Mons[k] {
-				mons[k] = append(mons[k], len(monq))
-				monq = append(monq, make([]float64, nt))
-			}
-			rel[k].cmon = ev.Mons[k]
-		}
-	}
+	// 	rel[k] = &realization{
+	// 		x:     x[k],
+	// 		drel:  ev.Drel[k],
+	// 		bo:    ev.Bo[k],
+	// 		finf:  ev.Finf[k],
+	// 		fcasc: ev.Fcasc[k],
+	// 		spr:   make([]float64, len(cids)),
+	// 		sae:   make([]float64, len(cids)),
+	// 		sro:   make([]float64, len(cids)),
+	// 		srch:  make([]float64, len(cids)),
+	// 		sgwd:  make([]float64, len(cids)),
+	// 		cids:  cids,
+	// 		cds:   ev.Sds[k],
+	// 		rte:   ev.Dsws[k],
+	// 		// m:    ev.M[ev.Sgw[k]],
+	// 		eaf:   ev.Eafact,
+	// 		dextm: ev.Dext / ev.M[ev.Sgw[k]],
+	// 		fnc:   float64(len(cids)),
+	// 		fgnc:  ev.Fngwc[ev.Sgw[k]],
+	// 		// cmon:  ev.Mons[k],
+	// 	}
+
+	// 	if ev.Mons != nil {
+	// 		for range ev.Mons[k] {
+	// 			mons[k] = append(mons[k], len(monq))
+	// 			monq = append(monq, make([]float64, nt))
+	// 		}
+	// 		rel[k].cmon = ev.Mons[k]
+	// 	}
+	// }
 
 	var wg sync.WaitGroup
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
