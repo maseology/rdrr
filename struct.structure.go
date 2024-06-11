@@ -11,7 +11,7 @@ import (
 type Structure struct {
 	GD              *grid.Definition
 	Cids, Ds, Upcnt []int     // topologically safe order of grid-cell IDs that make up the model domain; down-slope cell array index; array of model outlet/farfield cells
-	Dwnslope        []float64 // downslope angle (beta-radians)
+	Dwnslope        []float64 // downslope angle (beta, radians)
 	Nc              int       // number of cells, groundwater zones
 }
 
