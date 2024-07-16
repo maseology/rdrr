@@ -85,11 +85,11 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		// 	panic("hru wbal error")
 		// }
 
-		r.spr[m][i] += ya
-		r.sae[m][i] += ae
-		r.sro[m][i] += ro
-		r.srch[m][i] += rch
-		// r.sgwd[m][i] += gwd
+		r.spr[i][m] += ya
+		r.sae[i][m] += ae
+		r.sro[i][m] += ro
+		r.srch[i][m] += rch
+		// r.sgwd[i][m] += gwd
 		ssnetrch += rch //- gwd
 
 		// ssae += ae
