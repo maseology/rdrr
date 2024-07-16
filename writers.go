@@ -23,6 +23,28 @@ func writeFloats(fp string, f []float64) error {
 	return nil
 }
 
+func writeFloats2D(fp string, f [][]float64) error {
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, f); err != nil {
+		return fmt.Errorf("writeFloats failed: %v", err)
+	}
+	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+		return fmt.Errorf("writeFloats failed: %v", err)
+	}
+	return nil
+}
+
+func writeFloats12(fp string, f [][12]float64) error {
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, f); err != nil {
+		return fmt.Errorf("writeFloats failed: %v", err)
+	}
+	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
+		return fmt.Errorf("writeFloats failed: %v", err)
+	}
+	return nil
+}
+
 func writeFloats32(gd *grid.Definition, fp string, f []float64) error {
 	f32 := func() []float32 { // ** due to round-off error, outputting as float32 causes waterbalance issues **
 		o := make([]float32, len(f))

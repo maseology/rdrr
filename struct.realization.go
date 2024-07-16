@@ -8,14 +8,14 @@ import (
 
 type realization struct {
 	x                     []hru.Res
+	spr, sae, sro, srch   [][12]float64
 	drel, bo, finf, fcasc []float64
-	spr, sae, sro, srch   []float64
 	cids, cds, cmon       []int
 	rte                   SWStopo
 	eaf, dextm, fnc, fgnc float64
 }
 
-func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout, dm float64) {
+func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qout, dm float64) {
 	// ssae, ssro, ssdsto := 0., 0., 0.
 	ssnetrch := 0.
 	qmon = make([]float64, len(r.cmon))
@@ -85,11 +85,11 @@ func (r *realization) rdrr(ya, ea, dmm float64, j, k int) (qmon []float64, qout,
 		// 	panic("hru wbal error")
 		// }
 
-		r.spr[i] += ya
-		r.sae[i] += ae
-		r.sro[i] += ro
-		r.srch[i] += rch
-		// r.sgwd[i] += gwd
+		r.spr[m][i] += ya
+		r.sae[m][i] += ae
+		r.sro[m][i] += ro
+		r.srch[m][i] += rch
+		// r.sgwd[m][i] += gwd
 		ssnetrch += rch //- gwd
 
 		// ssae += ae

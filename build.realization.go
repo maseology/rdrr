@@ -2,11 +2,11 @@ package rdrr
 
 import "github.com/maseology/goHydro/hru"
 
-func (ev *Evaluator) buildRealization(nt int) ([]*realization, [][]int, [][]float64) {
+func (ev *Evaluator) buildRealization(nt int) ([]*realization, [][]int, [][]float64, [][]float64) {
 	ns := len(ev.Scids)
 	x := make([][]hru.Res, ns)
 	rel := make([]*realization, ns)
-	mons, monq := make([][]int, ns), [][]float64{}
+	mons, monq, sdm := make([][]int, ns), [][]float64{}, make([][]float64, nt)
 	for k, cids := range ev.Scids {
 		x[k] = make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {
@@ -19,10 +19,10 @@ func (ev *Evaluator) buildRealization(nt int) ([]*realization, [][]int, [][]floa
 			bo:    ev.Bo[k],
 			finf:  ev.Finf[k],
 			fcasc: ev.Fcasc[k],
-			spr:   make([]float64, len(cids)),
-			sae:   make([]float64, len(cids)),
-			sro:   make([]float64, len(cids)),
-			srch:  make([]float64, len(cids)),
+			spr:   make([][12]float64, len(cids)),
+			sae:   make([][12]float64, len(cids)),
+			sro:   make([][12]float64, len(cids)),
+			srch:  make([][12]float64, len(cids)),
 			cids:  cids,
 			cds:   ev.Sds[k],
 			rte:   ev.Dsws[k],
@@ -40,5 +40,5 @@ func (ev *Evaluator) buildRealization(nt int) ([]*realization, [][]int, [][]floa
 			rel[k].cmon = ev.Mons[k]
 		}
 	}
-	return rel, mons, monq
+	return rel, mons, monq, sdm
 }
