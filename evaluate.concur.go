@@ -13,7 +13,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 
 	// prep
 	nt, ng := len(frc.T), len(ev.Fngwc)
-	rel, mons, monq, sdm := ev.buildRealization(nt)
+	rel, mons, monq, sdm := ev.buildRealization(nt, ng)
 
 	// ng, ns, nt := len(ev.Fngwc), len(ev.Scids), len(frc.T)
 	// x := make([][]hru.Res, ns)
@@ -107,7 +107,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 		writeFloats12(outdirprfx+"sro.bin", sro)
 		writeFloats12(outdirprfx+"srch.bin", srch)
 		writeFloats(outdirprfx+"lsto.bin", lsto)
-		writeFloats2D(outdirprfx+"sdm.bin", sdm)
+		writeDeficits(outdirprfx+"sdm.gob", sdm, ng, nt)
 		// writeFloats(outdirprfx+"hyd.bin", hyd)
 		if ev.Mons != nil {
 			writeMons(outdirprfx+"mon.gob", ev.Mons, monq)

@@ -11,7 +11,7 @@ import (
 func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {
 	// prep
 	nt, ng := len(frc.T), len(ev.Fngwc)
-	rel, mons, monq, sdm := ev.buildRealization(nt)
+	rel, mons, monq, sdm := ev.buildRealization(nt, ng)
 
 	// nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
 	// // qout := make([][]float64, ns)
@@ -71,6 +71,7 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 		mnt := int(t.Month()) - 1
 		for i := 0; i < ng; i++ {
 			dms[i] += dmsv[i]
+			sdm[j][i] = dms[i]
 			dmsv[i] = 0.
 		}
 		for _, inner := range ev.Outer {
@@ -97,11 +98,10 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 				// dmsv[gid] += dd
 			}
 		}
-		sdm[j] = dms
 		bar.Incr()
-		// if j > 10 {
-		// 	break
-		// }
+		if j > 10 {
+			break
+		}
 	}
 	close(timestep)
 	uiprogress.Stop()
@@ -129,7 +129,7 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 	writeFloats12(outdirprfx+"sro.bin", sro)
 	writeFloats12(outdirprfx+"srch.bin", srch)
 	writeFloats(outdirprfx+"lsto.bin", lsto)
-	writeFloats2D(outdirprfx+"sdm.bin", sdm)
+	writeDeficits(outdirprfx+"sdm.gob", sdm, ng, nt)
 	writeFloats(outdirprfx+"hyd.bin", hyd)
 	if ev.Mons != nil {
 		writeMons(outdirprfx+"mon.gob", ev.Mons, monq)

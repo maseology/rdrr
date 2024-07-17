@@ -2,11 +2,14 @@ package rdrr
 
 import "github.com/maseology/goHydro/hru"
 
-func (ev *Evaluator) buildRealization(nt int) ([]*realization, [][]int, [][]float64, [][]float64) {
+func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, [][]int, [][]float64, [][]float64) {
 	ns := len(ev.Scids)
 	x := make([][]hru.Res, ns)
 	rel := make([]*realization, ns)
 	mons, monq, sdm := make([][]int, ns), [][]float64{}, make([][]float64, nt)
+	for j := range nt {
+		sdm[j] = make([]float64, ng)
+	}
 	for k, cids := range ev.Scids {
 		x[k] = make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {

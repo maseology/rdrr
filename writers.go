@@ -23,17 +23,6 @@ func writeFloats(fp string, f []float64) error {
 	return nil
 }
 
-func writeFloats2D(fp string, f [][]float64) error {
-	buf := new(bytes.Buffer)
-	if err := binary.Write(buf, binary.LittleEndian, f); err != nil {
-		return fmt.Errorf("writeFloats failed: %v", err)
-	}
-	if err := os.WriteFile(fp, buf.Bytes(), 0644); err != nil { // see: https://en.wikipedia.org/wiki/File_system_permissions
-		return fmt.Errorf("writeFloats failed: %v", err)
-	}
-	return nil
-}
-
 func writeFloats12(fp string, f [][12]float64) error {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, f); err != nil {
@@ -102,6 +91,27 @@ func writeMons(fp string, swsmons [][]int, qs [][]float64) error {
 		}
 		return o
 	}()
+	f, err := os.Create(fp)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := gob.NewEncoder(f)
+	err = enc.Encode(m32)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func writeDeficits(fp string, dms [][]float64, ng, nt int) error {
+	m32 := make(map[int][]float32, ng)
+	for i := range ng {
+		m32[i] = make([]float32, nt)
+		for j := range nt {
+			m32[i][j] = float32(dms[j][i])
+		}
+	}
 	f, err := os.Create(fp)
 	if err != nil {
 		return err
