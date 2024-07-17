@@ -99,9 +99,9 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			}
 		}
 		bar.Incr()
-		if j > 10 {
-			break
-		}
+		// if j > 10 {
+		// 	break
+		// }
 	}
 	close(timestep)
 	uiprogress.Stop()
