@@ -8,20 +8,22 @@ import (
 
 type realization struct {
 	x                     []hru.Res
-	spr, sae, sro, srch   [][12]float64
+	spr, sae, sro, srch   []float64
 	drel, bo, finf, fcasc []float64
-	cids, cds, cmon       []int
-	rte                   SWStopo
+	cids, cds, cmon, imon []int
+	// rte                   SWStopo
+	rte                   *hru.Res
 	eaf, dextm, fnc, fgnc float64
+	nc                    int
 }
 
 func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qout, dm float64) {
-	// ssae, ssro, ssdsto := 0., 0., 0.
+	// ssae, ssro, ssdsto := 0., 0., 0. // needed for waterbalance below
 	ssnetrch := 0.
 	qmon = make([]float64, len(r.cmon))
 	for i, c := range r.cids {
 		avail := ea
-		// dsto0 := r.x[i].Sto
+		// dsto0 := r.x[i].Sto       // needed for waterbalance below
 		ro, ae, rch := 0., 0., 0. //, gwd
 		dim := r.drel[i] + dmm
 
@@ -65,7 +67,7 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		ro *= r.fcasc[i]
 
 		// route flows
-		if ids := r.cds[i]; ids > -1 {
+		if ids := r.cds[i]; ids > -1 { // FUTURE CHANGE: change r.cds to a list of pointers to downslope hrus like done with r.rte
 			r.x[ids].Sto += ro
 		} else {
 			qout += ro
@@ -79,25 +81,26 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		}
 
 		// // test for water balance
-		// hruwbal := ya + gwd + dsto0 - r.x[i].Sto - ae - ro - rch
+		// hruwbal := ya + dsto0 - r.x[i].Sto - ae - ro - rch
 		// if math.Abs(hruwbal) > nearzero {
-		// 	fmt.Printf("%10d%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, i, hruwbal, r.x[i].Sto, dsto0, ya, gwd, ae, ro, rch)
+		// 	fmt.Printf("%10d%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, i, hruwbal, r.x[i].Sto, dsto0, ya, ae, ro, rch)
 		// 	panic("hru wbal error")
 		// }
 
-		r.spr[i][m] += ya
-		r.sae[i][m] += ae
-		r.sro[i][m] += ro
-		r.srch[i][m] += rch
-		// r.sgwd[i][m] += gwd
+		r.spr[m*r.nc+i] += ya
+		r.sae[m*r.nc+i] += ae
+		r.sro[m*r.nc+i] += ro
+		r.srch[m*r.nc+i] += rch
+		// r.sgwd[m*r.nc+i] += gwd
 		ssnetrch += rch //- gwd
 
+		// // needed for water balance below
 		// ssae += ae
 		// ssro += ro
 		// ssdsto += r.x[i].Sto - dsto0
 	}
 
-	// // per timestep subwatershed waterbalance
+	// // per timestep subwatershed water balance
 	// swswbal := ya - (ssae+ssro+ssnetrch+ssdsto)/r.fnc
 	// if math.Abs(swswbal) > nearzero {
 	// 	fmt.Printf("%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, swswbal, ssdsto, ya, ssae, ssro, ssnetrch)

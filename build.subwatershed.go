@@ -10,6 +10,7 @@ import (
 
 func (s *Structure) loadSWS(swsfp string) Subwatershed {
 
+	// getting sws IDs mapped to topo-safe array (note asids is altered below once sws IDs are remapped to a 0-based array)
 	asids := func(fp string) []int {
 		fmt.Printf("   loading: %s\n", fp)
 		var g grid.Indx
@@ -25,7 +26,7 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 				}
 				aout[i] = v
 			} else {
-				panic("loadIndx error: " + fp)
+				panic("loadSWS loadIndx error: " + fp)
 			}
 		}
 		if nrm > 0 {
@@ -34,7 +35,7 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		return aout
 	}(swsfp)
 
-	// set mapped sws IDs to a 0-base array index, sorted on input zone ID
+	// mapping sorted sws IDs to a 0-based array index
 	xsws, isws := func() (map[int]int, []int) {
 		d := make(map[int]int)
 		for i := range s.Cids {
@@ -47,21 +48,28 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		sort.Ints(u)
 		for i, uu := range u {
 			if _, ok := d[uu]; !ok {
-				panic("xgw error 1")
+				panic("loadSWS xsws error")
 			}
 			d[uu] = i
 		}
 		return d, u
 	}()
 
+	// checking for consistency, remapping asids to the 0-based sws id, and gathering sws sizes
 	fnsc := make([]float64, len(xsws))
 	for i := range s.Cids {
 		if isw, ok := xsws[asids[i]]; ok {
-			asids[i] = isw // reset mapped gw zone IDs to a 0-base array index
+			asids[i] = isw // reset mapped sws IDs to a 0-based array index
 			fnsc[isw]++
 		} else {
 			panic("loadSWS isws error")
 		}
+	}
+
+	// collecting lists of acids per aswsids
+	mcids := make(map[int][]int, len(xsws))
+	for i := range s.Cids { // topo-safe cell order
+		mcids[asids[i]] = append(mcids[asids[i]], i) // topo-safe cell order on a per-sws basis
 	}
 
 	newds := func(scids []int) []int {
@@ -77,16 +85,13 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 			if ids, ok := m[k]; ok {
 				ds[i] = ids
 			} else {
-				ds[i] = -1
+				ds[i] = -1 // not draining to cell within current sws, setting to <0 will force rdrr to drain to downslope SWS
 			}
 		}
 		return ds
 	}
 
-	mcids := make(map[int][]int, len(xsws))
-	for i := range s.Cids { // topo-safe cell order
-		mcids[asids[i]] = append(mcids[asids[i]], i)
-	}
+	// remapping mcids to a list of lists, building downslopes on a per-sws basis
 	scids := make([][]int, len(mcids))
 	sds := make([][]int, len(mcids))
 	for k, v := range mcids {
@@ -94,10 +99,11 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 		scids[k] = v
 	}
 
+	// collecting sws topologies
 	dsws := func() []SWStopo {
 		dsws := make([]SWStopo, len(scids))
 		for is, c := range scids {
-			oi := len(c) - 1
+			oi := len(c) - 1 // final cell id drains to downslope SWS
 			if sds[is][oi] != -1 {
 				panic("loadSWS SWStopo err")
 			}
@@ -123,7 +129,7 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 
 	return Subwatershed{
 		Scis:   scids, // set of cell indices per sws
-		Sds:    sds,   // cell topology per sub-watershed
+		Sds:    sds,   // cell topology per sub-watershed, <0 is routed to down-SWS
 		Dsws:   dsws,  // [downslope sub-watershed,cell index receiving input], -1 out of model
 		Sid:    asids, // 0-based cell index to 0-based sws index
 		Isws:   isws,  // sws index to sub-watersed ID (needed for forcings)

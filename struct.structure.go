@@ -48,7 +48,7 @@ func (s *Structure) Checkandprint(chkdirprfx string) {
 	writeInts(s.GD, chkdirprfx+"structure.ads.bil", ads)           // down-slope cell array index
 	writeInts(s.GD, chkdirprfx+"structure.nus.bil", nus)           // number of (upslope) cells contributing runoff to current cell
 	writeInts(s.GD, chkdirprfx+"structure.cid.bil", cid)           // grid cell ID
-	writeInts(s.GD, chkdirprfx+"structure.upcnt.bil", upcnt)       // count of upslope/contributing cells
+	writeInts(s.GD, chkdirprfx+"structure.upcnt.bil", upcnt)       // count of upslope/contributing area cells
 	writeFloats32(s.GD, chkdirprfx+"structure.dwnslp.bil", dwnslp) // cell slope angle (radians), aka beta
 }
 
