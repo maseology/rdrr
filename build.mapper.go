@@ -38,66 +38,9 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			return
 		}
 		tt := time.Now()
-
-		// checkforfile := func(fp string) {
-		// 	if _, ok := fileExists(fp); !ok {
-		// 		log.Fatalf(" getMappings.readLU file not found: %s", fp)
-		// 	}
-		// }
-
-		// // load data
-		// loadReal := func(fp string) []float64 {
-		// 	checkforfile(fp)
-		// 	fmt.Printf("   loading: %s\n", fp)
-		// 	var g grid.Real
-		// 	g.NewGD32(fp, gd)
-		// 	m := make(map[int]float64, len(g.A))
-		// 	for k, v := range g.A {
-		// 		if v < 0. {
-		// 			m[k] = 0.
-		// 		} else {
-		// 			m[k] = v
-		// 		}
-		// 	}
-		// 	aout := make([]float64, s.Nc)
-		// 	for i, c := range s.Cids {
-		// 		if v, ok := m[c]; ok {
-		// 			aout[i] = v
-		// 		} else {
-		// 			panic("getMappings.loadReal error: " + fp)
-		// 		}
-		// 	}
-		// 	return aout
-		// }
-		// // load indices
-		// loadIndx := func(fp string) ([]int, []int) {
-		// 	checkforfile(fp)
-		// 	fmt.Printf("   loading: %s\n", fp)
-		// 	var g grid.Indx
-		// 	g.LoadGDef(gd)
-		// 	g.NewShort(fp, true)
-		// 	m := g.Values()
-		// 	aout := make([]int, s.Nc)
-		// 	for i, c := range s.Cids {
-		// 		if v, ok := m[c]; ok {
-		// 			aout[i] = v
-		// 		} else {
-		// 			panic("getMappings.loadIndx error: " + fp)
-		// 		}
-		// 	}
-		// 	return aout, g.UniqueValues()
-		// }
-		// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		var ulu []int
-		// if _, ok := fileExists(lufp + "-surfaceid.bil"); ok {
-		// 	ilu, ulu = loadIndx(lufp + "-surfaceid.bil")
-		// 	icov, _ = loadIndx(lufp + "-canopyid.bil")
-		// 	fimp = loadReal(lufp + "-perimp.bil")
-		// 	fint = loadReal(lufp + "-percov.bil") // fraction cover (to be adjusted below)
-		// } else {
 		ss := xlu(gd, lufp, s.Cids)
 		ilu, ulu, icov, fimp, fint = ss.Ilu, ss.Ulu, ss.Icov, ss.Fimp, ss.Fint
-		// }
 
 		// adjust cover (convert to fint; note ss.Fint originally held canopy cover fraction)
 		for i := range s.Cids {
