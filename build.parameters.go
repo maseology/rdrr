@@ -14,7 +14,7 @@ const (
 )
 
 func BuildParameters(s *Structure, mp *Mapper) Parameter {
-	zetas, ucas, tanbetas, depstos := make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc)
+	zetas, ucas, tanbetas, depstos, drels := make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc)
 	gammas := make([]float64, len(mp.Fngwc))
 	for i := range s.Cids {
 		zetas[i], tanbetas[i], ucas[i] = func() (float64, float64, float64) {
@@ -59,11 +59,17 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 			}
 		}
 	}
+
+	for i := range s.Cids {
+		drels[i] = gammas[mp.Igw[i]] - zetas[i]
+	}
+
 	return Parameter{
 		Zeta:    zetas,
 		Uca:     ucas,
 		Tanbeta: tanbetas,
 		DepSto:  depstos,
+		Drel:    drels,
 		Gamma:   gammas,
 	}
 }

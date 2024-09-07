@@ -2,7 +2,6 @@ package rdrr
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
@@ -27,7 +26,6 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 		} else if os.IsNotExist(err) {
 			return 0, false
 		} else {
-			// log.Fatalf("mmio.FileExists: %v", err)
 			return 0, false
 		}
 	}
@@ -73,7 +71,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 		// load index
 		loadIndx := func(fp string) ([]int, []int) {
 			if _, ok := fileExists(fp); !ok {
-				log.Fatalf(" getMappings.readSG.loadIndx file not found: %s", fp)
+				panic(fmt.Sprintf("getMappings.readSG.loadIndx file not found: %s", fp))
 			}
 			fmt.Printf("   loading: %s\n", fp)
 			var g grid.Indx
@@ -105,7 +103,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			// load index
 			loadIndx := func(fp string) (map[int]int, []int) {
 				if _, ok := fileExists(fp); !ok {
-					log.Fatalf(" getMappings.readGW file not found: %s", fp)
+					panic(fmt.Sprintf("getMappings.readGW.loadIndx file not found: %s", fp))
 				}
 				fmt.Printf("   loading: %s\n", fp)
 				var g grid.Indx
@@ -115,13 +113,22 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 			}
 			mgw, _ := loadIndx(gwfp)
 			agw := make([]int, s.Nc)
+			var nulls []int
 			for i, c := range s.Cids {
 				if gid, ok := mgw[c]; ok {
+					if gid == 255 {
+						nulls = append(nulls, c)
+					}
 					agw[i] = gid
 				} else {
-					panic("groundwater id error")
+					panic("getMappings.readGW groundwater cellID error")
 				}
 			}
+
+			if len(nulls) > 0 {
+				panic(fmt.Sprintf("getMappings.readGW groundwater ID null value found at cells:\n %d", nulls))
+			}
+
 			fngwc, igw = s.buildGWzone(agw)
 		}
 
