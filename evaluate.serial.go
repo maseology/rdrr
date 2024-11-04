@@ -71,7 +71,7 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 		mnt := int(t.Month()) - 1
 		for ig := 0; ig < ng; ig++ {
 			dms[ig] += dmsv[ig]
-			sdm[12*ig+j] = dms[ig]
+			sdm[nt*ig+j] = dms[ig]
 			dmsv[ig] = 0.
 		}
 		for _, inner := range ev.Outer {

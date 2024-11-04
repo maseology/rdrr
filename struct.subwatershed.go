@@ -102,12 +102,12 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 	writeInts(gd, chkdirprfx+"sws.islake.bil", islak) // shows which sws is deemed a lake
 }
 
-func (ws *Subwatershed) SaveGob(fp string) error {
+func (w *Subwatershed) SaveGob(fp string) error {
 	f, err := os.Create(fp)
 	if err != nil {
 		return fmt.Errorf(" mapper.SaveGob %v", err)
 	}
-	if err := gob.NewEncoder(f).Encode(ws); err != nil {
+	if err := gob.NewEncoder(f).Encode(w); err != nil {
 		return fmt.Errorf(" mapper.SaveGob %v", err)
 	}
 	f.Close()
@@ -127,4 +127,15 @@ func LoadGobSubwatershed(fp string) (*Subwatershed, error) {
 	}
 	f.Close()
 	return &rtr, nil
+}
+
+func (w *Subwatershed) BuildUpSWS() map[int][]int {
+	o := make(map[int][]int, len(w.Sid))
+	for i, sid := range w.Sid {
+		if _, ok := o[w.Dsws[i].Sid]; !ok {
+			o[w.Dsws[i].Sid] = []int{}
+		}
+		o[w.Dsws[i].Sid] = append(o[w.Dsws[i].Sid], sid)
+	}
+	return o
 }
