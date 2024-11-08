@@ -3,6 +3,7 @@ package rdrr
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/maseology/goHydro/grid"
 	"github.com/maseology/mmio"
@@ -17,7 +18,7 @@ func BuildRDRR(controlFP string, intvl float64,
 	///////////////////////////////////////////////////////
 	println("loading .rdrr control file")
 	var mdlprfx, gdefFP, hdemFP, swsFP, luFP, sgFP, gwzFP, ncfp string
-	cid0, lakfrac := -1, -1.
+	cid0, lakfrac, gwids := -1, -1., []int{}
 	func(rdrrFP string) { // getFilePaths
 		var err error
 		ins := mmio.NewInstruct(rdrrFP)
@@ -44,6 +45,27 @@ func BuildRDRR(controlFP string, intvl float64,
 		if _, ok := ins.Param["cid0"]; ok { // outlet cell ID, <0 keeps while model domain
 			if cid0, err = strconv.Atoi(ins.Param["cid0"][0]); err != nil {
 				panic(err)
+			}
+		}
+		if _, ok := ins.Param["gwid"]; ok {
+			cid0 = -1
+			if onegwz, err := strconv.Atoi(ins.Param["gwid"][0]); err == nil {
+				gwids = []int{onegwz}
+			} else {
+				rn := []rune(ins.Param["gwid"][0])
+				if string(rn[0]) == "[" && string(rn[len(rn)-1]) == "]" {
+					trm := strings.Split(string(rn[1:len(rn)-1]), ",")
+					gwids = make([]int, len(trm))
+					for i, v := range trm {
+						if gi, err := strconv.Atoi(v); err != nil {
+							panic(fmt.Errorf("builder.go: gwid read error: %v", err))
+						} else {
+							gwids[i] = gi
+						}
+					}
+				} else {
+					panic(fmt.Errorf("builder.go: gwid read error: %s", ins.Param["gwid"][0]))
+				}
 			}
 		}
 		if _, ok := ins.Param["lakefrac"]; ok {
@@ -111,6 +133,14 @@ func BuildRDRR(controlFP string, intvl float64,
 
 	println(" > parameterizing with defaults..")
 	par := BuildParameters(&strc, &mp)
+
+	////////////////////////////////////////
+	// SUBSETTING
+	////////////////////////////////////////
+	if len(gwids) > 0 { // by select gwzones
+		println(" > sub-setting domain to select subwatersheds..")
+		subsetByGWzones(&strc, &sws, &mp, &par, gwids)
+	}
 
 	////////////////////////////////////////
 	// SUMMARIZE

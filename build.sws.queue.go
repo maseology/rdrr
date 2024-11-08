@@ -4,7 +4,6 @@ import "github.com/maseology/mmaths/slice"
 
 func (w *Subwatershed) buildComputationalOrder1() {
 	w.Outer = func() [][]int { // topo-safe [order, swsid]; [swsid]cids (all zero-based)
-
 		var recurs func(i, l int)
 		cnt := make(map[int]int, w.Ns)
 		recurs = func(i, l int) {
@@ -16,7 +15,7 @@ func (w *Subwatershed) buildComputationalOrder1() {
 			}
 		}
 
-		for i := range w.Isws {
+		for i := range w.Ns {
 			recurs(i, cnt[i])
 		}
 
