@@ -131,11 +131,11 @@ func LoadGobSubwatershed(fp string) (*Subwatershed, error) {
 
 func (w *Subwatershed) BuildUpSWS() map[int][]int {
 	o := make(map[int][]int, len(w.Sid))
-	for i, sid := range w.Sid {
+	for i := range w.Scis {
 		if _, ok := o[w.Dsws[i].Sid]; !ok {
 			o[w.Dsws[i].Sid] = []int{}
 		}
-		o[w.Dsws[i].Sid] = append(o[w.Dsws[i].Sid], sid)
+		o[w.Dsws[i].Sid] = append(o[w.Dsws[i].Sid], i)
 	}
 	return o
 }

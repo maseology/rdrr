@@ -7,8 +7,8 @@ import (
 )
 
 type realization struct {
-	x                     []hru.Res
-	spr, sae, sro, srch   []float64
+	x []hru.Res
+	// spr, sae, sro, srch   []float64
 	drel, bo, finf, fcasc []float64
 	cids, cds, cmon, imon []int
 	// rte                   SWStopo
@@ -87,11 +87,11 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		// 	panic("hru wbal error")
 		// }
 
-		r.spr[m*r.nc+i] += ya
-		r.sae[m*r.nc+i] += ae
-		r.sro[m*r.nc+i] += ro
-		r.srch[m*r.nc+i] += rch
-		// r.sgwd[m*r.nc+i] += gwd
+		// r.spr[m*r.nc+i] += ya
+		// r.sae[m*r.nc+i] += ae
+		// r.sro[m*r.nc+i] += ro
+		// r.srch[m*r.nc+i] += rch
+		// // r.sgwd[m*r.nc+i] += gwd
 		ssnetrch += rch //- gwd
 
 		// // needed for water balance below
