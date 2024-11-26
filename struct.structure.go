@@ -15,7 +15,18 @@ type Structure struct {
 	Nc              int       // number of cells, groundwater zones
 }
 
-func (s *Structure) Checkandprint(chkdirprfx string) {
+func (s *Structure) Checkandprint(chkdirprfx string, crop bool) {
+
+	var gd2 *grid.Definition
+	xr := make(map[int]int)
+	if crop {
+		gd2, xr = s.GD.CropToActives()
+	} else {
+		gd2 = s.GD
+		for _, c := range s.GD.Sactives {
+			xr[c] = c
+		}
+	}
 
 	// output
 	mx := make(map[int]int, s.Nc)
@@ -23,9 +34,9 @@ func (s *Structure) Checkandprint(chkdirprfx string) {
 		mx[c] = i
 	}
 
-	aid, cid, ads, nus, upcnt := s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999), s.GD.NullInt32(-9999)
-	dwnslp := s.GD.NullArray(-9999.)
-	for _, c := range s.GD.Sactives {
+	aid, cid, ads, nus, upcnt := gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999)
+	dwnslp := gd2.NullArray(-9999.)
+	for _, c := range gd2.Sactives {
 		nus[c] = 0
 	}
 	for _, c := range s.GD.Sactives {
@@ -33,23 +44,25 @@ func (s *Structure) Checkandprint(chkdirprfx string) {
 			if s.Cids[i] != c {
 				panic("structure.Checkandprint cell ID error")
 			}
-			cid[c] = int32(s.Cids[i])
-			aid[c] = int32(i)
-			ads[c] = int32(s.Ds[i])
-			upcnt[c] = int32(s.Upcnt[i])
-			dwnslp[c] = s.Dwnslope[i]
+			c2 := xr[c]
+			cid[c2] = int32(s.Cids[i])
+			aid[c2] = int32(i)
+			ads[c2] = int32(s.Ds[i])
+			upcnt[c2] = int32(s.Upcnt[i])
+			dwnslp[c2] = s.Dwnslope[i]
 			if s.Ds[i] >= 0 {
-				nus[s.Cids[s.Ds[i]]]++
+				nus[xr[s.Cids[s.Ds[i]]]]++
 			}
 		}
 	}
 
-	writeInts(s.GD, chkdirprfx+"structure.aid.bil", aid)           // ordered/topologically-sorted cell ID
-	writeInts(s.GD, chkdirprfx+"structure.ads.bil", ads)           // down-slope cell array index
-	writeInts(s.GD, chkdirprfx+"structure.nus.bil", nus)           // number of (upslope) cells contributing runoff to current cell
-	writeInts(s.GD, chkdirprfx+"structure.cid.bil", cid)           // grid cell ID
-	writeInts(s.GD, chkdirprfx+"structure.upcnt.bil", upcnt)       // count of upslope/contributing area cells
-	writeFloats32(s.GD, chkdirprfx+"structure.dwnslp.bil", dwnslp) // cell slope angle (radians), aka beta
+	writeInts(gd2, chkdirprfx+"structure.aid.bil", aid)           // ordered/topologically-sorted cell ID
+	writeInts(gd2, chkdirprfx+"structure.ads.bil", ads)           // down-slope cell array index
+	writeInts(gd2, chkdirprfx+"structure.nus.bil", nus)           // number of (upslope) cells contributing runoff to current cell
+	writeInts(gd2, chkdirprfx+"structure.cid.bil", cid)           // grid cell ID
+	writeInts(gd2, chkdirprfx+"structure.upcnt.bil", upcnt)       // count of upslope/contributing area cells
+	writeFloats32(gd2, chkdirprfx+"structure.dwnslp.bil", dwnslp) // cell slope (rise/run)
+	writeFloatsTxt(chkdirprfx+"structure.dwnslp.csv", s.Dwnslope) // cell slope (rise/run)
 }
 
 func (s *Structure) SaveGob(fp string) error {

@@ -8,30 +8,40 @@ import (
 	"github.com/maseology/goHydro/grid"
 )
 
-type Parameter struct {
-	Zeta, Uca, Tanbeta, DepSto, Drel, Gamma []float64
-}
+type Parameter struct{ Zeta, Uca, DepSto, Drel, Gamma []float64 }
 
-func (par *Parameter) Checkandprint(gd *grid.Definition, mx map[int]int, igw []int, chkdirprfx string) {
+func (par *Parameter) Checkandprint(gd *grid.Definition, mx map[int]int, igw []int, chkdirprfx string, crop bool) {
 
-	zeta, uca, tanbeta, depsto, drel, gamma := gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.), gd.NullArray(-9999.)
-	for _, c := range gd.Sactives {
-		if i, ok := mx[c]; ok {
-			zeta[c] = par.Zeta[i]
-			uca[c] = par.Uca[i]
-			tanbeta[c] = par.Tanbeta[i]
-			drel[c] = par.Drel[i]
-			gamma[c] = par.Gamma[igw[i]]
-			depsto[c] = par.DepSto[i]
+	var gd2 *grid.Definition
+	xr := make(map[int]int)
+	if crop {
+		gd2, xr = gd.CropToActives()
+	} else {
+		gd2 = gd
+		for _, c := range gd.Sactives {
+			xr[c] = c
 		}
 	}
 
-	writeFloats32(gd, chkdirprfx+"parameter.zeta.bil", zeta)       // soil-topographic index
-	writeFloats32(gd, chkdirprfx+"parameter.uca.bil", uca)         // unit contributing area
-	writeFloats32(gd, chkdirprfx+"parameter.tanbeta.bil", tanbeta) // surface gradient
-	writeFloats32(gd, chkdirprfx+"parameter.drel.bil", drel)       // groundwater deficit relative to the regional mean (deltaD)
-	writeFloats32(gd, chkdirprfx+"parameter.gamma.bil", gamma)     // groundwater reservoir average soil-topographic index
-	writeFloats32(gd, chkdirprfx+"parameter.depsto.bil", depsto)   // depression storage
+	zeta, uca, depsto, drel, gamma := gd2.NullArray(-9999.), gd2.NullArray(-9999.), gd2.NullArray(-9999.), gd2.NullArray(-9999.), gd2.NullArray(-9999.)
+	for _, c := range gd.Sactives {
+		if i, ok := mx[c]; ok {
+			c2 := xr[c]
+			zeta[c2] = par.Zeta[i]
+			uca[c2] = par.Uca[i]
+			// tanbeta[c2] = par.Tanbeta[i]
+			drel[c2] = par.Drel[i]
+			gamma[c2] = par.Gamma[igw[i]]
+			depsto[c2] = par.DepSto[i]
+		}
+	}
+
+	writeFloats32(gd2, chkdirprfx+"parameter.zeta.bil", zeta) // soil-topographic index
+	writeFloats32(gd2, chkdirprfx+"parameter.uca.bil", uca)   // unit contributing area
+	// writeFloats32(gd2, chkdirprfx+"parameter.tanbeta.bil", tanbeta) // surface gradient
+	writeFloats32(gd2, chkdirprfx+"parameter.drel.bil", drel)     // groundwater deficit relative to the regional mean (deltaD)
+	writeFloats32(gd2, chkdirprfx+"parameter.gamma.bil", gamma)   // groundwater reservoir average soil-topographic index
+	writeFloats32(gd2, chkdirprfx+"parameter.depsto.bil", depsto) // depression storage
 
 }
 

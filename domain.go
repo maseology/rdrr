@@ -2,7 +2,7 @@ package rdrr
 
 import "github.com/maseology/rdrr/forcing"
 
-func LoadDomain(mdlprfx string, cid0 int) (*Structure, *Subwatershed, *Mapper, *Parameter, *forcing.Forcing) {
+func LoadDomain(mdlprfx string) (*Structure, *Subwatershed, *Mapper, *Parameter, *forcing.Forcing) {
 	chkerr := func(err error) {
 		if err != nil {
 			panic(err)

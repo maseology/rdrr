@@ -19,7 +19,18 @@ type Subwatershed struct {
 
 type SWStopo struct{ Sid, Cid int } // receiving sws id, receiving cell id
 
-func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float64, chkdirprfx string) {
+func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float64, chkdirprfx string, crop bool) {
+
+	var gd2 *grid.Definition
+	xr := make(map[int]int)
+	if crop {
+		gd2, xr = gd.CropToActives()
+	} else {
+		gd2 = gd
+		for _, c := range gd.Sactives {
+			xr[c] = c
+		}
+	}
 
 	// checking routing
 	for _, j := range w.Dsws {
@@ -57,49 +68,50 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 		mx[c] = i
 	}
 
-	si, sids, dsws, dcid, sds, sgw, islak := gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999), gd.NullInt32(-9999)
+	si, sids, dsws, dcid, sds, sgw, islak := gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999)
 	hassgw := w.Sgw != nil
 	for _, c := range gd.Sactives {
 		if i, ok := mx[c]; ok {
-			si[c] = int32(w.Sid[i])
-			sids[c] = int32(w.Isws[w.Sid[i]])
-			dsws[c] = int32(w.Dsws[w.Sid[i]].Sid)
-			dcid[c] = int32(w.Dsws[w.Sid[i]].Cid)
+			c2 := xr[c]
+			si[c2] = int32(w.Sid[i])
+			sids[c2] = int32(w.Isws[w.Sid[i]])
+			dsws[c2] = int32(w.Dsws[w.Sid[i]].Sid)
+			dcid[c2] = int32(w.Dsws[w.Sid[i]].Cid)
 
 			if w.Islake[w.Sid[i]] {
-				islak[c] = 1
+				islak[c2] = 1
 			}
 			if hassgw {
-				sgw[c] = int32(w.Sgw[w.Sid[i]])
+				sgw[c2] = int32(w.Sgw[w.Sid[i]])
 			}
 		}
 	}
 	for k, scids := range w.Scis {
 		for i, sc := range scids {
-			c := cids[sc]
+			c := xr[cids[sc]]
 			sds[c] = int32(w.Sds[k][i])
 		}
 	}
 
-	sord := gd.NullInt32(-9999)
+	sord := gd2.NullInt32(-9999)
 	for k, inner := range w.Outer {
 		for _, isw := range inner {
 			for _, i := range wcis[isw] {
-				sord[cids[i]] = int32(k + 1)
+				sord[xr[cids[i]]] = int32(k + 1)
 			}
 		}
 	}
 
-	writeInts(gd, chkdirprfx+"sws.aid.bil", si)   // zero-based index
-	writeInts(gd, chkdirprfx+"sws.sid.bil", sids) // original index
-	writeInts(gd, chkdirprfx+"sws.sds.bil", sds)  // cell topology per sub-watershed, <0 is routed to down-SWS
+	writeInts(gd2, chkdirprfx+"sws.aid.bil", si)   // zero-based index
+	writeInts(gd2, chkdirprfx+"sws.sid.bil", sids) // original index
+	writeInts(gd2, chkdirprfx+"sws.sds.bil", sds)  // cell topology per sub-watershed, <0 is routed to down-SWS
 	if hassgw {
-		writeInts(gd, chkdirprfx+"sws.sgw.bil", sgw) // groundwater index, now projected to sws
+		writeInts(gd2, chkdirprfx+"sws.sgw.bil", sgw) // groundwater index, now projected to sws
 	}
-	writeInts(gd, chkdirprfx+"sws.dsws.bil", dsws)    // downslope sws index
-	writeInts(gd, chkdirprfx+"sws.dcid.bil", dcid)    // receiving cell of downslope sws
-	writeInts(gd, chkdirprfx+"sws.order.bil", sord)   // computational sws ordering
-	writeInts(gd, chkdirprfx+"sws.islake.bil", islak) // shows which sws is deemed a lake
+	writeInts(gd2, chkdirprfx+"sws.dsws.bil", dsws)    // downslope sws index
+	writeInts(gd2, chkdirprfx+"sws.dcid.bil", dcid)    // receiving cell of downslope sws
+	writeInts(gd2, chkdirprfx+"sws.order.bil", sord)   // computational sws ordering
+	writeInts(gd2, chkdirprfx+"sws.islake.bil", islak) // shows which sws is deemed a lake
 }
 
 func (w *Subwatershed) SaveGob(fp string) error {

@@ -2,7 +2,7 @@ package rdrr
 
 func (ev *Evaluator) saveToBins(rel []*realization, sdm, monq, hyd []float64, nt int, outdirprfx string) {
 
-	if ev.Mons != nil {
+	if ev.Mons != nil && len(monq) > 0 {
 		// writeFloats(outdirprfx+"mon.bin", monq)
 		writeMons(outdirprfx+"mon.gob", ev.Mons, monq, nt)
 	}

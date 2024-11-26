@@ -14,18 +14,18 @@ const (
 )
 
 func BuildParameters(s *Structure, mp *Mapper) Parameter {
-	zetas, ucas, tanbetas, depstos, drels := make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc)
+	zetas, ucas, depstos, drels := make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc), make([]float64, s.Nc)
 	gammas := make([]float64, len(mp.Fngwc))
 	for i := range s.Cids {
-		zetas[i], tanbetas[i], ucas[i] = func() (float64, float64, float64) {
-			tanbeta := math.Tan(s.Dwnslope[i])
+		zetas[i], ucas[i] = func() (float64, float64) {
+			tanbeta := s.Dwnslope[i] // math.Tan(s.Dwnslope[i])
 			uca := float64(s.Upcnt[i]) * s.GD.Cwidth
 			zeta := math.Log(uca / mp.Ksat[i] / tanbeta)
 			if math.IsInf(zeta, 0) {
 				panic("zeta compute error")
 			}
 			gammas[mp.Igw[i]] += zeta // note: uniform cells
-			return zeta, tanbeta, uca
+			return zeta, uca
 		}()
 		depstos[i] = func() float64 {
 			s := soildepth*porosity*fc + mp.Fimp[i]*depsto + intsto*mp.Fint[i]
@@ -65,11 +65,11 @@ func BuildParameters(s *Structure, mp *Mapper) Parameter {
 	}
 
 	return Parameter{
-		Zeta:    zetas,
-		Uca:     ucas,
-		Tanbeta: tanbetas,
-		DepSto:  depstos,
-		Drel:    drels,
-		Gamma:   gammas,
+		Zeta: zetas,
+		Uca:  ucas,
+		// Tanbeta: tanbetas,
+		DepSto: depstos,
+		Drel:   drels,
+		Gamma:  gammas,
 	}
 }

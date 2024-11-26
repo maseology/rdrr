@@ -45,7 +45,7 @@ func subsetByGWzones(s *Structure, w *Subwatershed, m *Mapper, p *Parameter, gwi
 	newDnslp, newDs := make([]float64, nc), make([]int, nc)
 	newIlu, newIsg, newIgw, newIcov := make([]int, nc), make([]int, nc), make([]int, nc), make([]int, nc)
 	newKsat, newFimp, newFint := make([]float64, nc), make([]float64, nc), make([]float64, nc)
-	newZeta, newUca, newTanbeta, newDepSto, newDrel := make([]float64, nc), make([]float64, nc), make([]float64, nc), make([]float64, nc), make([]float64, nc)
+	newZeta, newUca, newDepSto, newDrel := make([]float64, nc), make([]float64, nc), make([]float64, nc), make([]float64, nc)
 	newSid := make([]int, nc)
 	for i, a := range newA {
 		newDnslp[i] = s.Dwnslope[a]
@@ -59,7 +59,7 @@ func subsetByGWzones(s *Structure, w *Subwatershed, m *Mapper, p *Parameter, gwi
 		newFint[i] = m.Fint[a]
 		newZeta[i] = p.Zeta[a]
 		newUca[i] = p.Uca[a]
-		newTanbeta[i] = p.Tanbeta[a]
+		// newTanbeta[i] = p.Tanbeta[a]
 		newDepSto[i] = p.DepSto[a]
 		newDrel[i] = p.Drel[a]
 		newSid[i] = ms[w.Sid[a]]
@@ -152,7 +152,7 @@ func subsetByGWzones(s *Structure, w *Subwatershed, m *Mapper, p *Parameter, gwi
 	func() {
 		p.Zeta = newZeta
 		p.Uca = newUca
-		p.Tanbeta = newTanbeta
+		// p.Tanbeta = newTanbeta
 		p.DepSto = newDepSto
 		p.Drel = newDrel
 		p.Gamma = newGamma

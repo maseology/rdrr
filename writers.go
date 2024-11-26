@@ -46,6 +46,10 @@ func writeFloats32(gd *grid.Definition, fp string, f []float64) error {
 	return nil
 }
 
+func writeFloatsTxt(fp string, f []float64) error {
+	return mmio.WriteCsvFloats(fp, "slope", f)
+}
+
 func writeInts(gd *grid.Definition, fp string, i []int32) error {
 	buf := new(bytes.Buffer)
 	if err := binary.Write(buf, binary.LittleEndian, i); err != nil {

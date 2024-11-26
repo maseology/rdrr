@@ -140,7 +140,7 @@ func buildSTRC(gdefFP, hdemFP string, cid0 int) Structure {
 	s := Structure{ // strc arrays are all 0-based indexed, cids is the key to grid cell id
 		GD:       gd,      // grid definition
 		Cids:     cids,    // topologically safe ordered grid cell ids
-		Dwnslope: dnslp(), // steepest cell slope
+		Dwnslope: dnslp(), // steepest cell slope (rise/run)
 		Ds:       dsx(),   // down slope cell index
 		Upcnt:    upcnt(), // count of upslope cells
 		Nc:       nc,      // number of model cells

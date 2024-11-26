@@ -37,13 +37,6 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 					} else {
 						relk.rte.Sto += q
 					}
-					// func(r SWStopo) {
-					// 	if r.Sid < 0 {
-					// 		hyd[j] = q
-					// 	} else {
-					// 		rel[r.Sid].x[r.Cid].Sto += q
-					// 	}
-					// }(relk.rte)
 					wg.Done()
 				}(k)
 			}

@@ -11,20 +11,19 @@ type realization struct {
 	// spr, sae, sro, srch   []float64
 	drel, bo, finf, fcasc []float64
 	cids, cds, cmon, imon []int
-	// rte                   SWStopo
 	rte                   *hru.Res
 	eaf, dextm, fnc, fgnc float64
 	nc                    int
 }
 
 func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qout, dm float64) {
-	// ssae, ssro, ssdsto := 0., 0., 0. // needed for waterbalance below
+	// ssae, ssro, ssdsto := 0., 0., 0. // needed for WATERBALANCE below
 	ssnetrch := 0.
 	qmon = make([]float64, len(r.cmon))
 	for i, c := range r.cids {
 		avail := ea
-		// dsto0 := r.x[i].Sto       // needed for waterbalance below
-		ro, ae, rch := 0., 0., 0. //, gwd
+		// dsto0 := r.x[i].Sto       // needed for WATERBALANCE below
+		xs, ae, rch := 0., 0., 0. //, gwd
 		dim := r.drel[i] + dmm
 
 		// gw discharge, including evaporation from gw reservoir
@@ -37,7 +36,7 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 			// }
 
 			b := fc * r.bo[i]            // groundwater flux to cell
-			ro = r.x[i].Overflow(b + ya) // runoff
+			xs = r.x[i].Overflow(b + ya) // excess (potential runoff)
 			rch -= b + avail*r.eaf       // evaporation from saturated lands
 			// gwd += b + avail*r.eaf // evaporation from saturated lands
 			ae = avail * r.eaf
@@ -49,7 +48,7 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 				// gwd += ae
 				avail -= ae
 			}
-			ro = r.x[i].Overflow(ya)
+			xs = r.x[i].Overflow(ya)
 		}
 
 		// evaporate from detention/surface storage
@@ -58,13 +57,20 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		}
 
 		// Infiltrate surplus/excess mobile water in infiltrated assuming a falling head through a unit length, returns added recharge
-		pi := r.x[i].Sto * r.finf[i]
-		r.x[i].Sto -= pi
-		rch += pi
+		rch += xs * r.finf[i]
+		ro := xs * (1. - r.finf[i])
+		// pi := r.x[i].Sto * r.finf[i]
+		// r.x[i].Sto -= pi
+		// rch += pi
 
 		// cascade portion of storage
+		// if dim <= 0. { // if land is saturated assume max cascade
+		// 	// 	r.x[i].Sto += ro * (1. - r.maxcasc)
+		// 	// 	ro *= r.maxcasc
+		// 	// } else {
 		r.x[i].Sto += ro * (1. - r.fcasc[i])
 		ro *= r.fcasc[i]
+		// }
 
 		// route flows
 		if ids := r.cds[i]; ids > -1 { // FUTURE CHANGE: change r.cds to a list of pointers to downslope hrus like done with r.rte
@@ -80,7 +86,7 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 			}
 		}
 
-		// // test for water balance
+		// // test for WATERBALANCE
 		// hruwbal := ya + dsto0 - r.x[i].Sto - ae - ro - rch
 		// if math.Abs(hruwbal) > nearzero {
 		// 	fmt.Printf("%10d%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, i, hruwbal, r.x[i].Sto, dsto0, ya, ae, ro, rch)
@@ -94,13 +100,13 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		// // r.sgwd[m*r.nc+i] += gwd
 		ssnetrch += rch //- gwd
 
-		// // needed for water balance below
+		// // needed for WATERBALANCE below
 		// ssae += ae
 		// ssro += ro
 		// ssdsto += r.x[i].Sto - dsto0
 	}
 
-	// // per timestep subwatershed water balance
+	// // per timestep subwatershed WATERBALANCE
 	// swswbal := ya - (ssae+ssro+ssnetrch+ssdsto)/r.fnc
 	// if math.Abs(swswbal) > nearzero {
 	// 	fmt.Printf("%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, swswbal, ssdsto, ya, ssae, ssro, ssnetrch)

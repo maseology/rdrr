@@ -10,15 +10,17 @@ import (
 	"github.com/maseology/rdrr/forcing"
 )
 
-func BuildRDRR(controlFP string, intvl float64,
+func BuildRDRR(controlFP string,
 	iksat func(*grid.Definition, []int, []int) ([]float64, []int),
 	xlu func(*grid.Definition, string, []int) SurfaceSet,
-) (*Structure, *Mapper, *Subwatershed, *Parameter, *forcing.Forcing, string) {
+) (*Structure, *Mapper, *Subwatershed, *Parameter, *forcing.Forcing, string, float64, bool) {
 
 	///////////////////////////////////////////////////////
 	println("loading .rdrr control file")
 	var mdlprfx, gdefFP, hdemFP, swsFP, luFP, sgFP, gwzFP, ncfp string
 	cid0, lakfrac, gwids := -1, -1., []int{}
+	intvl := 86400. / 4
+	crop := false
 	func(rdrrFP string) { // getFilePaths
 		var err error
 		ins := mmio.NewInstruct(rdrrFP)
@@ -42,10 +44,17 @@ func BuildRDRR(controlFP string, intvl float64,
 			ncfp = mfp[0] // input climate data (netCDF)
 		}
 
+		if _, ok := ins.Param["intvl"]; ok { // set time step (seconds)
+			if intvl, err = strconv.ParseFloat(ins.Param["intvl"][0], 64); err != nil {
+				panic(err)
+			}
+		}
+
 		if _, ok := ins.Param["cid0"]; ok { // outlet cell ID, <0 keeps while model domain
 			if cid0, err = strconv.Atoi(ins.Param["cid0"][0]); err != nil {
 				panic(err)
 			}
+			crop = true
 		}
 		if _, ok := ins.Param["gwid"]; ok {
 			cid0 = -1
@@ -67,6 +76,7 @@ func BuildRDRR(controlFP string, intvl float64,
 					panic(fmt.Errorf("builder.go: gwid read error: %s", ins.Param["gwid"][0]))
 				}
 			}
+			crop = true
 		}
 		if _, ok := ins.Param["lakefrac"]; ok {
 			if lakfrac, err = strconv.ParseFloat(ins.Param["lakefrac"][0], 64); err != nil {
@@ -148,10 +158,10 @@ func BuildRDRR(controlFP string, intvl float64,
 
 	if len(chkdir) > 0 {
 		println("\nBuilding summary rasters\n==================================")
-		strc.Checkandprint(chkdir)
-		mp.Checkandprint(strc.GD, float64(strc.Nc), chkdir)
-		sws.checkandprint(strc.GD, strc.Cids, float64(strc.Nc), chkdir)
-		par.Checkandprint(strc.GD, mp.Mx, mp.Igw, chkdir)
+		strc.Checkandprint(chkdir, crop)
+		mp.Checkandprint(strc.GD, float64(strc.Nc), chkdir, crop)
+		sws.checkandprint(strc.GD, strc.Cids, float64(strc.Nc), chkdir, crop)
+		par.Checkandprint(strc.GD, mp.Mx, mp.Igw, chkdir, crop)
 	}
 
 	////////////////////////////////////////
@@ -186,12 +196,12 @@ func BuildRDRR(controlFP string, intvl float64,
 			fmt.Printf(" Load forcing ERROR: unknown file type: %s.  File %s not created.", ncfp, fp)
 			return nil
 		}
-		frc.ToBil(strc.GD, strc.Cids, sws.Scis, chkdir)
+		frc.ToBil(strc.GD, strc.Cids, sws.Scis, chkdir, crop)
 		if err := frc.SaveGobForcing(fp); err != nil {
 			panic(err)
 		}
 		return &frc
 	}(mdlprfx + "forcing.gob")
 
-	return &strc, &mp, &sws, &par, frc, mdlprfx
+	return &strc, &mp, &sws, &par, frc, mdlprfx, intvl, crop
 }
