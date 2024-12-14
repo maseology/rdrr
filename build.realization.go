@@ -11,6 +11,11 @@ func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, []float64, []
 		for i, d := range ev.DepSto[k] {
 			x[i].Cap = d
 		}
+		// x := make([]hru.Tank, len(cids))
+		// for i, d := range ev.DepSto[k] {
+		// 	x[i].Dz = d
+		// 	x[i].A = ev.Fcasc[k][i]
+		// }
 
 		rel[k] = &realization{
 			x:     x,
