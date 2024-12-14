@@ -5,7 +5,15 @@ import "fmt"
 func (frc *Forcing) CheckAndPrint() {
 	fmt.Println("Forcing summary:")
 	nt := len(frc.T)
-	fmt.Printf(" %v to %v, 6-hourly (%d timesteps)\n", frc.T[0], frc.T[nt-1], nt)
+	ts := func() string {
+		if frc.IntervalSec == 86400 {
+			return "daily"
+		} else if frc.IntervalSec == 86400/4 {
+			return "6-hourly"
+		}
+		return "unknown"
+	}()
+	fmt.Printf(" %v to %v, %s (%d timesteps)\n", frc.T[0], frc.T[nt-1], ts, nt)
 	nsta := len(frc.Ya)
 	fmt.Printf(" model timestep interval: %ds, %d stations\n", int64(frc.IntervalSec), nsta)
 
