@@ -54,7 +54,7 @@ func BuildRDRR(controlFP string,
 			if cid0, err = strconv.Atoi(ins.Param["cid0"][0]); err != nil {
 				panic(err)
 			}
-			crop = true
+			crop = cid0 >= 0
 		}
 		if _, ok := ins.Param["gwid"]; ok {
 			cid0 = -1

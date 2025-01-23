@@ -52,7 +52,6 @@ func (frc *Forcing) ToBil(gd *grid.Definition, gcids []int, scids [][]int, chkdi
 		}
 	}
 
-	mya, mpe := make(map[int]float64, len(scids)), make(map[int]float64, len(scids))
 	f := func() float64 {
 		switch frc.IntervalSec {
 		case 86400.:
@@ -64,6 +63,7 @@ func (frc *Forcing) ToBil(gd *grid.Definition, gcids []int, scids [][]int, chkdi
 		}
 	}()
 
+	mya, mpe := make(map[int]float64, len(scids)), make(map[int]float64, len(scids))
 	for i := range scids {
 		for j := range frc.T {
 			mya[i] += frc.Ya[i][j]
