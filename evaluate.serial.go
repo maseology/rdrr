@@ -11,50 +11,7 @@ import (
 func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {
 	// prep
 	nt, ng := len(frc.T), len(ev.Fngwc)
-	rel, sdm, monq := ev.buildRealization(nt, ng)
-
-	// nt, ng, ns := len(frc.T), len(ev.Fngwc), len(ev.Scids)
-	// // qout := make([][]float64, ns)
-	// x := make([][]hru.Res, ns)
-	// rel := make([]*realization, ns)
-	// mons, monq := make([][]int, ns), [][]float64{}
-	// for k, cids := range ev.Scids {
-	// 	// qout[k] = make([]float64, nt)
-	// 	x[k] = make([]hru.Res, len(cids))
-	// 	for i, d := range ev.DepSto[k] {
-	// 		x[k][i].Cap = d
-	// 	}
-
-	// 	rel[k] = &realization{
-	// 		x:     x[k],
-	// 		drel:  ev.Drel[k],
-	// 		bo:    ev.Bo[k],
-	// 		finf:  ev.Finf[k],
-	// 		fcasc: ev.Fcasc[k],
-	// 		spr:   make([]float64, len(cids)),
-	// 		sae:   make([]float64, len(cids)),
-	// 		sro:   make([]float64, len(cids)),
-	// 		srch:  make([]float64, len(cids)),
-	// 		sgwd:  make([]float64, len(cids)),
-	// 		cids:  cids,
-	// 		cds:   ev.Sds[k],
-	// 		rte:   ev.Dsws[k],
-	// 		// m:    ev.M[ev.Sgw[k]],
-	// 		eaf:   ev.Eafact,
-	// 		dextm: ev.Dext / ev.M[ev.Sgw[k]],
-	// 		fnc:   float64(len(cids)),
-	// 		fgnc:  ev.Fngwc[ev.Sgw[k]],
-	// 		// cmon:  ev.Mons[k],
-	// 	}
-
-	// 	if ev.Mons != nil {
-	// 		for range ev.Mons[k] {
-	// 			mons[k] = append(mons[k], len(monq))
-	// 			monq = append(monq, make([]float64, nt))
-	// 		}
-	// 		rel[k].cmon = ev.Mons[k]
-	// 	}
-	// }
+	rel, rte, sdm, monq, imons := ev.buildRealization(nt, ng)
 
 	uiprogress.Start()
 	timestep := make(chan string)
@@ -78,14 +35,14 @@ func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hy
 			for _, k := range inner {
 				relk, gi := rel[k], ev.Sgw[k]
 				m, q, dd := relk.rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[gi]/ev.M[gi], mnt, j, k)
-				for i, ii := range relk.imon {
+				for i, ii := range imons[k] {
 					monq[ii*nt+j] = m[i]
 				}
 				dmsv[gi] += dd
-				if relk.rte == nil {
+				if rte[k] == nil {
 					hyd[j] = q
 				} else {
-					relk.rte.Sto += q
+					rte[k].Sto += q
 				}
 				// func(r SWStopo) {
 				// 	if r.Sid < 0 {

@@ -10,7 +10,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 
 	// prep
 	nt, ng := len(frc.T), len(ev.Fngwc)
-	rel, sdm, monq := ev.buildRealization(nt, ng)
+	rel, rte, sdm, monq, imons := ev.buildRealization(nt, ng)
 
 	var wg sync.WaitGroup
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
@@ -28,14 +28,14 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 				go func(k int) {
 					relk, gi := rel[k], ev.Sgw[k]
 					m, q, dd := relk.rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[gi]/ev.M[gi], mnt, j, k)
-					for i, ii := range relk.imon {
+					for i, ii := range imons[k] {
 						monq[ii*nt+j] = m[i]
 					}
 					dmsv[gi] += dd
-					if relk.rte == nil {
+					if rte[k] == nil {
 						hyd[j] = q
 					} else {
-						relk.rte.Sto += q
+						rte[k].Sto += q
 					}
 					wg.Done()
 				}(k)

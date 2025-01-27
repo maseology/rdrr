@@ -2,9 +2,11 @@ package rdrr
 
 import "github.com/maseology/goHydro/hru"
 
-func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, []float64, []float64) {
+func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, []*hru.Res, []float64, []float64, [][]int) {
 	ns, nmon := len(ev.Scids), 0
 	rel := make([]*realization, ns)
+	rte := make([]*hru.Res, ns)
+	imons := make([][]int, ns)
 
 	for k, cids := range ev.Scids {
 		x := make([]hru.Res, len(cids))
@@ -45,7 +47,7 @@ func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, []float64, []
 					rel[k].cmon[i] = c // cell id of monitor
 					nmon++
 				}
-				rel[k].imon = imon // cross reference to monq
+				imons[k] = imon // cross reference to monq
 			}
 		}
 	}
@@ -54,12 +56,12 @@ func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, []float64, []
 	for k := range ev.Scids {
 		r := ev.Dsws[k]
 		if r.Sid < 0 {
-			rel[k].rte = nil
+			rte[k] = nil
 		} else {
-			rel[k].rte = &rel[r.Sid].x[r.Cid]
+			rte[k] = &rel[r.Sid].x[r.Cid]
 		}
 	}
 
 	sdm, monq := make([]float64, nt*ng), make([]float64, nt*nmon)
-	return rel, sdm, monq
+	return rel, rte, sdm, monq, imons
 }

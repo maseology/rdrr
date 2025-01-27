@@ -8,12 +8,9 @@ import (
 
 type realization struct {
 	x []hru.Res
-	// x []hru.Tank
 	// spr, sae, sro, srch   []float64
 	drel, bo, finf, fcasc []float64
-	cids, cds, cmon, imon []int
-	rte                   *hru.Res
-	// rte                   *hru.Tank
+	cids, cds, cmon       []int
 	eaf, dextm, fnc, fgnc float64
 	nc                    int
 }
@@ -66,14 +63,14 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		rch += pi
 		ro := xs
 
-		// // cascade portion of storage
-		// // if dim <= 0. { // if land is saturated assume max cascade
-		// // 	// 	r.x[i].Sto += ro * (1. - r.maxcasc)
-		// // 	// 	ro *= r.maxcasc
-		// // 	// } else {
-		// r.x[i].Sto += ro * (1. - r.fcasc[i])
-		// ro *= r.fcasc[i]
-		// // }
+		// cascade portion of storage
+		// if dim <= 0. { // if land is saturated assume max cascade
+		// 	// 	r.x[i].Sto += ro * (1. - r.maxcasc)
+		// 	// 	ro *= r.maxcasc
+		// 	// } else {
+		r.x[i].Sto += ro * (1. - r.fcasc[i])
+		ro *= r.fcasc[i]
+		// }
 
 		// route flows
 		if ids := r.cds[i]; ids > -1 { // FUTURE CHANGE: change r.cds to a list of pointers to downslope hrus like done with r.rte
