@@ -7,7 +7,7 @@ func (w *Subwatershed) remapLakes(mp *Mapper, lakfrac float64) {
 		return
 	}
 	var lsids []int
-	for sid, cids := range w.Scis {
+	for sid, cids := range w.Sais {
 		nlak, nwl := 0, 0
 		for _, c := range cids {
 			if mp.Ilu[c] == Lake || mp.Ilu[c] == Waterbody {

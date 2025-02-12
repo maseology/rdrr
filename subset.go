@@ -92,20 +92,20 @@ func subsetByGWzones(s *Structure, w *Subwatershed, m *Mapper, p *Parameter, gwi
 	}()
 
 	func() {
-		newScis, newSds := make([][]int, len(ms)), make([][]int, len(ms))
+		newSais, newSads := make([][]int, len(ms)), make([][]int, len(ms))
 		newIsws, newSgw := make([]int, len(ms)), make([]int, len(ms))
 		newFnsc := make([]float64, len(ms))
 		newIslake := make([]bool, len(ms))
 		newDsws := make([]SWStopo, len(ms))
 		for s, i := range ms {
-			tScis := make([]int, len(w.Scis[s]))
-			tSds := make([]int, len(w.Sds[s]))
-			for i, c := range w.Scis[s] {
-				tScis[i] = mA[c]
-				tSds[i] = w.Sds[s][i]
+			tSais := make([]int, len(w.Sais[s]))
+			tSads := make([]int, len(w.Sads[s]))
+			for i, c := range w.Sais[s] {
+				tSais[i] = mA[c]
+				tSads[i] = w.Sads[s][i]
 			}
-			newScis[i] = tScis
-			newSds[i] = tSds
+			newSais[i] = tSais
+			newSads[i] = tSads
 			newIsws[i] = w.Isws[s]
 			newSgw[i] = mg[w.Sgw[s]] // remapped to 0-based array
 			newFnsc[i] = w.Fnsc[s]
@@ -121,8 +121,8 @@ func subsetByGWzones(s *Structure, w *Subwatershed, m *Mapper, p *Parameter, gwi
 		}
 
 		w.Outer = nil
-		w.Scis = newScis // set of cell indices per sws
-		w.Sds = newSds   // cell topology per sub-watershed, <0 is routed to down-SWS
+		w.Sais = newSais // set of cell indices per sws
+		w.Sads = newSads // cell topology per sub-watershed, <0 is routed to down-SWS
 		w.Dsws = newDsws // [downslope sub-watershed,cell index receiving input], -1 out of model
 		w.Sid = newSid   // 0-based cell index to 0-based sws index
 		w.Isws = newIsws // sws index to original sub-watersed ID (needed for forcings)

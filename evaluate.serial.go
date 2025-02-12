@@ -8,10 +8,10 @@ import (
 )
 
 // Evaluate a single run, no concurrency
-func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {
+func (ev *Evaluator) EvaluateSerial(frc *forcing.Forcing, outdirprfx string, collectGrids bool) (hyd []float64) {
 	// prep
 	nt, ng := len(frc.T), len(ev.Fngwc)
-	rel, rte, sdm, monq, imons := ev.buildRealization(nt, ng)
+	rel, rte, sdm, monq, imons := ev.buildRealization(nt, ng, collectGrids)
 
 	uiprogress.Start()
 	timestep := make(chan string)

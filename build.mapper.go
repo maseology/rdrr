@@ -12,6 +12,7 @@ import (
 func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 	iksat func(*grid.Definition, []int, []int) ([]float64, []int),
 	xlu func(*grid.Definition, string, []int) SurfaceSet,
+	strmkm2 float64,
 ) Mapper {
 	var wg sync.WaitGroup
 
@@ -46,7 +47,7 @@ func (s *Structure) buildMapper(lufp, sgfp, gwfp string,
 		}
 
 		// force stream cells to Channel type
-		strms, _ := s.buildStreams() // collect stream cells
+		strms, _ := s.BuildStreams(strmkm2) // collect stream cells
 		for _, c := range strms {
 			ilu[c] = Channel
 		}

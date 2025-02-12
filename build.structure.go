@@ -8,6 +8,12 @@ import (
 	"github.com/maseology/goHydro/tem"
 )
 
+// BuildStructure
+// gdefFP = grid definition filepath; hydrologically corrected dem filepath; cid0: out drainage point cell ID
+func BuildStructure(gdefFP, hdemFP string, cid0 int) Structure {
+	return buildSTRC(gdefFP, hdemFP, cid0)
+}
+
 func buildSTRC(gdefFP, hdemFP string, cid0 int) Structure {
 
 	///////////////////////////////////////////////////////

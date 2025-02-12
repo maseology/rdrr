@@ -16,10 +16,14 @@ func BuildRDRR(controlFP string,
 ) (*Structure, *Mapper, *Subwatershed, *Parameter, *forcing.Forcing, string, float64, bool) {
 
 	///////////////////////////////////////////////////////
+	// Defaults
+	intvl := 86400. / 4 // time step (6-hourly)
+	strmkm2 := 1.       // contibuting area (km2) for when cells are deem "stream cells"
+
+	///////////////////////////////////////////////////////
 	println("loading .rdrr control file")
 	var mdlprfx, gdefFP, hdemFP, swsFP, luFP, sgFP, gwzFP, ncfp string
 	cid0, lakfrac, gwids := -1, -1., []int{}
-	intvl := 86400. / 4
 	crop := false
 	func(rdrrFP string) { // getFilePaths
 		var err error
@@ -46,6 +50,11 @@ func BuildRDRR(controlFP string,
 
 		if _, ok := ins.Param["intvl"]; ok { // set time step (seconds)
 			if intvl, err = strconv.ParseFloat(ins.Param["intvl"][0], 64); err != nil {
+				panic(err)
+			}
+		}
+		if _, ok := ins.Param["strmkm2"]; ok { // set stream channel contributing area
+			if strmkm2, err = strconv.ParseFloat(ins.Param["strmkm2"][0], 64); err != nil {
 				panic(err)
 			}
 		}
@@ -84,25 +93,25 @@ func BuildRDRR(controlFP string,
 			}
 		}
 
-		relativeFileCheck := func(fp string) string {
-			if _, ok := mmio.FileExists(fp); !ok {
-				rfp := mmio.GetFileDir(rdrrFP) + "/" + fp
-				if _, ok := mmio.FileExists(rfp); ok {
-					return rfp
-				} else {
-					panic(fp + " cannot be found")
-				}
-			}
-			return fp
-		}
-		gdefFP = relativeFileCheck(gdefFP)
-		hdemFP = relativeFileCheck(hdemFP)
-		swsFP = relativeFileCheck(swsFP)
-		luFP = relativeFileCheck(luFP)
-		sgFP = relativeFileCheck(sgFP)
-		gwzFP = relativeFileCheck(gwzFP)
+		// relativeFileCheck := func(fp string) string {
+		// 	if _, ok := mmio.FileExists(fp); !ok {
+		// 		rfp := mmio.GetFileDir(rdrrFP) + "/" + fp
+		// 		if _, ok := mmio.FileExists(rfp); ok {
+		// 			return rfp
+		// 		} else {
+		// 			panic(fp + " cannot be found")
+		// 		}
+		// 	}
+		// 	return fp
+		// }
+		gdefFP = mmio.RelativeFileCheck(rdrrFP, gdefFP)
+		hdemFP = mmio.RelativeFileCheck(rdrrFP, hdemFP)
+		swsFP = mmio.RelativeFileCheck(rdrrFP, swsFP)
+		luFP = mmio.RelativeFileCheck(rdrrFP, luFP)
+		sgFP = mmio.RelativeFileCheck(rdrrFP, sgFP)
+		gwzFP = mmio.RelativeFileCheck(rdrrFP, gwzFP)
 		if len(ncfp) > 0 {
-			ncfp = relativeFileCheck(ncfp)
+			ncfp = mmio.RelativeFileCheck(rdrrFP, ncfp)
 		}
 	}(controlFP)
 	chkdir := mmio.GetFileDir(mdlprfx) + "/check/"
@@ -117,7 +126,7 @@ func BuildRDRR(controlFP string,
 	strc := buildSTRC(gdefFP, hdemFP, cid0)
 
 	println(" > set grid mappings..")
-	mp := strc.buildMapper(luFP, sgFP, gwzFP, iksat, xlu)
+	mp := strc.buildMapper(luFP, sgFP, gwzFP, iksat, xlu, strmkm2)
 
 	println("\n > loading sub-watersheds (computational queuing)..")
 	sws := strc.loadSWS(swsFP)
@@ -196,7 +205,7 @@ func BuildRDRR(controlFP string,
 			fmt.Printf(" Load forcing ERROR: unknown file type: %s.  File %s not created.", ncfp, fp)
 			return nil
 		}
-		frc.ToBil(strc.GD, strc.Cids, sws.Scis, chkdir, crop)
+		frc.ToBil(strc.GD, strc.Cids, sws.Sais, chkdir, crop)
 		if err := frc.SaveGobForcing(fp); err != nil {
 			panic(err)
 		}

@@ -6,7 +6,7 @@ import "sort"
 func (w *Subwatershed) remapGWzones(mp *Mapper) (fngwcnew []float64, igwnew []int) {
 
 	m := make(map[int]map[int][]int, w.Ns)
-	for is, cids := range w.Scis {
+	for is, cids := range w.Sais {
 		m[is] = make(map[int][]int)
 		for _, cid := range cids {
 			m[is][mp.Igw[cid]] = append(m[is][mp.Igw[cid]], cid)
@@ -25,7 +25,7 @@ func (w *Subwatershed) remapGWzones(mp *Mapper) (fngwcnew []float64, igwnew []in
 			}
 		}
 		agwnew[is] = igs
-		fngwcnew[igs] += float64(len(w.Scis[is]))
+		fngwcnew[igs] += float64(len(w.Sais[is]))
 	}
 
 	igwnew = make([]int, len(mp.Igw))

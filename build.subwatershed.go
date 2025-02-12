@@ -92,26 +92,26 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 	}
 
 	// remapping mcids to a list of lists, building downslopes on a per-sws basis
-	scids := make([][]int, len(mcids))
-	sds := make([][]int, len(mcids))
+	saids := make([][]int, len(mcids))
+	sads := make([][]int, len(mcids))
 	for k, v := range mcids {
-		sds[k] = newds(v)
-		scids[k] = v
+		sads[k] = newds(v)
+		saids[k] = v
 	}
 
 	// collecting sws topologies
 	dsws := func() []SWStopo {
-		dsws := make([]SWStopo, len(scids))
-		for is, c := range scids {
+		dsws := make([]SWStopo, len(saids))
+		for is, c := range saids {
 			oi := len(c) - 1 // final cell id drains to downslope SWS
-			if sds[is][oi] != -1 {
+			if sads[is][oi] != -1 {
 				panic("loadSWS SWStopo err")
 			}
 			di := s.Ds[c[oi]]
 			if di > -1 {
 				ds := asids[di]
 				dc := func() int {
-					dsc := scids[ds]
+					dsc := saids[ds]
 					for j := len(dsc) - 1; j >= 0; j-- {
 						if dsc[j] == di {
 							return j
@@ -128,8 +128,8 @@ func (s *Structure) loadSWS(swsfp string) Subwatershed {
 	}()
 
 	return Subwatershed{
-		Scis:   scids, // set of cell indices per sws
-		Sds:    sds,   // cell topology per sub-watershed, <0 is routed to down-SWS
+		Sais:   saids, // set of cell indices per sws
+		Sads:   sads,  // cell topology per sub-watershed, <0 is routed to down-SWS
 		Dsws:   dsws,  // [downslope sub-watershed,cell index receiving input], -1 out of model
 		Sid:    asids, // 0-based cell index to 0-based sws index
 		Isws:   isws,  // sws index to sub-watersed ID (needed for forcings)
@@ -163,12 +163,12 @@ func (w *Subwatershed) UpdateDS(s *Structure) {
 	for i := range s.Cids { // topo-safe cell order
 		mcids[w.Sid[i]] = append(mcids[w.Sid[i]], i)
 	}
-	scids := make([][]int, len(mcids))
-	sds := make([][]int, len(mcids))
+	saids := make([][]int, len(mcids))
+	sads := make([][]int, len(mcids))
 	for k, v := range mcids {
-		sds[k] = newds(v)
-		scids[k] = v
+		sads[k] = newds(v)
+		saids[k] = v
 	}
-	w.Sds = sds
-	w.Scis = scids
+	w.Sads = sads
+	w.Sais = saids
 }

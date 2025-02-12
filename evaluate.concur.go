@@ -6,11 +6,11 @@ import (
 	"github.com/maseology/rdrr/forcing"
 )
 
-func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {
+func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string, collectGrids bool) (hyd []float64) {
 
 	// prep
 	nt, ng := len(frc.T), len(ev.Fngwc)
-	rel, rte, sdm, monq, imons := ev.buildRealization(nt, ng)
+	rel, rte, sdm, monq, imons := ev.buildRealization(nt, ng, collectGrids)
 
 	var wg sync.WaitGroup
 	dms, dmsv := make([]float64, ng), make([]float64, ng)

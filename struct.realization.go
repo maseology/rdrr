@@ -7,15 +7,17 @@ import (
 )
 
 type realization struct {
-	x []hru.Res
-	// spr, sae, sro, srch   []float64
+	x                     []hru.Res
 	drel, bo, finf, fcasc []float64
-	cids, cds, cmon       []int
+	cids, ads, cmon       []int
 	eaf, dextm, fnc, fgnc float64
 	nc                    int
+	coll                  *realizationCollect
 }
 
-func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qout, dm float64) {
+type realizationCollect struct{ spr, sae, sro, srch []float64 }
+
+func (r *realization) rdrr(ya, ea, dmm float64, mnt, j, k int) (qmon []float64, qout, dm float64) {
 	// ssae, ssro, ssdsto := 0., 0., 0. // needed for WATERBALANCE below
 	ssnetrch := 0.
 	qmon = make([]float64, len(r.cmon))
@@ -73,7 +75,7 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		// }
 
 		// route flows
-		if ids := r.cds[i]; ids > -1 { // FUTURE CHANGE: change r.cds to a list of pointers to downslope hrus like done with r.rte
+		if ids := r.ads[i]; ids > -1 { // FUTURE CHANGE: change r.cds to a list of pointers to downslope hrus like done with r.rte
 			r.x[ids].Sto += ro
 		} else {
 			qout += ro
@@ -93,11 +95,14 @@ func (r *realization) rdrr(ya, ea, dmm float64, m, j, k int) (qmon []float64, qo
 		// 	panic("hru wbal error")
 		// }
 
-		// r.spr[m*r.nc+i] += ya
-		// r.sae[m*r.nc+i] += ae
-		// r.sro[m*r.nc+i] += ro
-		// r.srch[m*r.nc+i] += rch
-		// // r.sgwd[m*r.nc+i] += gwd
+		if r.coll != nil {
+			r.coll.spr[mnt*r.nc+i] += ya
+			r.coll.sae[mnt*r.nc+i] += ae
+			r.coll.sro[mnt*r.nc+i] += ro
+			r.coll.srch[mnt*r.nc+i] += rch
+			// r.coll.sgwd[mnt*r.nc+i] += gwd
+		}
+
 		ssnetrch += rch //- gwd
 
 		// // needed for WATERBALANCE below

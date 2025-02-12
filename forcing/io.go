@@ -38,7 +38,7 @@ func LoadGobForcing(fp string) (*Forcing, error) {
 	return &frc, nil
 }
 
-func (frc *Forcing) ToBil(gd *grid.Definition, gcids []int, scids [][]int, chkdirprfx string, crop bool) {
+func (frc *Forcing) ToBil(gd *grid.Definition, gaids []int, saids [][]int, chkdirprfx string, crop bool) {
 	println(" > printing forcing rasters..")
 
 	var gd2 *grid.Definition
@@ -63,8 +63,8 @@ func (frc *Forcing) ToBil(gd *grid.Definition, gcids []int, scids [][]int, chkdi
 		}
 	}()
 
-	mya, mpe := make(map[int]float64, len(scids)), make(map[int]float64, len(scids))
-	for i := range scids {
+	mya, mpe := make(map[int]float64, len(saids)), make(map[int]float64, len(saids))
+	for i := range saids {
 		for j := range frc.T {
 			mya[i] += frc.Ya[i][j]
 			mpe[i] += frc.Ea[i][j]
@@ -74,9 +74,9 @@ func (frc *Forcing) ToBil(gd *grid.Definition, gcids []int, scids [][]int, chkdi
 	}
 
 	sya, spe := gd2.NullArray(-9999.), gd2.NullArray(-9999.)
-	for i, cids := range scids {
-		for _, a := range cids {
-			c := xr[gcids[a]]
+	for i, aids := range saids {
+		for _, a := range aids {
+			c := xr[gaids[a]]
 			sya[c] = mya[i] * 1000.
 			spe[c] = mpe[i] * 1000.
 		}

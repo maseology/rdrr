@@ -2,13 +2,13 @@ package rdrr
 
 import "github.com/maseology/goHydro/hru"
 
-func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, []*hru.Res, []float64, []float64, [][]int) {
-	ns, nmon := len(ev.Scids), 0
+func (ev *Evaluator) buildRealization(nt, ng int, collectGrids bool) ([]*realization, []*hru.Res, []float64, []float64, [][]int) {
+	ns, nmon := len(ev.Saids), 0
 	rel := make([]*realization, ns)
 	rte := make([]*hru.Res, ns)
 	imons := make([][]int, ns)
 
-	for k, cids := range ev.Scids {
+	for k, cids := range ev.Saids {
 		x := make([]hru.Res, len(cids))
 		for i, d := range ev.DepSto[k] {
 			x[i].Cap = d
@@ -19,23 +19,30 @@ func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, []*hru.Res, [
 		// 	x[i].A = ev.Fcasc[k][i]
 		// }
 
+		var col *realizationCollect
+		if collectGrids {
+			col = &realizationCollect{
+				spr:  make([]float64, len(cids)*12),
+				sae:  make([]float64, len(cids)*12),
+				sro:  make([]float64, len(cids)*12),
+				srch: make([]float64, len(cids)*12),
+			}
+		}
+
 		rel[k] = &realization{
 			x:     x,
 			drel:  ev.Drel[k],
 			bo:    ev.Bo[k],
 			finf:  ev.Finf[k],
 			fcasc: ev.Fcasc[k],
-			// spr:   make([]float64, len(cids)*12),
-			// sae:   make([]float64, len(cids)*12),
-			// sro:   make([]float64, len(cids)*12),
-			// srch:  make([]float64, len(cids)*12),
 			cids:  cids,
-			cds:   ev.Sds[k],
+			ads:   ev.Sads[k],
 			eaf:   ev.Eafact,
 			dextm: ev.Dext / ev.M[ev.Sgw[k]],
 			fnc:   float64(len(cids)),
 			fgnc:  ev.Fngwc[ev.Sgw[k]],
 			nc:    len(cids),
+			coll:  col,
 		}
 
 		if ev.Mons != nil {
@@ -53,7 +60,7 @@ func (ev *Evaluator) buildRealization(nt, ng int) ([]*realization, []*hru.Res, [
 	}
 
 	// set up routing
-	for k := range ev.Scids {
+	for k := range ev.Saids {
 		r := ev.Dsws[k]
 		if r.Sid < 0 {
 			rte[k] = nil

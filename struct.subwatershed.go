@@ -9,12 +9,12 @@ import (
 )
 
 type Subwatershed struct {
-	Outer, Scis, Sds [][]int
-	Dsws             []SWStopo
-	Sid, Isws, Sgw   []int
-	Fnsc             []float64
-	Islake           []bool
-	Ns               int
+	Outer, Sais, Sads [][]int
+	Dsws              []SWStopo
+	Sid, Isws, Sgw    []int
+	Fnsc              []float64
+	Islake            []bool
+	Ns                int
 }
 
 type SWStopo struct{ Sid, Cid int } // receiving sws id, receiving cell id
@@ -35,7 +35,7 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 	// checking routing
 	for _, j := range w.Dsws {
 		if j.Sid > -1 {
-			if j.Cid > len(w.Scis[j.Sid]) {
+			if j.Cid > len(w.Sais[j.Sid]) {
 				panic("Subwatershed.checkandprint routing error")
 			}
 		}
@@ -68,7 +68,7 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 		mx[c] = i
 	}
 
-	si, sids, dsws, dcid, sds, sgw, islak := gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999)
+	si, sids, dsws, dcid, sads, sgw, islak := gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999), gd2.NullInt32(-9999)
 	hassgw := w.Sgw != nil
 	for _, c := range gd.Sactives {
 		if i, ok := mx[c]; ok {
@@ -86,10 +86,10 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 			}
 		}
 	}
-	for k, scids := range w.Scis {
-		for i, sc := range scids {
-			c := xr[cids[sc]]
-			sds[c] = int32(w.Sds[k][i])
+	for k, saids := range w.Sais {
+		for i, a := range saids {
+			c := xr[cids[a]]
+			sads[c] = int32(w.Sads[k][i])
 		}
 	}
 
@@ -102,9 +102,9 @@ func (w *Subwatershed) checkandprint(gd *grid.Definition, cids []int, fnc float6
 		}
 	}
 
-	writeInts(gd2, chkdirprfx+"sws.aid.bil", si)   // zero-based index
-	writeInts(gd2, chkdirprfx+"sws.sid.bil", sids) // original index
-	writeInts(gd2, chkdirprfx+"sws.sds.bil", sds)  // cell topology per sub-watershed, <0 is routed to down-SWS
+	writeInts(gd2, chkdirprfx+"sws.aid.bil", si)    // zero-based index
+	writeInts(gd2, chkdirprfx+"sws.sid.bil", sids)  // original index
+	writeInts(gd2, chkdirprfx+"sws.sads.bil", sads) // cell topology per sub-watershed, <0 is routed to down-SWS
 	if hassgw {
 		writeInts(gd2, chkdirprfx+"sws.sgw.bil", sgw) // groundwater index, now projected to sws
 	}
@@ -143,7 +143,7 @@ func LoadGobSubwatershed(fp string) (*Subwatershed, error) {
 
 func (w *Subwatershed) BuildUpSWS() map[int][]int {
 	o := make(map[int][]int, len(w.Sid))
-	for i := range w.Scis {
+	for i := range w.Sais {
 		if _, ok := o[w.Dsws[i].Sid]; !ok {
 			o[w.Dsws[i].Sid] = []int{}
 		}

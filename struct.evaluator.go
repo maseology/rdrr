@@ -1,9 +1,13 @@
 package rdrr
 
-import "github.com/maseology/goHydro/grid"
+import (
+	"fmt"
+
+	"github.com/maseology/goHydro/grid"
+)
 
 type Evaluator struct {
-	Outer, Scids, Sds, Mons       [][]int // Incs, Dwnas
+	Outer, Saids, Sads, Mons      [][]int // Incs, Dwnas
 	Dsws                          []SWStopo
 	Drel, Bo, Fcasc, Finf, DepSto [][]float64
 	Sgw                           []int
@@ -13,29 +17,45 @@ type Evaluator struct {
 	// IsLake                        []bool
 }
 
-func (ev *Evaluator) CheckAndPrint(gd *grid.Definition, cids, igw []int, chkdirprfx string) {
+func (ev *Evaluator) CheckAndPrint(gd *grid.Definition, cids, igw []int, chkdirprfx string, crop bool) {
 
-	gdcrp, xr := gd.CropToActives()
+	var gdcrp *grid.Definition
+	xr := make(map[int]int)
+	if crop {
+		gdcrp, xr = gd.CropToActives()
+	} else {
+		gdcrp = gd
+		for _, c := range gd.Sactives {
+			xr[c] = c
+		}
+	}
 
 	// output
-	sgw, sds := gdcrp.NullInt32(-9999), gdcrp.NullInt32(-9999)
+	sgw, sads := gdcrp.NullInt32(-9999), gdcrp.NullInt32(-9999)
 	drel, bo, fcasc, finf, dsto, m := gdcrp.NullArray(-9999.), gdcrp.NullArray(-9999.), gdcrp.NullArray(-9999.), gdcrp.NullArray(-9999.), gdcrp.NullArray(-9999.), gdcrp.NullArray(-9999.)
-	for k, scids := range ev.Scids {
-		for i, sc := range scids {
-			c := xr[cids[sc]]
+	for k, saids := range ev.Saids {
+		for i, ac := range saids {
+			var c int
+			if x, ok := xr[cids[ac]]; ok {
+				c = x
+			} else {
+				fmt.Println(ac, cids[ac])
+				panic("111")
+			}
+			// c := xr[cids[ac]]
 			drel[c] = ev.Drel[k][i]
 			bo[c] = ev.Bo[k][i]
 			fcasc[c] = ev.Fcasc[k][i]
 			finf[c] = ev.Finf[k][i]
 			dsto[c] = ev.DepSto[k][i]
-			m[c] = ev.M[igw[sc]]
+			m[c] = ev.M[igw[ac]]
 			sgw[c] = int32(ev.Sgw[k])
-			sds[c] = int32(ev.Sds[k][i])
+			sads[c] = int32(ev.Sads[k][i])
 		}
 	}
 
 	writeInts(gdcrp, chkdirprfx+"evaluator.sgw.bil", sgw)          // groundwater index, now projected to sws
-	writeInts(gdcrp, chkdirprfx+"evaluator.sds.bil", sds)          // downslope cell ID by SWS, <0 is routed to down-SWS
+	writeInts(gdcrp, chkdirprfx+"evaluator.sads.bil", sads)        // downslope cell ID by SWS, <0 is routed to down-SWS
 	writeFloats32(gdcrp, chkdirprfx+"evaluator.drel.bil", drel)    // groundwater deficit relative to the regional mean (deltaD)
 	writeFloats32(gdcrp, chkdirprfx+"evaluator.bo.bil", bo)        // groundwater flux to surface/channels
 	writeFloats32(gdcrp, chkdirprfx+"evaluator.fcasc.bil", fcasc)  // fraction of excess storage to runoff
