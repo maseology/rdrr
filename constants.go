@@ -1,3 +1,6 @@
 package rdrr
 
-const nearzero = 1e-5
+const (
+	nearzero = 1e-5
+	nthrd    = 64
+)

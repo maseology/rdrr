@@ -18,7 +18,7 @@ func (frc *Forcing) CheckAndPrint() {
 	fmt.Printf(" model timestep interval: %ds, %d stations\n", int64(frc.IntervalSec), nsta)
 
 	sy, se := 0., 0.
-	for i := 0; i < nsta; i++ {
+	for i := range nsta {
 		for j := range frc.T {
 			sy += frc.Ya[i][j]
 			se += frc.Ea[i][j]

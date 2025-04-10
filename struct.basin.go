@@ -6,22 +6,21 @@ import (
 	"github.com/maseology/goHydro/hru"
 )
 
-type realization struct {
+type basin struct {
 	x                     []hru.Res
 	drel, bo, finf, fcasc []float64
-	cids, ads, cmon       []int
+	cids, ads             []int
 	eaf, dextm, fnc, fgnc float64
 	nc                    int
-	coll                  *realizationCollect
+	coll                  *basinCollect
 }
 
-type realizationCollect struct{ spr, sae, sro, srch []float64 }
+type basinCollect struct{ spr, sae, sro, srch []float64 }
 
-func (r *realization) rdrr(ya, ea, dmm float64, mnt, j, k int) (qmon []float64, qout, dm float64) {
+func (r *basin) rdrr(ya, ea, dmm float64, mnt, j, k int) (qout, dm float64) {
 	// ssae, ssro, ssdsto := 0., 0., 0. // needed for WATERBALANCE below
 	ssnetrch := 0.
-	qmon = make([]float64, len(r.cmon))
-	for i, c := range r.cids {
+	for i := range r.cids {
 		avail := ea
 		// dsto0 := r.x[i].Sto       // needed for WATERBALANCE below
 		xs, ae, rch := 0., 0., 0. //, gwd
@@ -75,17 +74,10 @@ func (r *realization) rdrr(ya, ea, dmm float64, mnt, j, k int) (qmon []float64, 
 		// }
 
 		// route flows
-		if ids := r.ads[i]; ids > -1 { // FUTURE CHANGE: change r.cds to a list of pointers to downslope hrus like done with r.rte
+		if ids := r.ads[i]; ids > -1 {
 			r.x[ids].Sto += ro
 		} else {
 			qout += ro
-		}
-
-		// grab monitor
-		for i, cm := range r.cmon {
-			if c == cm {
-				qmon[i] = ro
-			}
 		}
 
 		// // test for WATERBALANCE
@@ -118,5 +110,5 @@ func (r *realization) rdrr(ya, ea, dmm float64, mnt, j, k int) (qmon []float64, 
 	// 	panic("sws t wbal error")
 	// }
 
-	return qmon, qout, -ssnetrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir
+	return qout, -ssnetrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir
 }
