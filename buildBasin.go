@@ -7,10 +7,6 @@ func (ev *Evaluator) buildBasin(nt, ng int, collectGrids bool) ([]*basin, []floa
 	rel := make([]*basin, ns)
 
 	for k, aids := range ev.Sais {
-		x := make([]hru.Res, len(aids))
-		for i, d := range ev.DepSto[k] {
-			x[i].Cap = d
-		}
 
 		var col *basinCollect
 		if collectGrids {
@@ -19,7 +15,13 @@ func (ev *Evaluator) buildBasin(nt, ng int, collectGrids bool) ([]*basin, []floa
 				sae:  make([]float64, len(aids)*12),
 				sro:  make([]float64, len(aids)*12),
 				srch: make([]float64, len(aids)*12),
+				sdch: make([]float64, len(aids)*12),
 			}
+		}
+
+		x := make([]hru.Res, len(aids))
+		for i, d := range ev.DepSto[k] {
+			x[i].Cap = d
 		}
 
 		sads := make([]int, len(aids))
@@ -39,12 +41,12 @@ func (ev *Evaluator) buildBasin(nt, ng int, collectGrids bool) ([]*basin, []floa
 			fcasc: ev.Fcasc[k],
 			cids:  aids,
 			ads:   sads,
-			eaf:   ev.Eafact,
-			dextm: ev.Dext / ev.M[ev.Sgw[k]],
-			fnc:   float64(len(aids)),
-			fgnc:  ev.Fngwc[ev.Sgw[k]],
-			nc:    len(aids),
-			coll:  col,
+			eaf:   ev.Efact[k],
+			// dextm: ev.Dext / ev.M[ev.Sgw[k]],
+			fnc:  float64(len(aids)),
+			fgnc: ev.Fngwc[ev.Sgw[k]],
+			nc:   len(aids),
+			coll: col,
 		}
 	}
 

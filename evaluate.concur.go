@@ -6,18 +6,18 @@ import (
 	"github.com/maseology/rdrr/forcing"
 )
 
-func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []float64) {
+func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string, collectGrids bool) (hyd []float64) {
 
 	// prep
 	nt, ng := len(frc.T), len(ev.Fngwc)
-	rel, sdm := ev.buildBasin(nt, ng, len(outdirprfx) > 0)
+	rel, sdm := ev.buildBasin(nt, ng, collectGrids)
 	// rte := ev.buildRoute()
 	monq := make([]float64, nt*ev.Nm)
 
 	var wg sync.WaitGroup
 	dms, dmsv := make([]float64, ng), make([]float64, ng)
 	hyd = make([]float64, nt)
-	stage := make([]float64, len(rel))
+	stage := make([]float64, nt*len(rel))
 
 	for j, t := range frc.T {
 		mnt := int(t.Month()) - 1
@@ -42,7 +42,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 						relk, gi := rel[k], ev.Sgw[k]
 						q, dd := relk.rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[gi]/ev.M[gi], mnt, j, k)
 						dmsv[gi] += dd
-						stage[k] = q
+						stage[k*nt+j] = q
 					}
 				}
 			}(done, k)
@@ -60,9 +60,9 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 		// 	wg.Add(len(inner))
 		// 	for _, k := range inner {
 		// 		go func(k int) {
-		// 			q := rte[k].conv.Update(stage[k])
+		// 			q := rte[k].conv.Update(stage[k*nt+j])
 		// 			if q > 0 && rte[k].sds > -1 {
-		// 				stage[rte[k].sds] += q
+		// 				stage[rte[k].sds*nt+j] += q
 		// 			} else {
 		// 				hyd[j] += q
 		// 			}
@@ -80,7 +80,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string) (hyd []fl
 	}
 
 	if len(outdirprfx) > 0 {
-		ev.saveToBins(rel, sdm, monq, hyd, outdirprfx)
+		ev.saveToBins(rel, monq, sdm, stage, hyd, outdirprfx)
 	}
 
 	return hyd
