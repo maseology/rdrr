@@ -11,7 +11,7 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string, collectGr
 	// prep
 	nt, ng := len(frc.T), len(ev.Fngwc)
 	rel, sdm := ev.buildBasin(nt, ng, collectGrids)
-	// rte := ev.buildRoute()
+	rte := ev.buildRoute()
 	monq := make([]float64, nt*ev.Nm)
 
 	var wg sync.WaitGroup
@@ -55,25 +55,28 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string, collectGr
 		wg.Wait()
 		close(k)
 
-		// // route SWSs
-		// for _, inner := range ev.Outer {
-		// 	wg.Add(len(inner))
-		// 	for _, k := range inner {
-		// 		go func(k int) {
-		// 			q := rte[k].conv.Update(stage[k*nt+j])
-		// 			if q > 0 && rte[k].sds > -1 {
-		// 				stage[rte[k].sds*nt+j] += q
-		// 			} else {
-		// 				hyd[j] += q
-		// 			}
-		// 			if i := ev.Smon[k]; i >= 0 {
-		// 				monq[i*nt+j] = q
-		// 			}
-		// 			wg.Done()
-		// 		}(k)
-		// 	}
-		// 	wg.Wait()
-		// }
+		// route SWSs
+		for _, inner := range ev.Outer {
+			wg.Add(len(inner))
+			for _, k := range inner {
+				go func(k int) {
+					q := rte[k].conv.Update(stage[k*nt+j])
+					if q > 0 && rte[k].sds > -1 {
+						stage[rte[k].sds*nt+j] += q
+					} else {
+						hyd[j] += q
+					}
+					// if i := ev.Smon[k]; i >= 0 {
+					// 	monq[i*nt+j] = q
+					// }
+					for i := range ev.Smon[k] {
+						monq[i*nt+j] += q
+					}
+					wg.Done()
+				}(k)
+			}
+			wg.Wait()
+		}
 		// if j > 10 {
 		// 	break
 		// }
