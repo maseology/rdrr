@@ -39,8 +39,8 @@ func (r *basin) rdrr(ya, ea, dmm float64, mnt, j, k int) (qout, dm float64) {
 			gwd += b + avail*r.eaf[i] // evaporation from saturated lands
 			ae = avail * r.eaf[i]     // evaporation
 			avail -= ae
-			r.x[i].Sto += b + ya // add to cell storage
-			// xs = r.x[i].Overflow(b + ya)
+			// r.x[i].Sto += b + ya // add to cell storage
+			xs = r.x[i].Overflow(b + ya)
 		} else {
 			// if dim < r.dextm {
 			// 	ae = (1. - dim/r.dextm) * avail // linear decay
@@ -48,8 +48,8 @@ func (r *basin) rdrr(ya, ea, dmm float64, mnt, j, k int) (qout, dm float64) {
 			// 	gwd += ae
 			// 	avail -= ae
 			// }
-			r.x[i].Sto += ya
-			// xs = r.x[i].Overflow(ya)
+			// r.x[i].Sto += ya
+			xs = r.x[i].Overflow(ya)
 		}
 
 		// evaporate from detention/surface storage
@@ -63,9 +63,9 @@ func (r *basin) rdrr(ya, ea, dmm float64, mnt, j, k int) (qout, dm float64) {
 		pi := r.x[i].Sto * r.finf[i]
 		r.x[i].Sto -= pi
 		rch += pi
-		xs = r.x[i].Overflow(0.) // excess (potential runoff)
+		// xs = r.x[i].Overflow(0.) // excess (potential runoff)
 
-		// cascade portion of storage
+		// cascade portion of surplus/excess mobile water
 		r.x[i].Sto += xs * (1. - r.fcasc[i])
 		ro := xs * r.fcasc[i]
 
@@ -103,7 +103,7 @@ func (r *basin) rdrr(ya, ea, dmm float64, mnt, j, k int) (qout, dm float64) {
 	// swswbal := ya - (ssae+ssro+ssnetrch+ssdsto)/r.fnc
 	// if math.Abs(swswbal) > nearzero {
 	// 	fmt.Printf("%10d%10d%14.6f%14.6f%14.6f%14.6f%14.6f%14.6f\n", k, j, swswbal, ssdsto, ya, ssae, ssro, ssnetrch)
-	// 	panic("sws t wbal error")
+	// 	panic("hrus wbal error")
 	// }
 
 	return qout, -ssnetrch / r.fgnc // sws outflow; state update: adding recharge decreases the deficit of the gw reservoir

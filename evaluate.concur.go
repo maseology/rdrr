@@ -28,6 +28,19 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string, collectGr
 		}
 
 		// update cell state
+		// for _, inner := range ev.Outer {
+		// 	wg.Add(len(inner))
+		// 	for _, k := range inner {
+		// 		go func(k int) {
+		// 			relk, gi := rel[k], ev.Sgw[k]
+		// 			q, dd := relk.rdrr(frc.Ya[k][j], frc.Ea[k][j], dms[gi]/ev.M[gi], mnt, j, k)
+		// 			dmsv[gi] += dd
+		// 			stage[k*nt+j] = q
+		// 			wg.Done()
+		// 		}(k)
+		// 	}
+		// 	wg.Wait()
+		// }
 		k := make(chan int)
 		done := make(chan any)
 		wg.Add(nthrd)
@@ -69,14 +82,18 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string, collectGr
 					// if i := ev.Smon[k]; i >= 0 {
 					// 	monq[i*nt+j] = q
 					// }
-					for i := range ev.Smon[k] {
-						monq[i*nt+j] += q
+					if ev.Smon != nil {
+						for i := range ev.Smon[k] {
+							monq[i*nt+j] += q
+						}
 					}
+					// hyd[j] += stage[k*nt+j]
 					wg.Done()
 				}(k)
 			}
 			wg.Wait()
 		}
+
 		// if j > 10 {
 		// 	break
 		// }

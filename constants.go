@@ -2,5 +2,5 @@ package rdrr
 
 const (
 	nearzero = 1e-5
-	nthrd    = 64
+	nthrd    = 128
 )

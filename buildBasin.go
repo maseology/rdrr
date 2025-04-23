@@ -8,9 +8,9 @@ func (ev *Evaluator) buildBasin(nt, ng int, collectGrids bool) ([]*basin, []floa
 
 	for k, aids := range ev.Sais {
 
-		var col *basinCollect
+		var bcol *basinCollect
 		if collectGrids {
-			col = &basinCollect{
+			bcol = &basinCollect{
 				spr:  make([]float64, len(aids)*12),
 				sae:  make([]float64, len(aids)*12),
 				sro:  make([]float64, len(aids)*12),
@@ -24,15 +24,6 @@ func (ev *Evaluator) buildBasin(nt, ng int, collectGrids bool) ([]*basin, []floa
 			x[i].Cap = d
 		}
 
-		sads := make([]int, len(aids))
-		for i := range aids {
-			if ev.IsStrm[k][i] {
-				sads[i] = -1
-			} else {
-				sads[i] = ev.Sads[k][i]
-			}
-		}
-
 		rel[k] = &basin{
 			x:     x,
 			drel:  ev.Drel[k],
@@ -40,13 +31,13 @@ func (ev *Evaluator) buildBasin(nt, ng int, collectGrids bool) ([]*basin, []floa
 			finf:  ev.Finf[k],
 			fcasc: ev.Fcasc[k],
 			cids:  aids,
-			ads:   sads,
+			ads:   ev.Sads[k],
 			eaf:   ev.Efact[k],
 			// dextm: ev.Dext / ev.M[ev.Sgw[k]],
 			fnc:  float64(len(aids)),
 			fgnc: ev.Fngwc[ev.Sgw[k]],
 			nc:   len(aids),
-			coll: col,
+			coll: bcol,
 		}
 	}
 
