@@ -79,11 +79,8 @@ func (ev *Evaluator) Evaluate(frc *forcing.Forcing, outdirprfx string, collectGr
 					} else {
 						hyd[j] += q
 					}
-					// if i := ev.Smon[k]; i >= 0 {
-					// 	monq[i*nt+j] = q
-					// }
 					if ev.Smon != nil {
-						for i := range ev.Smon[k] {
+						for _, i := range ev.Smon[k] {
 							monq[i*nt+j] += q
 						}
 					}
