@@ -36,5 +36,5 @@ func (frc *Forcing) CheckAndPrint() {
 		panic(fmt.Sprintf("forcing.CheckAndPrint Error: timestep %f not recognized", frc.IntervalSec))
 	}
 
-	fmt.Printf(" totals (m/yr): Ya: %.5f   Ea: %.5f\n", sy, se)
+	fmt.Printf(" totals (m/yr):  Ya: %.4f  Ea: %.4f\n", sy, se)
 }
